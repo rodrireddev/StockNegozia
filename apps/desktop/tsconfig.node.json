@@ -1,0 +1,7 @@
+{
+  "extends": "@stocknegozia/config/typescript/node.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["electron/main/**/*", "electron/preload/**/*", "electron.vite.config.ts"]
+}

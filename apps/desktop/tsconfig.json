@@ -1,0 +1,10 @@
+{
+  "extends": "@stocknegozia/config/typescript/react.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["renderer/src/*"]
+    }
+  },
+  "include": ["renderer/src"]
+}

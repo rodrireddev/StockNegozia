@@ -1,0 +1,25 @@
+{
+  "name": "@stocknegozia/config",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Configuraciones compartidas de TypeScript, ESLint y Prettier para el monorepo StockNegozia",
+  "main": "prettier/index.js",
+  "exports": {
+    "./typescript/base.json": "./typescript/base.json",
+    "./typescript/node.json": "./typescript/node.json",
+    "./typescript/react.json": "./typescript/react.json",
+    "./eslint/base.js": "./eslint/base.js",
+    "./eslint/node.js": "./eslint/node.js",
+    "./eslint/react.js": "./eslint/react.js",
+    "./prettier": "./prettier/index.js"
+  },
+  "dependencies": {
+    "@eslint/js": "^9.17.0",
+    "typescript-eslint": "^8.19.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.16"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

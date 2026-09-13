@@ -1,0 +1,38 @@
+{
+  "name": "@stocknegozia/backend",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Backend NestJS de StockNegozia — Core, API y acceso a datos (Drizzle + SQLite)",
+  "scripts": {
+    "build": "nest build",
+    "start:dev": "nest start --watch",
+    "start:prod": "node dist/main.js",
+    "dev": "nest start --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "db:generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.0",
+    "@nestjs/core": "^11.0.1",
+    "@nestjs/event-emitter": "^3.0.0",
+    "@nestjs/platform-express": "^11.0.1",
+    "@stocknegozia/api-contracts": "workspace:*",
+    "@stocknegozia/shared": "workspace:*",
+    "@stocknegozia/validation": "workspace:*",
+    "better-sqlite3": "^11.7.0",
+    "drizzle-orm": "^0.38.3",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.0",
+    "@stocknegozia/config": "workspace:*",
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.10.5",
+    "drizzle-kit": "^0.30.1",
+    "typescript": "^5.7.2"
+  }
+}
