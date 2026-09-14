@@ -11,21 +11,29 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useUpdateStock } from "../hooks/useUpdateStock";
+import { Textarea } from "@/components/ui/textarea";
+import { useAdjustStock } from "../hooks/useAdjustStock";
 
 interface StockAdjustDialogProps {
   product: ProductDto | null;
   onOpenChange: (open: boolean) => void;
 }
 
+/**
+ * Recibe el stock ABSOLUTO deseado y un motivo obligatorio — el backend calcula el delta y genera
+ * el stock_movement correspondiente (`POST /products/:id/stock-adjustments`, ver
+ * docs/inventory/STOCK_MOVEMENTS.md). Esta UI nunca calcula ni envía un delta.
+ */
 export function StockAdjustDialog({ product, onOpenChange }: StockAdjustDialogProps) {
   const [value, setValue] = useState("0");
+  const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const updateStock = useUpdateStock();
+  const adjustStock = useAdjustStock();
 
   useEffect(() => {
     if (product) {
       setValue(String(product.stock));
+      setReason("");
       setError(null);
     }
   }, [product]);
@@ -36,9 +44,13 @@ export function StockAdjustDialog({ product, onOpenChange }: StockAdjustDialogPr
       setError("Ingresá un número entero mayor o igual a 0");
       return;
     }
+    if (!reason.trim()) {
+      setError("Ingresá un motivo para el ajuste");
+      return;
+    }
     if (!product) return;
-    updateStock.mutate(
-      { id: product.id, stock: parsed },
+    adjustStock.mutate(
+      { id: product.id, stock: parsed, reason: reason.trim() },
       { onSuccess: () => onOpenChange(false), onError: (err) => setError(err.message) },
     );
   };
@@ -52,24 +64,35 @@ export function StockAdjustDialog({ product, onOpenChange }: StockAdjustDialogPr
             {product ? `${product.name} (SKU ${product.sku})` : ""}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-2">
-          <Label htmlFor="stock-value">Nuevo stock</Label>
-          <Input
-            id="stock-value"
-            type="number"
-            min={0}
-            step={1}
-            value={value}
-            onChange={(event) => setValue(event.target.value)}
-          />
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="stock-value">Nuevo stock</Label>
+            <Input
+              id="stock-value"
+              type="number"
+              min={0}
+              step={1}
+              value={value}
+              onChange={(event) => setValue(event.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="stock-reason">Motivo</Label>
+            <Textarea
+              id="stock-reason"
+              placeholder="Ej: Conteo físico, mercadería dañada, corrección de inventario…"
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+            />
+          </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleConfirm} disabled={updateStock.isPending}>
-            {updateStock.isPending ? "Guardando…" : "Guardar"}
+          <Button onClick={handleConfirm} disabled={adjustStock.isPending}>
+            {adjustStock.isPending ? "Guardando…" : "Guardar"}
           </Button>
         </DialogFooter>
       </DialogContent>

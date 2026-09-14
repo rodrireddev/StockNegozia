@@ -11,6 +11,8 @@ import { CategoriesRepository } from "../categories/categories.repository";
 import { CategoriesService } from "../categories/categories.service";
 import { ProductsRepository } from "../products/products.repository";
 import { ProductsService } from "../products/products.service";
+import { StockMovementsRepository } from "../stock-movements/stock-movements.repository";
+import { StockMovementsService } from "../stock-movements/stock-movements.service";
 import { SalesRepository } from "./sales.repository";
 import { SalesService } from "./sales.service";
 
@@ -31,7 +33,8 @@ describe("Sales — secuencia de eventos de logging", () => {
     const categoriesRepository = new CategoriesRepository(db);
     const categoriesService = new CategoriesService(categoriesRepository);
     const productsRepository = new ProductsRepository(db);
-    productsService = new ProductsService(productsRepository, categoriesService, logger);
+    const stockMovementsService = new StockMovementsService(new StockMovementsRepository(db), logger);
+    productsService = new ProductsService(db, productsRepository, categoriesService, stockMovementsService, logger);
     const salesRepository = new SalesRepository(db);
     salesService = new SalesService(db, salesRepository, productsService, logger);
   });
@@ -66,6 +69,7 @@ describe("Sales — secuencia de eventos de logging", () => {
       "sale.create.started",
       "transaction.started",
       "stock.adjust.started",
+      "stock.movement.created",
       "stock.adjust.completed",
       "transaction.committed",
       "sale.create.completed",
@@ -126,6 +130,7 @@ describe("Sales — secuencia de eventos de logging", () => {
       "sale.cancel.started",
       "transaction.started",
       "stock.adjust.started",
+      "stock.movement.created",
       "stock.adjust.completed",
       "transaction.committed",
       "sale.cancel.completed",

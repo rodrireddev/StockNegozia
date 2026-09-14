@@ -7,6 +7,8 @@ import { CategoriesRepository } from "../categories/categories.repository";
 import { CategoriesService } from "../categories/categories.service";
 import { ProductsRepository } from "../products/products.repository";
 import { ProductsService } from "../products/products.service";
+import { StockMovementsRepository } from "../stock-movements/stock-movements.repository";
+import { StockMovementsService } from "../stock-movements/stock-movements.service";
 import { SalesRepository } from "./sales.repository";
 import { SalesService } from "./sales.service";
 
@@ -14,6 +16,7 @@ describe("SalesService", () => {
   let db: Database;
   let productsService: ProductsService;
   let salesService: SalesService;
+  let stockMovementsService: StockMovementsService;
 
   beforeEach(() => {
     db = createTestDb();
@@ -21,7 +24,8 @@ describe("SalesService", () => {
     const categoriesRepository = new CategoriesRepository(db);
     const categoriesService = new CategoriesService(categoriesRepository);
     const productsRepository = new ProductsRepository(db);
-    productsService = new ProductsService(productsRepository, categoriesService, logger);
+    stockMovementsService = new StockMovementsService(new StockMovementsRepository(db), logger);
+    productsService = new ProductsService(db, productsRepository, categoriesService, stockMovementsService, logger);
     const salesRepository = new SalesRepository(db);
     salesService = new SalesService(db, salesRepository, productsService, logger);
   });

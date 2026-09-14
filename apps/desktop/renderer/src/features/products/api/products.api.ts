@@ -3,7 +3,7 @@ import type {
   ActiveUpdateInput,
   CreateProductInput,
   ProductQueryInput,
-  StockUpdateInput,
+  StockAdjustmentInput,
   UpdateProductInput,
 } from "@stocknegozia/validation";
 import { apiGet, apiPatch, apiPost } from "@/lib/api-client";
@@ -33,8 +33,8 @@ export function updateProduct(id: number, input: UpdateProductInput): Promise<Pr
   return apiPatch<ProductDto>(`/products/${id}`, input);
 }
 
-export function updateProductStock(id: number, input: StockUpdateInput): Promise<ProductDto> {
-  return apiPatch<ProductDto>(`/products/${id}/stock`, input);
+export function adjustProductStock(id: number, input: StockAdjustmentInput): Promise<ProductDto> {
+  return apiPost<ProductDto>(`/products/${id}/stock-adjustments`, input);
 }
 
 export function updateProductActive(id: number, input: ActiveUpdateInput): Promise<ProductDto> {

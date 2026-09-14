@@ -1,10 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { updateProductStock } from "../api/products.api";
+import { adjustProductStock } from "../api/products.api";
 
-export function useUpdateStock() {
+export function useAdjustStock() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, stock }: { id: number; stock: number }) => updateProductStock(id, { stock }),
+    mutationFn: ({ id, stock, reason }: { id: number; stock: number; reason: string }) =>
+      adjustProductStock(id, { stock, reason }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["products"] });
     },

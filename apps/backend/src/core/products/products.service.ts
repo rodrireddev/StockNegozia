@@ -1,21 +1,37 @@
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import type { ProductDto, StockStatus } from "@stocknegozia/api-contracts";
+import type { ProductDto, StockMovementType, StockStatus } from "@stocknegozia/api-contracts";
 import type {
   CreateProductInput,
   ProductQueryInput,
   UpdateProductInput,
 } from "@stocknegozia/validation";
-import type { DrizzleExecutor } from "../../database/database.types";
+import { DRIZZLE_CLIENT } from "../../database/database.constants";
+import type { Database, DrizzleExecutor } from "../../database/database.types";
 import { AppLogger } from "../../common/logger/app-logger.service";
 import { CategoriesService } from "../categories/categories.service";
+import { StockMovementsService } from "../stock-movements/stock-movements.service";
 import { ProductsRepository } from "./products.repository";
 
 type ProductRow = ReturnType<ProductsRepository["findById"]>;
+
+/**
+ * Contexto de negocio opcional para `adjustStock()` — determina qué `type` de stock movement se
+ * registra (ver docs/inventory/STOCK_MOVEMENTS.md). Por defecto `"ADJUSTMENT"`: un ajuste sin
+ * contexto de negocio más específico (ej. llamado directo, sin pasar por Sales).
+ */
+export interface AdjustStockOptions {
+  type?: StockMovementType;
+  /** Venta que origina el ajuste (`SALE`/`SALE_CANCELLATION`) — no aplica a `ADJUSTMENT`. */
+  saleId?: number;
+  /** Obligatorio cuando `type` es `ADJUSTMENT` (ver docs/inventory/STOCK_MOVEMENTS.md §reason). */
+  reason?: string;
+}
 
 function computeStockStatus(stock: number, minimumStock: number): StockStatus {
   if (stock <= 0) return "out";
@@ -46,10 +62,15 @@ function toDto(row: NonNullable<ProductRow>): ProductDto {
 
 @Injectable()
 export class ProductsService {
+  // @Inject explícito en todos los parámetros: la inyección automática por tipo de NestJS depende
+  // de metadata que `tsc` emite pero esbuild (usado por Vitest) no — ver el mismo comentario en
+  // GlobalExceptionFilter.
   constructor(
-    private readonly repository: ProductsRepository,
-    private readonly categoriesService: CategoriesService,
-    private readonly logger: AppLogger,
+    @Inject(DRIZZLE_CLIENT) private readonly db: Database,
+    @Inject(ProductsRepository) private readonly repository: ProductsRepository,
+    @Inject(CategoriesService) private readonly categoriesService: CategoriesService,
+    @Inject(StockMovementsService) private readonly stockMovementsService: StockMovementsService,
+    @Inject(AppLogger) private readonly logger: AppLogger,
   ) {}
 
   findMany(query: ProductQueryInput): ProductDto[] {
@@ -104,21 +125,43 @@ export class ProductsService {
     return this.findById(id);
   }
 
-  /** Único punto de mutación de stock — futuro punto de inserción de movimientos de stock. */
-  updateStock(id: number, stock: number): ProductDto {
-    this.findById(id); // 404 si no existe
-    if (stock < 0) throw new BadRequestException("El stock no puede ser negativo");
-    this.repository.updateStock(id, stock);
-    return this.findById(id);
+  /**
+   * API semántica de ajuste manual — ver docs/inventory/STOCK_MOVEMENTS.md. Recibe el stock
+   * ABSOLUTO deseado (nunca un delta): calcula `delta = targetStock - stockActual` y lo aplica vía
+   * `adjustStock()` (el mecanismo canónico, el único que escribe `products.stock`), con
+   * `type: "ADJUSTMENT"` y el `reason` obligatorio. Reemplaza al antiguo `updateStock()`, que
+   * escribía `products.stock` directamente sin generar ningún `stock_movement` — esa vía quedó
+   * eliminada por completo (repository incluido), no solo desconectada del controller.
+   *
+   * Si `delta === 0` no hay ningún cambio real que aplicar ni auditar: no se abre transacción, no
+   * se toca `products.stock`, no se crea movimiento — se devuelve el producto tal cual está.
+   */
+  applyStockAdjustment(id: number, targetStock: number, reason: string): ProductDto {
+    if (targetStock < 0) throw new BadRequestException("El stock no puede ser negativo");
+
+    const current = this.findById(id); // 404 si no existe
+    const delta = targetStock - current.stock;
+    if (delta === 0) return current;
+
+    return this.db.transaction((tx) =>
+      this.adjustStock(id, delta, tx, { type: "ADJUSTMENT", reason }),
+    );
   }
 
   /**
-   * Ajuste relativo de stock (delta positivo = entrada/restauración, negativo = salida), usado
-   * por Sales para descontar/restaurar stock dentro de su propia transacción. A diferencia de
-   * `updateStock` (que fija un valor absoluto desde la UI), acá el `executor` puede ser el "tx"
-   * de una transacción en curso para que la escritura de stock forme parte de esa transacción.
+   * Único punto de mutación relativa de stock (delta positivo = entrada/restauración, negativo =
+   * salida) — usado por Sales para descontar/restaurar stock, y por `applyStockAdjustment()` para
+   * ajustes manuales, siempre dentro de una transacción. Es el único lugar que registra un
+   * `stock_movement` (ver docs/inventory/STOCK_MOVEMENTS.md). El `executor` puede ser el "tx" de
+   * una transacción en curso para que la escritura de stock y el movimiento registrado formen
+   * parte de la misma transacción atómica.
    */
-  adjustStock(id: number, delta: number, executor?: DrizzleExecutor): ProductDto {
+  adjustStock(
+    id: number,
+    delta: number,
+    executor?: DrizzleExecutor,
+    options: AdjustStockOptions = {},
+  ): ProductDto {
     const operation = "adjustStock";
     this.logger.debug({
       context: "ProductsService",
@@ -130,6 +173,14 @@ export class ProductsService {
 
     try {
       const product = this.findById(id, executor); // 404 si no existe
+      const type = options.type ?? "ADJUSTMENT";
+
+      // Se valida ANTES de tocar el repositorio: un ADJUSTMENT sin motivo nunca debe llegar a
+      // escribir products.stock, ni siquiera dentro de una transacción que luego revertiría.
+      if (delta !== 0 && type === "ADJUSTMENT" && !options.reason?.trim()) {
+        throw new BadRequestException("El motivo del ajuste es obligatorio");
+      }
+
       const applied = this.repository.adjustStock(id, delta, executor);
       if (!applied) {
         this.logger.warn({
@@ -143,6 +194,24 @@ export class ProductsService {
       }
 
       const updated = this.findById(id, executor);
+
+      // No registrar un movimiento sin cambio real — un delta de 0 no representa nada auditable.
+      if (delta !== 0) {
+        this.stockMovementsService.record(
+          {
+            productId: id,
+            type,
+            direction: delta < 0 ? "OUT" : "IN",
+            quantity: Math.abs(delta),
+            stockBefore: product.stock,
+            stockAfter: updated.stock,
+            saleId: options.saleId,
+            reason: options.reason,
+          },
+          executor,
+        );
+      }
+
       this.logger.debug({
         context: "ProductsService",
         operation,

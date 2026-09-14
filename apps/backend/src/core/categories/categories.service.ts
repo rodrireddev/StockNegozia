@@ -1,10 +1,12 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import type { CategoryDto } from "@stocknegozia/api-contracts";
 import { CategoriesRepository } from "./categories.repository";
 
 @Injectable()
 export class CategoriesService {
-  constructor(private readonly repository: CategoriesRepository) {}
+  // @Inject explícito: la inyección automática por tipo de NestJS depende de metadata que `tsc`
+  // emite pero esbuild (usado por Vitest) no — ver el mismo comentario en GlobalExceptionFilter.
+  constructor(@Inject(CategoriesRepository) private readonly repository: CategoriesRepository) {}
 
   findAll(): CategoryDto[] {
     return this.repository.findAll().map((category) => ({

@@ -79,8 +79,9 @@ StockNegozia/
 │       │   ├── auth/                     ApiAccessGuard (APP_GUARD), AdminDeviceGuard, Device
 │       │   │                             Management/Credential/Bootstrap/Pairing — ver
 │       │   │                             docs/security/API_ACCESS.md, PAIRING.md, DEVICE_MANAGEMENT.md
-│       │   ├── core/                     CoreModule + 7 módulos de dominio (placeholders)
-│       │   │                             ver core/README.md para la dirección futura
+│       │   ├── core/                     CoreModule + módulos de dominio — Products, Sales y
+│       │   │                             StockMovements (real; ver docs/inventory/STOCK_MOVEMENTS.md),
+│       │   │                             el resto placeholders — ver core/README.md
 │       │   └── health/                   GET /health (@Public) con roundtrip real a SQLite
 │       ├── drizzle.config.ts             config de drizzle-kit (generate)
 │       ├── nest-cli.json
@@ -213,6 +214,18 @@ Cada respuesta HTTP incluye un header `X-Request-Id` (recibido y validado, o gen
 correlaciona todos los logs de ese request — útil para investigar un incidente puntual con
 `grep` o con `LogReader` (`apps/backend/src/common/logger/log-reader.ts`).
 
+## Inventario
+
+Toda modificación efectiva de `products.stock` — venta, cancelación, o ajuste manual — genera
+obligatoriamente un movimiento de stock auditable e inmutable (`stock_movements`), separado del
+estado actual (`products.stock`) y del log técnico (`app.log`). `ProductsService.adjustStock()` es
+el único punto de mutación de stock; no existe ninguna vía pública que lo evite. Los ajustes
+manuales se hacen vía `POST /products/:id/stock-adjustments` (stock absoluto + motivo obligatorio
+— el backend calcula el delta internamente); no existe `PATCH /products/:id/stock`. Ver
+[`docs/inventory/STOCK_MOVEMENTS.md`](docs/inventory/STOCK_MOVEMENTS.md) para el detalle completo
+— modelo, tipos de movimiento, atomicidad, `requestId`, y endpoints de consulta
+(`GET /stock-movements`, `GET /products/:id/stock-movements`).
+
 ## Seguridad
 
 La API HTTP del backend está protegida por una frontera de autenticación centralizada
@@ -256,8 +269,9 @@ Esta primera etapa se limita a la infraestructura: monorepo, arranque de Electro
 conexión real a SQLite vía Drizzle (con una tabla de prueba `app_meta`), y puntos de extensión
 limpios para Core, Plugins y Event Bus. **No incluye**:
 
-- Lógica de negocio (inventario, compras, clientes, usuarios, permisos reales) — Products,
-  Categories y Sales sí tienen implementación real.
+- Lógica de negocio (compras, proveedores, clientes, usuarios, permisos reales) — Products,
+  Categories, Sales y Stock Movements sí tienen implementación real (ver
+  [Inventario](#inventario)).
 - Empaquetado de producción (`electron-builder` / instalador).
 - Autorización granular (roles/permisos), UI de Device Management, generación de QR en la UI de
   Electron/React, cliente Android/iOS real, descubrimiento automático de red (mDNS), sesiones de

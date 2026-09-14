@@ -112,10 +112,6 @@ export class ProductsRepository {
       .run();
   }
 
-  updateStock(id: number, stock: number) {
-    this.db.update(products).set({ stock, updatedAt: new Date() }).where(eq(products.id, id)).run();
-  }
-
   /**
    * Ajuste relativo de stock (delta positivo o negativo), usado por Sales para descontar o
    * restaurar stock. La condición `stock + delta >= 0` va en el propio WHERE: la fila solo se

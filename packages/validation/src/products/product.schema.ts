@@ -31,10 +31,6 @@ export const createProductSchema = productBaseSchema.extend({
 
 export const updateProductSchema = productBaseSchema.partial();
 
-export const stockUpdateSchema = z.object({
-  stock: z.coerce.number().int().min(0, "El stock no puede ser negativo"),
-});
-
 export const activeUpdateSchema = z.object({
   active: z.boolean(),
 });
@@ -50,6 +46,5 @@ export const productQuerySchema = z.object({
 
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
-export type StockUpdateInput = z.infer<typeof stockUpdateSchema>;
 export type ActiveUpdateInput = z.infer<typeof activeUpdateSchema>;
 export type ProductQueryInput = z.infer<typeof productQuerySchema>;

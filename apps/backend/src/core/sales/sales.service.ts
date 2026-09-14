@@ -136,7 +136,12 @@ export class SalesService {
 
         for (const line of lines) {
           // Lanza ConflictException si no hay stock suficiente — la transacción entera revierte.
-          this.productsService.adjustStock(line.productId, -line.quantity, tx);
+          // { type: "SALE", saleId } deja el stock movement correlacionado con esta venta (ver
+          // docs/inventory/STOCK_MOVEMENTS.md).
+          this.productsService.adjustStock(line.productId, -line.quantity, tx, {
+            type: "SALE",
+            saleId: sale.id,
+          });
         }
 
         return sale.id;
@@ -216,7 +221,12 @@ export class SalesService {
 
         const items = this.repository.findItemsBySaleId(id, tx);
         for (const item of items) {
-          this.productsService.adjustStock(item.productId, item.quantity, tx);
+          // Restaura stock — genera un movimiento nuevo (SALE_CANCELLATION), nunca edita el
+          // movimiento SALE original (ver docs/inventory/STOCK_MOVEMENTS.md §Cancelación).
+          this.productsService.adjustStock(item.productId, item.quantity, tx, {
+            type: "SALE_CANCELLATION",
+            saleId: id,
+          });
         }
 
         this.repository.markCancelled(id, new Date(), tx);
