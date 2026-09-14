@@ -7,9 +7,10 @@ export function useCreateSale() {
   return useMutation({
     mutationFn: (input: CreateSaleInput) => createSale(input),
     onSuccess: () => {
-      // La venta descuenta stock — invalida la lista de productos para que el resultado de
-      // búsqueda y el stock mostrado se actualicen (mismo patrón que useAdjustStock).
+      // La venta descuenta stock y genera un stock_movement SALE — invalida lo que depende de
+      // eso (mismo patrón que useAdjustStock/useCreatePurchase).
       void queryClient.invalidateQueries({ queryKey: ["products"] });
+      void queryClient.invalidateQueries({ queryKey: ["stock-movements"] });
     },
   });
 }

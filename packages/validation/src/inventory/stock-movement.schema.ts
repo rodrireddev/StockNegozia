@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-export const stockMovementTypeSchema = z.enum(["SALE", "SALE_CANCELLATION", "ADJUSTMENT"]);
+export const stockMovementTypeSchema = z.enum([
+  "SALE",
+  "SALE_CANCELLATION",
+  "ADJUSTMENT",
+  "PURCHASE",
+]);
 export const stockMovementDirectionSchema = z.enum(["IN", "OUT"]);
 
 /** Filtros de `GET /stock-movements` — todos opcionales, se combinan con AND. */

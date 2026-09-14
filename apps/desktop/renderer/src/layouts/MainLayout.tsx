@@ -7,8 +7,8 @@ const navItems = [
   { to: "/", label: "Panel", end: true },
   { to: "/products", label: "Productos" },
   { to: "/sales", label: "Ventas" },
-  { to: "/purchases", label: "Compras", comingSoon: true },
-  { to: "/inventory", label: "Inventario", comingSoon: true },
+  { to: "/purchases", label: "Compras" },
+  { to: "/inventory", label: "Inventario" },
   { to: "/customers", label: "Clientes", comingSoon: true },
 ];
 

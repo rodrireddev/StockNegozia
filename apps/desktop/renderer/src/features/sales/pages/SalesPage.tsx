@@ -10,7 +10,7 @@ import { SaleCartPanel } from "../components/SaleCartPanel";
 import { SaleSearchResults } from "../components/SaleSearchResults";
 import { useCart } from "../hooks/useCart";
 import { useCreateSale } from "../hooks/useCreateSale";
-import { resolveScanMatch } from "../lib/resolve-scan-match";
+import { resolveScanMatch } from "@/lib/resolve-scan-match";
 
 export function SalesPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
