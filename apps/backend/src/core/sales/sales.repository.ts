@@ -44,10 +44,6 @@ export class SalesRepository {
   }
 
   markCancelled(id: number, cancelledAt: Date, executor: DrizzleExecutor = this.db) {
-    executor
-      .update(sales)
-      .set({ status: "cancelled", cancelledAt })
-      .where(eq(sales.id, id))
-      .run();
+    executor.update(sales).set({ status: "cancelled", cancelledAt }).where(eq(sales.id, id)).run();
   }
 }

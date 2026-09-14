@@ -23,7 +23,12 @@ export function ProductsPage() {
   const debouncedSearch = useDebouncedValue(filters.search);
   const { data: categories = [] } = useCategories();
 
-  const { data: products, isLoading, isError, refetch } = useProducts({
+  const {
+    data: products,
+    isLoading,
+    isError,
+    refetch,
+  } = useProducts({
     ...filters,
     search: debouncedSearch || undefined,
   });

@@ -182,6 +182,30 @@ Las migraciones (`apps/backend/src/database/migrations/`) se aplican automática
 backend (se resuelven desde el árbol fuente, no desde `dist/`, para evitar condiciones de carrera
 con el watcher de `nest start --watch`).
 
+## Logging
+
+El backend registra cada request y cada operación de negocio relevante (ventas, ajustes de stock,
+transacciones) como logs estructurados JSONL, persistidos en disco e independientes de SQLite. Ver
+[`docs/logging/`](docs/logging/) para el detalle completo:
+
+- [`LOGGING.md`](docs/logging/LOGGING.md) — arquitectura, flujo y configuración.
+- [`LOG_SCHEMA.md`](docs/logging/LOG_SCHEMA.md) — contrato formal de cada campo y lista de eventos.
+- [`AI_LOG_ANALYSIS.md`](docs/logging/AI_LOG_ANALYSIS.md) — instrucciones para que una IA
+  reconstruya un incidente a partir de `app.log`.
+
+Variables de entorno (`apps/backend/.env.example`):
+
+```env
+LOG_LEVEL=info        # debug | info | warn | error
+LOG_DIR=./logs        # default: <dataDir>/logs (mismo directorio que SQLite/config/plugins)
+LOG_PERSISTENCE=true  # false desactiva la escritura a disco
+LOG_CONSOLE=true      # false desactiva la salida por consola
+```
+
+Cada respuesta HTTP incluye un header `X-Request-Id` (recibido y validado, o generado) que
+correlaciona todos los logs de ese request — útil para investigar un incidente puntual con
+`grep` o con `LogReader` (`apps/backend/src/common/logger/log-reader.ts`).
+
 ## Notas técnicas / gotchas ya resueltos
 
 - **No usar `composite: true` + `references` en el tsconfig de una app** (solo en packages
@@ -206,5 +230,6 @@ limpios para Core, Plugins y Event Bus. **No incluye**:
 - Sincronización, servidor remoto/LAN, mobile, IA.
 
 Todo lo anterior queda documentado como dirección futura, no implementado.
-#   S t o c k N e g o z i a  
+#   S t o c k N e g o z i a 
+ 
  

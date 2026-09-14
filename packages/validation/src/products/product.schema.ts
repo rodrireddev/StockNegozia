@@ -13,10 +13,7 @@ export const productBaseSchema = z.object({
     .string({ required_error: "El nombre es obligatorio" })
     .trim()
     .min(1, "El nombre es obligatorio"),
-  sku: z
-    .string({ required_error: "El SKU es obligatorio" })
-    .trim()
-    .min(1, "El SKU es obligatorio"),
+  sku: z.string({ required_error: "El SKU es obligatorio" }).trim().min(1, "El SKU es obligatorio"),
   barcode: optionalTrimmedString(),
   description: optionalTrimmedString(),
   categoryId: z.coerce.number().int().positive().optional(),

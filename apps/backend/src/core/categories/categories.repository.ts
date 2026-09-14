@@ -21,10 +21,6 @@ export class CategoriesRepository {
   }
 
   insert(name: string) {
-    return this.db
-      .insert(categories)
-      .values({ name, createdAt: new Date() })
-      .returning()
-      .get();
+    return this.db.insert(categories).values({ name, createdAt: new Date() }).returning().get();
   }
 }

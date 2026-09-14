@@ -113,11 +113,7 @@ export class ProductsRepository {
   }
 
   updateStock(id: number, stock: number) {
-    this.db
-      .update(products)
-      .set({ stock, updatedAt: new Date() })
-      .where(eq(products.id, id))
-      .run();
+    this.db.update(products).set({ stock, updatedAt: new Date() }).where(eq(products.id, id)).run();
   }
 
   /**

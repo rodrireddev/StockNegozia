@@ -1,6 +1,7 @@
 import type { CreateProductInput } from "@stocknegozia/validation";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createTestDb } from "../../test/create-test-db";
+import { createSilentTestLogger } from "../../test/create-test-logger";
 import type { Database } from "../../database/database.types";
 import { CategoriesRepository } from "../categories/categories.repository";
 import { CategoriesService } from "../categories/categories.service";
@@ -16,12 +17,13 @@ describe("SalesService", () => {
 
   beforeEach(() => {
     db = createTestDb();
+    const logger = createSilentTestLogger();
     const categoriesRepository = new CategoriesRepository(db);
     const categoriesService = new CategoriesService(categoriesRepository);
     const productsRepository = new ProductsRepository(db);
-    productsService = new ProductsService(productsRepository, categoriesService);
+    productsService = new ProductsService(productsRepository, categoriesService, logger);
     const salesRepository = new SalesRepository(db);
-    salesService = new SalesService(db, salesRepository, productsService);
+    salesService = new SalesService(db, salesRepository, productsService, logger);
   });
 
   function createProduct(overrides: Partial<CreateProductInput> = {}) {

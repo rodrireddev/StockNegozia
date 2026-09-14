@@ -1,7 +1,9 @@
-import { Module } from "@nestjs/common";
+import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { EventEmitterModule } from "@nestjs/event-emitter";
 import { appConfig } from "./config/configuration";
+import { RequestContextMiddleware } from "./common/logger/request-context.middleware";
+import { LoggerModule } from "./common/logger/logger.module";
 import { CoreModule } from "./core/core.module";
 import { DatabaseModule } from "./database/database.module";
 import { HealthModule } from "./health/health.module";
@@ -13,9 +15,14 @@ import { HealthModule } from "./health/health.module";
       load: [appConfig],
     }),
     EventEmitterModule.forRoot(),
+    LoggerModule,
     DatabaseModule,
     CoreModule,
     HealthModule,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(RequestContextMiddleware).forRoutes("*");
+  }
+}

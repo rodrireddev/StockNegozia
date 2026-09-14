@@ -4,8 +4,7 @@ import { updateProductStock } from "../api/products.api";
 export function useUpdateStock() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, stock }: { id: number; stock: number }) =>
-      updateProductStock(id, { stock }),
+    mutationFn: ({ id, stock }: { id: number; stock: number }) => updateProductStock(id, { stock }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["products"] });
     },

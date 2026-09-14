@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  ParseIntPipe,
-  Patch,
-  Post,
-  Query,
-} from "@nestjs/common";
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query } from "@nestjs/common";
 import type { ProductDto } from "@stocknegozia/api-contracts";
 import {
   activeUpdateSchema,
@@ -41,9 +32,7 @@ export class ProductsController {
   }
 
   @Post()
-  create(
-    @Body(new ZodValidationPipe(createProductSchema)) body: CreateProductInput,
-  ): ProductDto {
+  create(@Body(new ZodValidationPipe(createProductSchema)) body: CreateProductInput): ProductDto {
     return this.productsService.create(body);
   }
 

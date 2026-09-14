@@ -1,4 +1,9 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import type { ProductDto, StockStatus } from "@stocknegozia/api-contracts";
 import type {
   CreateProductInput,
@@ -6,6 +11,7 @@ import type {
   UpdateProductInput,
 } from "@stocknegozia/validation";
 import type { DrizzleExecutor } from "../../database/database.types";
+import { AppLogger } from "../../common/logger/app-logger.service";
 import { CategoriesService } from "../categories/categories.service";
 import { ProductsRepository } from "./products.repository";
 
@@ -43,6 +49,7 @@ export class ProductsService {
   constructor(
     private readonly repository: ProductsRepository,
     private readonly categoriesService: CategoriesService,
+    private readonly logger: AppLogger,
   ) {}
 
   findMany(query: ProductQueryInput): ProductDto[] {
@@ -112,12 +119,48 @@ export class ProductsService {
    * de una transacción en curso para que la escritura de stock forme parte de esa transacción.
    */
   adjustStock(id: number, delta: number, executor?: DrizzleExecutor): ProductDto {
-    const product = this.findById(id, executor); // 404 si no existe
-    const applied = this.repository.adjustStock(id, delta, executor);
-    if (!applied) {
-      throw new ConflictException(`Stock insuficiente para el producto "${product.name}"`);
+    const operation = "adjustStock";
+    this.logger.debug({
+      context: "ProductsService",
+      operation,
+      event: "stock.adjust.started",
+      message: "Adjusting stock",
+      metadata: { productId: id, delta },
+    });
+
+    try {
+      const product = this.findById(id, executor); // 404 si no existe
+      const applied = this.repository.adjustStock(id, delta, executor);
+      if (!applied) {
+        this.logger.warn({
+          context: "ProductsService",
+          operation,
+          event: "stock.insufficient",
+          message: `Insufficient stock for product "${product.name}"`,
+          metadata: { productId: id, requested: Math.abs(delta), available: product.stock },
+        });
+        throw new ConflictException(`Stock insuficiente para el producto "${product.name}"`);
+      }
+
+      const updated = this.findById(id, executor);
+      this.logger.debug({
+        context: "ProductsService",
+        operation,
+        event: "stock.adjust.completed",
+        message: "Stock adjusted",
+        metadata: { productId: id, delta, stock: updated.stock },
+      });
+      return updated;
+    } catch (error) {
+      this.logger.warn({
+        context: "ProductsService",
+        operation,
+        event: "stock.adjust.failed",
+        message: "Stock adjustment failed",
+        metadata: { productId: id, delta },
+      });
+      throw error;
     }
-    return this.findById(id, executor);
   }
 
   updateActive(id: number, active: boolean): ProductDto {

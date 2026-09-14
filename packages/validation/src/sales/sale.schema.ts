@@ -12,9 +12,7 @@ export const saleItemInputSchema = z.object({
 });
 
 export const createSaleSchema = z.object({
-  items: z
-    .array(saleItemInputSchema)
-    .min(1, "La venta debe tener al menos un ítem"),
+  items: z.array(saleItemInputSchema).min(1, "La venta debe tener al menos un ítem"),
 });
 
 export type SaleItemInput = z.infer<typeof saleItemInputSchema>;

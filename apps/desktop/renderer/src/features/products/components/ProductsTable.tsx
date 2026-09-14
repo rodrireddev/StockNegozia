@@ -3,7 +3,14 @@ import { Package, Pencil } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useToggleActive } from "../hooks/useToggleActive";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { StockAdjustDialog } from "./StockAdjustDialog";
@@ -49,9 +56,7 @@ export function ProductsTable({ products }: { products: ProductDto[] }) {
               </TableCell>
               <TableCell className="font-medium">{product.name}</TableCell>
               <TableCell className="text-muted-foreground">{product.sku}</TableCell>
-              <TableCell className="text-muted-foreground">
-                {product.categoryName ?? "—"}
-              </TableCell>
+              <TableCell className="text-muted-foreground">{product.categoryName ?? "—"}</TableCell>
               <TableCell>{currencyFormatter.format(product.salePrice)}</TableCell>
               <TableCell>
                 <button
@@ -82,7 +87,10 @@ export function ProductsTable({ products }: { products: ProductDto[] }) {
         </TableBody>
       </Table>
 
-      <StockAdjustDialog product={stockProduct} onOpenChange={(open) => !open && setStockProduct(null)} />
+      <StockAdjustDialog
+        product={stockProduct}
+        onOpenChange={(open) => !open && setStockProduct(null)}
+      />
 
       <ConfirmDialog
         open={toggleTarget !== null}
