@@ -17,7 +17,9 @@ negocio** (productos, ventas, compras, clientes, etc.) — ver
   generada y aplicada automáticamente contra una tabla de prueba (`app_meta`).
 - ✅ UI de React (Tailwind + shadcn/ui) consumiendo `/health` en vivo vía TanStack Query, con
   routing (react-router-dom) y estado de UI en Zustand (sidebar colapsable).
-- ⬜ Sin lógica de negocio, sin empaquetado de producción, sin autenticación — ver
+- ✅ Control de acceso a la API por credential de dispositivo (`API_ACCESS_MODE`) — ver
+  [Seguridad](#seguridad).
+- ⬜ Sin empaquetado de producción, sin autorización granular/pairing QR completo — ver
   [Alcance de esta etapa](#alcance-de-esta-etapa).
 
 ## Arquitectura
@@ -47,6 +49,8 @@ StockNegozia/
 │   │   │   ├── main/
 │   │   │   │   ├── index.ts              ciclo de vida de la app, flags de GPU, bootstrap
 │   │   │   │   ├── backend-manager.ts    spawn/stop/supervisión/health-poll del backend
+│   │   │   │   ├── bootstrap-device.ts   canjea el token de bootstrap por una credential propia
+│   │   │   │   ├── device-credential-store.ts  credential cifrada con `safeStorage`
 │   │   │   │   └── window.ts             creación del BrowserWindow
 │   │   │   └── preload/
 │   │   │       └── index.ts              contextBridge mínimo (backendBaseUrl, versions)
@@ -72,9 +76,11 @@ StockNegozia/
 │       │   ├── app.module.ts             ConfigModule, EventEmitterModule, Database/Core/Health
 │       │   ├── config/                   configuration.ts (env+data dir), ensure-data-dirs.ts
 │       │   ├── database/                 database.module.ts (Drizzle+SQLite), schema/, migrations/
+│       │   ├── auth/                     ApiAccessGuard (APP_GUARD), Device/Credential/Bootstrap —
+│       │   │                             ver docs/security/API_ACCESS.md
 │       │   ├── core/                     CoreModule + 7 módulos de dominio (placeholders)
 │       │   │                             ver core/README.md para la dirección futura
-│       │   └── health/                   GET /health con roundtrip real a SQLite
+│       │   └── health/                   GET /health (@Public) con roundtrip real a SQLite
 │       ├── drizzle.config.ts             config de drizzle-kit (generate)
 │       ├── nest-cli.json
 │       └── package.json
@@ -206,6 +212,21 @@ Cada respuesta HTTP incluye un header `X-Request-Id` (recibido y validado, o gen
 correlaciona todos los logs de ese request — útil para investigar un incidente puntual con
 `grep` o con `LogReader` (`apps/backend/src/common/logger/log-reader.ts`).
 
+## Seguridad
+
+La API HTTP del backend está protegida por una frontera de autenticación centralizada
+(`ApiAccessGuard`) basada en una credential por dispositivo — no en confiar en `Origin`,
+`User-Agent` ni IP localhost. Ver [`docs/security/API_ACCESS.md`](docs/security/API_ACCESS.md)
+para el detalle completo: `API_ACCESS_MODE` (`development`/`production`), identidad de
+dispositivo, credentials, bootstrap del primer cliente Electron, revocación y limitaciones del
+modelo de seguridad local.
+
+Variables de entorno (`apps/backend/.env.example`):
+
+```env
+API_ACCESS_MODE=development  # development = abierto | production = credential obligatoria
+```
+
 ## Notas técnicas / gotchas ya resueltos
 
 - **No usar `composite: true` + `references` en el tsconfig de una app** (solo en packages
@@ -223,9 +244,12 @@ Esta primera etapa se limita a la infraestructura: monorepo, arranque de Electro
 conexión real a SQLite vía Drizzle (con una tabla de prueba `app_meta`), y puntos de extensión
 limpios para Core, Plugins y Event Bus. **No incluye**:
 
-- Lógica de negocio (productos, inventario, ventas, compras, clientes, usuarios, permisos reales).
+- Lógica de negocio (inventario, compras, clientes, usuarios, permisos reales) — Products,
+  Categories y Sales sí tienen implementación real.
 - Empaquetado de producción (`electron-builder` / instalador).
-- Autenticación, autorización, dispositivos, sesiones.
+- Autorización granular (roles/permisos), pairing QR completo, sesiones de usuario, login con
+  usuario/contraseña — la autenticación de dispositivo (`API_ACCESS_MODE`, credentials,
+  bootstrap) sí está implementada, ver [Seguridad](#seguridad).
 - Plugins reales (WhatsApp, persistencia externa, etc.) — solo documentados en `plugins/README.md`.
 - Sincronización, servidor remoto/LAN, mobile, IA.
 

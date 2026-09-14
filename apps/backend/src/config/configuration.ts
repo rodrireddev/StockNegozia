@@ -24,6 +24,7 @@ function loadConfig() {
     logDir: env.LOG_DIR ?? logsDir,
     logPersistence: env.LOG_PERSISTENCE,
     logConsole: env.LOG_CONSOLE,
+    accessMode: env.API_ACCESS_MODE,
   };
 }
 

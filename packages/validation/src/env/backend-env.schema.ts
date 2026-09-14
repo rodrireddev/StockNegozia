@@ -18,6 +18,10 @@ export const backendEnvSchema = z.object({
   LOG_DIR: z.string().optional(),
   LOG_PERSISTENCE: booleanEnvFlag(true),
   LOG_CONSOLE: booleanEnvFlag(true),
+  // "development" = endpoints abiertos (browser, Postman, Electron) sin credential, para no
+  // interrumpir el flujo de desarrollo. "production" = todo endpoint no marcado @Public() exige
+  // `Authorization: Bearer <credential>` de un dispositivo activo — ver docs/security/API_ACCESS.md.
+  API_ACCESS_MODE: z.enum(["development", "production"]).default("development"),
 });
 
 export type BackendEnv = z.infer<typeof backendEnvSchema>;
