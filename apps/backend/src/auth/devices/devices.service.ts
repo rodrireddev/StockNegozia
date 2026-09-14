@@ -30,6 +30,13 @@ export class DevicesService {
     const { credential, credentialHash } = this.credentialService.generate();
     const id = randomUUID();
     this.repository.insert({ id, name, type, credentialHash });
+    this.logger.info({
+      context: "DevicesService",
+      operation: "register",
+      event: "device.created",
+      message: "Device created",
+      metadata: { deviceId: id, deviceType: type },
+    });
     return { deviceId: id, credential };
   }
 

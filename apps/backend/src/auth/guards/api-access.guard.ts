@@ -6,12 +6,16 @@ import { AppLogger } from "../../common/logger/app-logger.service";
 import { IS_PUBLIC_KEY } from "../decorators/public.decorator";
 import { DevicesService } from "../devices/devices.service";
 
-interface MinimalRequest {
+/** Poblado por el guard sobre la request cuando autentica un dispositivo — ver más abajo. */
+export interface RequestWithDevice {
+  device?: { id: string; name: string };
+}
+
+interface MinimalRequest extends RequestWithDevice {
   headers: Record<string, string | string[] | undefined>;
   method: string;
   path: string;
   originalUrl?: string;
-  device?: { id: string; name: string };
 }
 
 function extractBearerToken(header: string | string[] | undefined): string | undefined {

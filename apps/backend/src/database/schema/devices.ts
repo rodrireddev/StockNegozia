@@ -8,7 +8,7 @@ import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 export const devices = sqliteTable("devices", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
-  type: text("type", { enum: ["desktop", "mobile", "web"] }).notNull(),
+  type: text("type", { enum: ["desktop", "mobile", "tablet", "web", "other"] }).notNull(),
   status: text("status", { enum: ["active", "revoked"] }).notNull().default("active"),
   credentialHash: text("credential_hash").notNull().unique(),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),

@@ -3,3 +3,4 @@ export * from "./categories";
 export * from "./products";
 export * from "./sales";
 export * from "./devices";
+export * from "./pairing-sessions";

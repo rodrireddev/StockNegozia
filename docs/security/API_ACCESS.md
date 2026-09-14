@@ -58,7 +58,7 @@ Tabla `devices` (Drizzle/SQLite, migración `0003_colossal_marvel_apes.sql`):
 | ----------------- | ------------------------------------------------------------------- |
 | `id`               | UUID, identidad estable del dispositivo.                            |
 | `name`             | Nombre descriptivo (ej. "Electron Desktop").                        |
-| `type`             | `desktop` \| `mobile` \| `web`.                                     |
+| `type`             | `desktop` \| `mobile` \| `tablet` \| `web` \| `other`.              |
 | `status`           | `active` \| `revoked`.                                              |
 | `credential_hash`  | SHA-256 de la credential — **nunca se guarda la credential en texto plano**. |
 | `created_at`       | Fecha de alta.                                                       |
@@ -103,6 +103,8 @@ Marcados con el decorator `@Public()` (`apps/backend/src/auth/decorators/public.
 - `GET /health` — Electron hace polling antes de tener ninguna credential.
 - `POST /auth/bootstrap` — por definición, el cliente todavía no tiene credential; su seguridad
   viene del token de instalación de un solo uso, no de este guard.
+- `POST /auth/pairing/confirm` — mismo motivo: lo llama el dispositivo nuevo, que todavía no tiene
+  credential propia. Ver [`PAIRING.md`](./PAIRING.md).
 
 Todo endpoint de negocio (Products, Categories, Sales, etc.) queda protegido por defecto — no se
 marcó ninguno como público sin una razón explícita.
@@ -110,7 +112,9 @@ marcó ninguno como público sin una razón explícita.
 ## Endpoints protegidos
 
 El resto de la API (`/products`, `/categories`, `/sales`, ...) — sin cambios en su lógica de
-negocio; siguen funcionando exactamente igual, ahora detrás del guard.
+negocio; siguen funcionando exactamente igual, ahora detrás del guard. `POST /auth/pairing` y
+`POST /auth/pairing/cancel` también están protegidos: solo un dispositivo ya autenticado puede
+iniciar o cancelar un pairing (ver [`PAIRING.md`](./PAIRING.md)).
 
 ## Bootstrap del primer dispositivo
 
@@ -127,7 +131,7 @@ Backend arranca
 Genera un token de instalación   No emite/borra el token —
 de un solo uso (32 bytes         el bootstrap ya no está disponible
 random, TTL 10 min) y lo         (el siguiente dispositivo se agrega
-escribe en                       vía pairing QR — no implementado aún)
+escribe en                       vía pairing QR — ver PAIRING.md)
 <dataDir>/config/bootstrap.token
       │
       ▼
@@ -190,6 +194,7 @@ creó un segundo sistema de logging ni de request IDs. Eventos nuevos:
 | `auth.bootstrap.started`    | INFO  | Se recibió un intento de `POST /auth/bootstrap`.                |
 | `auth.bootstrap.completed`  | INFO  | Bootstrap exitoso — se registró un nuevo `Device`.              |
 | `auth.bootstrap.failed`     | WARN/ERROR | Token de bootstrap inválido/expirado, o error al persistirlo. |
+| `device.created`            | INFO  | Se creó un `Device` — vía bootstrap o vía pairing (ver `PAIRING.md`). |
 
 **Nunca se registra**: el header `Authorization`, la credential (en texto plano o hasheada), el
 token de bootstrap, ni el body completo de la request. Solo `deviceId` y un `reason` técnico (ej.
@@ -198,31 +203,16 @@ token de bootstrap, ni el body completo de la request. Solo `deviceId` y un `rea
 Toda request — autenticada o rechazada — conserva su `requestId` (`X-Request-Id`), tanto en la
 respuesta como en cada entrada de `app.log`, exactamente igual que antes de este milestone.
 
-## Futuro: pairing QR
+## Dispositivos adicionales: pairing QR
 
-Preparado para, más adelante, agregar `POST /auth/pairing/start` y `POST /auth/pairing/confirm`
-para emparejar dispositivos adicionales (mobile, otra laptop) sin reusar el flujo de bootstrap:
+A partir del Milestone 6, un dispositivo ya autenticado (típicamente el Electron desktop) puede
+emparejar dispositivos adicionales (mobile, otra laptop, tablet) sin reusar el flujo de bootstrap
+de un solo dispositivo — ver [`PAIRING.md`](./PAIRING.md) para el detalle completo:
+`POST /auth/pairing`, `POST /auth/pairing/confirm`, `POST /auth/pairing/cancel`.
 
-```
-Desktop ya emparejado
-        │
-        ▼
-   inicia pairing
-        │
-        ▼
-   QR + código temporal (de un solo uso, igual que el token de bootstrap)
-        │
-        ▼
-otro dispositivo escanea, usuario confirma el código
-        │
-        ▼
-backend verifica → crea un nuevo Device → credential propia
-```
-
-El QR/código nunca se convierte directamente en la credential permanente — cada dispositivo
-emparejado obtiene la suya, generada por el backend, igual que el dispositivo bootstrap. **No
-implementado en este milestone** — solo el decorator `@Public()` y el guard centralizado ya están
-preparados para que agregar estas rutas más adelante no requiera rediseñar nada.
+El mecanismo es deliberadamente análogo al bootstrap (token temporal, de un solo uso, que nunca es
+la credential permanente) pero requiere estar ya autenticado para iniciarlo, y agrega un segundo
+factor fuera de banda (el verification code) que no viaja dentro del QR.
 
 ## Limitaciones del modelo de seguridad local
 

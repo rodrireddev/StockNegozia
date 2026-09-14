@@ -5,6 +5,7 @@ import { appConfig } from "./config/configuration";
 import { RequestContextMiddleware } from "./common/logger/request-context.middleware";
 import { LoggerModule } from "./common/logger/logger.module";
 import { AuthModule } from "./auth/auth.module";
+import { PairingModule } from "./auth/pairing/pairing.module";
 import { CoreModule } from "./core/core.module";
 import { DatabaseModule } from "./database/database.module";
 import { HealthModule } from "./health/health.module";
@@ -19,6 +20,7 @@ import { HealthModule } from "./health/health.module";
     LoggerModule,
     DatabaseModule,
     AuthModule,
+    PairingModule,
     CoreModule,
     HealthModule,
   ],

@@ -22,6 +22,12 @@ export const backendEnvSchema = z.object({
   // interrumpir el flujo de desarrollo. "production" = todo endpoint no marcado @Public() exige
   // `Authorization: Bearer <credential>` de un dispositivo activo — ver docs/security/API_ACCESS.md.
   API_ACCESS_MODE: z.enum(["development", "production"]).default("development"),
+  // Duración de una sesión de pairing (QR + código) antes de expirar — ver docs/security/PAIRING.md.
+  PAIRING_EXPIRATION_MINUTES: z.coerce.number().int().positive().default(5),
+  // Override manual del host que se embebe en el QR para que otro dispositivo en la misma LAN
+  // pueda llegar al backend (localhost no sirve desde otro dispositivo). Sin esta variable, se
+  // intenta autodetectar la primera IP de LAN no interna — ver `resolveLanHost`.
+  PAIRING_HOST: z.string().optional(),
 });
 
 export type BackendEnv = z.infer<typeof backendEnvSchema>;

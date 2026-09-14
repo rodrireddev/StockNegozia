@@ -25,6 +25,8 @@ function loadConfig() {
     logPersistence: env.LOG_PERSISTENCE,
     logConsole: env.LOG_CONSOLE,
     accessMode: env.API_ACCESS_MODE,
+    pairingExpirationMinutes: env.PAIRING_EXPIRATION_MINUTES,
+    pairingHostOverride: env.PAIRING_HOST,
   };
 }
 

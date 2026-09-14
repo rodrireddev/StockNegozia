@@ -1,4 +1,4 @@
-export type DeviceType = "desktop" | "mobile" | "web";
+export type DeviceType = "desktop" | "mobile" | "tablet" | "web" | "other";
 export type DeviceStatus = "active" | "revoked";
 
 export interface AuthenticatedDevice {

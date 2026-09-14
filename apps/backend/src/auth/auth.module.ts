@@ -21,6 +21,6 @@ import { ApiAccessGuard } from "./guards/api-access.guard";
     BootstrapTokenService,
     { provide: APP_GUARD, useClass: ApiAccessGuard },
   ],
-  exports: [DevicesService],
+  exports: [DevicesService, CredentialService],
 })
 export class AuthModule {}

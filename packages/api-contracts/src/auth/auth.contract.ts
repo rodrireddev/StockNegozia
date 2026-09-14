@@ -1,4 +1,4 @@
-export type DeviceType = "desktop" | "mobile" | "web";
+export type DeviceType = "desktop" | "mobile" | "tablet" | "web" | "other";
 export type DeviceStatus = "active" | "revoked";
 
 /**
@@ -8,5 +8,43 @@ export type DeviceStatus = "active" | "revoked";
  */
 export interface BootstrapResult {
   deviceId: string;
+  credential: string;
+}
+
+export type PairingStatus = "pending" | "confirmed" | "expired" | "cancelled";
+
+/**
+ * Payload embebido en el QR — ver docs/security/PAIRING.md. Contiene el pairing token temporal,
+ * nunca una credential permanente. `version` permite evolucionar el formato a futuro.
+ */
+export interface PairingQrPayload {
+  version: 1;
+  type: "stocknegozia-pairing";
+  host: string;
+  port: number;
+  protocol: "http";
+  pairingId: string;
+  token: string;
+  expiresAt: string;
+}
+
+/**
+ * Respuesta de `POST /auth/pairing`. `verificationCode` se muestra en pantalla para que la
+ * persona lo lea/tipee en el otro dispositivo — no viaja dentro del QR.
+ */
+export interface PairingCreateResult {
+  pairingId: string;
+  verificationCode: string;
+  status: PairingStatus;
+  expiresAt: string;
+  qr: PairingQrPayload;
+}
+
+/**
+ * Respuesta de `POST /auth/pairing/confirm` — igual que `BootstrapResult`, única vez que se
+ * revela la credential del dispositivo recién emparejado.
+ */
+export interface PairingConfirmResult {
+  device: { id: string; name: string; type: DeviceType };
   credential: string;
 }

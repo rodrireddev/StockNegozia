@@ -76,8 +76,8 @@ StockNegozia/
 │       │   ├── app.module.ts             ConfigModule, EventEmitterModule, Database/Core/Health
 │       │   ├── config/                   configuration.ts (env+data dir), ensure-data-dirs.ts
 │       │   ├── database/                 database.module.ts (Drizzle+SQLite), schema/, migrations/
-│       │   ├── auth/                     ApiAccessGuard (APP_GUARD), Device/Credential/Bootstrap —
-│       │   │                             ver docs/security/API_ACCESS.md
+│       │   ├── auth/                     ApiAccessGuard (APP_GUARD), Device/Credential/Bootstrap/Pairing —
+│       │   │                             ver docs/security/API_ACCESS.md y PAIRING.md
 │       │   ├── core/                     CoreModule + 7 módulos de dominio (placeholders)
 │       │   │                             ver core/README.md para la dirección futura
 │       │   └── health/                   GET /health (@Public) con roundtrip real a SQLite
@@ -221,10 +221,16 @@ para el detalle completo: `API_ACCESS_MODE` (`development`/`production`), identi
 dispositivo, credentials, bootstrap del primer cliente Electron, revocación y limitaciones del
 modelo de seguridad local.
 
+Un dispositivo ya autenticado puede emparejar dispositivos adicionales (mobile, otra laptop,
+tablet) vía QR + código de verificación, sin reusar el bootstrap — ver
+[`docs/security/PAIRING.md`](docs/security/PAIRING.md).
+
 Variables de entorno (`apps/backend/.env.example`):
 
 ```env
-API_ACCESS_MODE=development  # development = abierto | production = credential obligatoria
+API_ACCESS_MODE=development         # development = abierto | production = credential obligatoria
+PAIRING_EXPIRATION_MINUTES=5        # duración de una sesión de pairing (QR + código)
+# PAIRING_HOST=192.168.1.100        # override del host embebido en el QR (default: autodetectado)
 ```
 
 ## Notas técnicas / gotchas ya resueltos
@@ -247,9 +253,10 @@ limpios para Core, Plugins y Event Bus. **No incluye**:
 - Lógica de negocio (inventario, compras, clientes, usuarios, permisos reales) — Products,
   Categories y Sales sí tienen implementación real.
 - Empaquetado de producción (`electron-builder` / instalador).
-- Autorización granular (roles/permisos), pairing QR completo, sesiones de usuario, login con
-  usuario/contraseña — la autenticación de dispositivo (`API_ACCESS_MODE`, credentials,
-  bootstrap) sí está implementada, ver [Seguridad](#seguridad).
+- Autorización granular (roles/permisos), generación de QR en la UI de Electron/React, cliente
+  Android/iOS real, descubrimiento automático de red (mDNS), sesiones de usuario, login con
+  usuario/contraseña — la autenticación de dispositivo (`API_ACCESS_MODE`, credentials, bootstrap,
+  pairing) sí está implementada, ver [Seguridad](#seguridad).
 - Plugins reales (WhatsApp, persistencia externa, etc.) — solo documentados en `plugins/README.md`.
 - Sincronización, servidor remoto/LAN, mobile, IA.
 
