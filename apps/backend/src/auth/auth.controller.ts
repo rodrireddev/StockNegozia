@@ -44,7 +44,12 @@ export class AuthController {
       throw new UnauthorizedException();
     }
 
-    const result = this.devicesService.register(body.name ?? "Electron Desktop", body.type ?? "desktop");
+    // El dispositivo de bootstrap es, por definición, el primero de la instalación — se convierte
+    // en el administrador (ver docs/security/DEVICE_MANAGEMENT.md §Quién puede administrar
+    // dispositivos). Los dispositivos agregados después vía pairing nunca son admin por defecto.
+    const result = this.devicesService.register(body.name ?? "Electron Desktop", body.type ?? "desktop", {
+      isAdmin: true,
+    });
     this.logger.info({
       context: "AuthController",
       operation,

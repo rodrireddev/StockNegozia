@@ -61,6 +61,7 @@ Tabla `devices` (Drizzle/SQLite, migración `0003_colossal_marvel_apes.sql`):
 | `type`             | `desktop` \| `mobile` \| `tablet` \| `web` \| `other`.              |
 | `status`           | `active` \| `revoked`.                                              |
 | `credential_hash`  | SHA-256 de la credential — **nunca se guarda la credential en texto plano**. |
+| `is_admin`         | Si puede administrar otros dispositivos — ver [`DEVICE_MANAGEMENT.md`](./DEVICE_MANAGEMENT.md). |
 | `created_at`       | Fecha de alta.                                                       |
 | `last_seen_at`     | Última vez que la credential autenticó una request (throttled, ver más abajo). |
 
@@ -169,9 +170,11 @@ sesión de Electron (`session.defaultSession.webRequest.onBeforeSendHeaders`, en
 ## Revocación
 
 `DevicesService.revoke(deviceId)` marca el dispositivo como `revoked` — su credential deja de
-autenticar de inmediato. No hay todavía un endpoint HTTP ni UI de administración (fuera de alcance
-de este milestone); la capacidad queda preparada a nivel de servicio para una futura pantalla de
-administración de dispositivos.
+autenticar de inmediato y **permanentemente** (no existe reactivación). A partir del Milestone 7
+existe un endpoint HTTP (`POST /auth/devices/:id/revoke`) y el resto de la administración de
+dispositivos — ver [`DEVICE_MANAGEMENT.md`](./DEVICE_MANAGEMENT.md) para el detalle completo
+(listado, consulta, renombrado, `/me`, quién puede administrar, protección contra
+auto-revocación).
 
 ## `last_seen_at`
 
@@ -190,11 +193,15 @@ creó un segundo sistema de logging ni de request IDs. Eventos nuevos:
 | `auth.request.denied`       | WARN  | Falta el header `Authorization` en `production`.               |
 | `auth.device.authenticated` | INFO  | Credential válida, dispositivo activo.                         |
 | `auth.device.rejected`      | WARN  | Credential inválida o dispositivo revocado.                    |
-| `auth.device.revoked`       | INFO  | Un dispositivo fue revocado.                                    |
 | `auth.bootstrap.started`    | INFO  | Se recibió un intento de `POST /auth/bootstrap`.                |
 | `auth.bootstrap.completed`  | INFO  | Bootstrap exitoso — se registró un nuevo `Device`.              |
 | `auth.bootstrap.failed`     | WARN/ERROR | Token de bootstrap inválido/expirado, o error al persistirlo. |
 | `device.created`            | INFO  | Se creó un `Device` — vía bootstrap o vía pairing (ver `PAIRING.md`). |
+| `device.listed`             | INFO  | `GET /auth/devices` — ver `DEVICE_MANAGEMENT.md`.                |
+| `device.viewed`             | INFO  | `GET /auth/devices/:id` o `/me`.                                 |
+| `device.updated`            | INFO  | `PATCH /auth/devices/:id` (renombrado).                          |
+| `device.revoked`            | INFO  | `POST /auth/devices/:id/revoke` — revocación permanente.         |
+| `device.access.denied`      | WARN  | Un dispositivo no administrador intentó un endpoint admin-only.  |
 
 **Nunca se registra**: el header `Authorization`, la credential (en texto plano o hasheada), el
 token de bootstrap, ni el body completo de la request. Solo `deviceId` y un `reason` técnico (ej.
@@ -213,6 +220,14 @@ de un solo dispositivo — ver [`PAIRING.md`](./PAIRING.md) para el detalle comp
 El mecanismo es deliberadamente análogo al bootstrap (token temporal, de un solo uso, que nunca es
 la credential permanente) pero requiere estar ya autenticado para iniciarlo, y agrega un segundo
 factor fuera de banda (el verification code) que no viaja dentro del QR.
+
+## Device Management
+
+A partir del Milestone 7, los dispositivos ya registrados (por bootstrap o por pairing) pueden
+administrarse vía `/auth/devices/*` — listado, consulta, renombrado, `/me`, y revocación
+permanente. Ver [`DEVICE_MANAGEMENT.md`](./DEVICE_MANAGEMENT.md) para el detalle completo,
+incluida la distinción entre dispositivo administrador y dispositivo cliente (`is_admin`), que
+determina quién puede usar estos endpoints.
 
 ## Limitaciones del modelo de seguridad local
 

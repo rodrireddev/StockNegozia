@@ -76,8 +76,9 @@ StockNegozia/
 │       │   ├── app.module.ts             ConfigModule, EventEmitterModule, Database/Core/Health
 │       │   ├── config/                   configuration.ts (env+data dir), ensure-data-dirs.ts
 │       │   ├── database/                 database.module.ts (Drizzle+SQLite), schema/, migrations/
-│       │   ├── auth/                     ApiAccessGuard (APP_GUARD), Device/Credential/Bootstrap/Pairing —
-│       │   │                             ver docs/security/API_ACCESS.md y PAIRING.md
+│       │   ├── auth/                     ApiAccessGuard (APP_GUARD), AdminDeviceGuard, Device
+│       │   │                             Management/Credential/Bootstrap/Pairing — ver
+│       │   │                             docs/security/API_ACCESS.md, PAIRING.md, DEVICE_MANAGEMENT.md
 │       │   ├── core/                     CoreModule + 7 módulos de dominio (placeholders)
 │       │   │                             ver core/README.md para la dirección futura
 │       │   └── health/                   GET /health (@Public) con roundtrip real a SQLite
@@ -225,6 +226,11 @@ Un dispositivo ya autenticado puede emparejar dispositivos adicionales (mobile, 
 tablet) vía QR + código de verificación, sin reusar el bootstrap — ver
 [`docs/security/PAIRING.md`](docs/security/PAIRING.md).
 
+Los dispositivos ya registrados se administran vía `/auth/devices/*` (listado, consulta,
+renombrado, `/me`, revocación permanente — sin reactivación posible) — ver
+[`docs/security/DEVICE_MANAGEMENT.md`](docs/security/DEVICE_MANAGEMENT.md). Solo el dispositivo
+administrador de la instalación (el creado por bootstrap) puede administrar otros dispositivos.
+
 Variables de entorno (`apps/backend/.env.example`):
 
 ```env
@@ -253,10 +259,11 @@ limpios para Core, Plugins y Event Bus. **No incluye**:
 - Lógica de negocio (inventario, compras, clientes, usuarios, permisos reales) — Products,
   Categories y Sales sí tienen implementación real.
 - Empaquetado de producción (`electron-builder` / instalador).
-- Autorización granular (roles/permisos), generación de QR en la UI de Electron/React, cliente
-  Android/iOS real, descubrimiento automático de red (mDNS), sesiones de usuario, login con
-  usuario/contraseña — la autenticación de dispositivo (`API_ACCESS_MODE`, credentials, bootstrap,
-  pairing) sí está implementada, ver [Seguridad](#seguridad).
+- Autorización granular (roles/permisos), UI de Device Management, generación de QR en la UI de
+  Electron/React, cliente Android/iOS real, descubrimiento automático de red (mDNS), sesiones de
+  usuario, login con usuario/contraseña — la autenticación de dispositivo (`API_ACCESS_MODE`,
+  credentials, bootstrap, pairing, administración de dispositivos vía API) sí está implementada,
+  ver [Seguridad](#seguridad).
 - Plugins reales (WhatsApp, persistencia externa, etc.) — solo documentados en `plugins/README.md`.
 - Sincronización, servidor remoto/LAN, mobile, IA.
 

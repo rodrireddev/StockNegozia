@@ -11,6 +11,21 @@ export interface BootstrapResult {
   credential: string;
 }
 
+/**
+ * Vista pública/administrativa de un `Device` — ver docs/security/DEVICE_MANAGEMENT.md. Nunca
+ * incluye `credentialHash` ni ningún otro secreto; solo lo necesario para administrar el
+ * dispositivo (listado, detalle, `/auth/devices/me`).
+ */
+export interface DeviceDto {
+  id: string;
+  name: string;
+  type: DeviceType;
+  active: boolean;
+  isAdmin: boolean;
+  createdAt: string;
+  lastSeenAt: string | null;
+}
+
 export type PairingStatus = "pending" | "confirmed" | "expired" | "cancelled";
 
 /**

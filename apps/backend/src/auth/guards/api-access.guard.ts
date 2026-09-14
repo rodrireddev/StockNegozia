@@ -8,7 +8,7 @@ import { DevicesService } from "../devices/devices.service";
 
 /** Poblado por el guard sobre la request cuando autentica un dispositivo — ver más abajo. */
 export interface RequestWithDevice {
-  device?: { id: string; name: string };
+  device?: { id: string; name: string; isAdmin: boolean };
 }
 
 interface MinimalRequest extends RequestWithDevice {
@@ -104,7 +104,7 @@ export class ApiAccessGuard implements CanActivate {
     }
 
     this.devicesService.touchLastSeen(device.id, device.lastSeenAt);
-    request.device = { id: device.id, name: device.name };
+    request.device = { id: device.id, name: device.name, isAdmin: device.isAdmin };
     this.logger.info({
       context: "Auth",
       operation,

@@ -6,4 +6,5 @@ export interface AuthenticatedDevice {
   name: string;
   status: DeviceStatus;
   lastSeenAt: Date | null;
+  isAdmin: boolean;
 }

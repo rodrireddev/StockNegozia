@@ -1,4 +1,5 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import type { DeviceDto } from "@stocknegozia/api-contracts";
 import { randomUUID } from "node:crypto";
 import { AppLogger } from "../../common/logger/app-logger.service";
 import { CredentialService } from "../credential/credential.service";
@@ -10,6 +11,29 @@ import type { AuthenticatedDevice, DeviceType } from "./devices.types";
  * request) sino a lo sumo una vez por este intervalo — ver `touchLastSeen`.
  */
 const LAST_SEEN_THROTTLE_MS = 60_000;
+
+type DeviceRow = ReturnType<DevicesRepository["findById"]>;
+
+function toDto(row: NonNullable<DeviceRow>): DeviceDto {
+  return {
+    id: row.id,
+    name: row.name,
+    type: row.type,
+    active: row.status === "active",
+    isAdmin: row.isAdmin,
+    createdAt: row.createdAt.toISOString(),
+    lastSeenAt: row.lastSeenAt ? row.lastSeenAt.toISOString() : null,
+  };
+}
+
+export interface RegisterDeviceOptions {
+  /**
+   * El dispositivo creado por bootstrap es el administrador de la instalación — ver
+   * docs/security/DEVICE_MANAGEMENT.md §Quién puede administrar dispositivos. Los dispositivos
+   * creados por pairing nunca son admin por defecto.
+   */
+  isAdmin?: boolean;
+}
 
 @Injectable()
 export class DevicesService {
@@ -26,16 +50,20 @@ export class DevicesService {
     return this.repository.countActive() > 0;
   }
 
-  register(name: string, type: DeviceType): { deviceId: string; credential: string } {
+  register(
+    name: string,
+    type: DeviceType,
+    options: RegisterDeviceOptions = {},
+  ): { deviceId: string; credential: string } {
     const { credential, credentialHash } = this.credentialService.generate();
     const id = randomUUID();
-    this.repository.insert({ id, name, type, credentialHash });
+    this.repository.insert({ id, name, type, credentialHash, isAdmin: options.isAdmin ?? false });
     this.logger.info({
       context: "DevicesService",
       operation: "register",
       event: "device.created",
       message: "Device created",
-      metadata: { deviceId: id, deviceType: type },
+      metadata: { deviceId: id, deviceType: type, isAdmin: options.isAdmin ?? false },
     });
     return { deviceId: id, credential };
   }
@@ -49,7 +77,13 @@ export class DevicesService {
     const credentialHash = this.credentialService.hash(rawCredential);
     const row = this.repository.findByCredentialHash(credentialHash);
     if (!row) return undefined;
-    return { id: row.id, name: row.name, status: row.status, lastSeenAt: row.lastSeenAt };
+    return {
+      id: row.id,
+      name: row.name,
+      status: row.status,
+      lastSeenAt: row.lastSeenAt,
+      isAdmin: row.isAdmin,
+    };
   }
 
   touchLastSeen(deviceId: string, lastSeenAt: Date | null): void {
@@ -58,19 +92,82 @@ export class DevicesService {
     this.repository.updateLastSeen(deviceId, new Date(now));
   }
 
+  /** `GET /auth/devices` — solo dispositivos administradores (ver `AdminDeviceGuard`). */
+  list(requestedByDeviceId?: string): DeviceDto[] {
+    const rows = this.repository.findAll();
+    this.logger.info({
+      context: "DevicesService",
+      operation: "list",
+      event: "device.listed",
+      message: "Devices listed",
+      metadata: { count: rows.length, requestedBy: requestedByDeviceId },
+    });
+    return rows.map(toDto);
+  }
+
+  /** `GET /auth/devices/:id` y `GET /auth/devices/me`. */
+  getById(id: string, requestedByDeviceId?: string): DeviceDto {
+    const row = this.repository.findById(id);
+    if (!row) throw new NotFoundException("Dispositivo no encontrado");
+    this.logger.info({
+      context: "DevicesService",
+      operation: "getById",
+      event: "device.viewed",
+      message: "Device viewed",
+      metadata: { deviceId: id, requestedBy: requestedByDeviceId },
+    });
+    return toDto(row);
+  }
+
+  /** `PATCH /auth/devices/:id` — únicamente permite renombrar (ver `updateDeviceSchema`). */
+  updateName(id: string, name: string, requestedByDeviceId?: string): DeviceDto {
+    const row = this.repository.findById(id);
+    if (!row) throw new NotFoundException("Dispositivo no encontrado");
+
+    this.repository.updateName(id, name);
+    this.logger.info({
+      context: "DevicesService",
+      operation: "updateName",
+      event: "device.updated",
+      message: "Device updated",
+      metadata: { deviceId: id, requestedBy: requestedByDeviceId },
+    });
+    return toDto(this.repository.findById(id)!);
+  }
+
   /**
-   * Revoca un dispositivo — a partir de ahora su credential deja de autenticar. No expone todavía
-   * un endpoint HTTP (no hay UI de administración en este milestone); queda preparado a nivel de
-   * servicio para usarse desde una futura pantalla de administración de dispositivos.
+   * Revoca un dispositivo — a partir de ahora su credential deja de autenticar,
+   * permanentemente (no existe reactivación, ver docs/security/DEVICE_MANAGEMENT.md
+   * §Revocación permanente). Idempotente: revocar un dispositivo ya revocado no falla ni vuelve a
+   * auditar (`segundo revoke se comporta correctamente`).
+   *
+   * `requestedByDeviceId` habilita la protección contra auto-revocación (§Protección contra
+   * auto-revocación): un dispositivo administrador no puede revocarse a sí mismo si es el único
+   * administrador activo — dejaría la instalación sin ningún dispositivo capaz de administrar
+   * otros dispositivos.
    */
-  revoke(deviceId: string): void {
+  revoke(deviceId: string, requestedByDeviceId?: string): DeviceDto {
+    const row = this.repository.findById(deviceId);
+    if (!row) throw new NotFoundException("Dispositivo no encontrado");
+
+    if (row.status === "revoked") {
+      return toDto(row);
+    }
+
+    if (requestedByDeviceId === deviceId && row.isAdmin && this.repository.countActiveAdmins() <= 1) {
+      throw new ConflictException(
+        "No se puede revocar el único dispositivo administrador activo de la instalación",
+      );
+    }
+
     this.repository.updateStatus(deviceId, "revoked");
     this.logger.info({
       context: "DevicesService",
       operation: "revoke",
-      event: "auth.device.revoked",
+      event: "device.revoked",
       message: "Device revoked",
-      metadata: { deviceId },
+      metadata: { deviceId, requestedBy: requestedByDeviceId },
     });
+    return toDto(this.repository.findById(deviceId)!);
   }
 }

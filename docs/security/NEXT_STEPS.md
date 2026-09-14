@@ -18,29 +18,24 @@ credential → request autenticado → revocar) fue verificado contra el backend
 secretos en los logs. Los puntos de abajo son trabajo futuro, no correcciones sobre lo ya
 implementado.
 
-### 1. Revisar `pairing_sessions.device_id`
+### 1. Revisar `pairing_sessions.device_id` — ✅ Implementado (Milestone 7)
 
-Actualmente `pairing_sessions.device_id` **no** tiene una Foreign Key real hacia `devices.id` — es
-un campo de texto libre, usado principalmente para auditoría y correlación en logs (ver
-`PairingRepository`/`PairingService`), no como referencia activa de la que otro código dependa.
+~~Actualmente `pairing_sessions.device_id` no tiene una Foreign Key real hacia `devices.id`~~ —
+**resuelto en el Milestone 7**: se agregó la FK real (migración `0005_crazy_carnage.sql`). Ver
+[`DEVICE_MANAGEMENT.md`](./DEVICE_MANAGEMENT.md) §`pairing_sessions.device_id` para el
+razonamiento completo. Resumen de las preguntas que quedaron abiertas acá:
 
-**Pendiente para Device Management**, evaluar:
-
-- Si conviene agregar integridad referencial mediante una FK real hacia `devices.id`.
-- Si `device_id` debe seguir siendo nullable mientras el pairing está `PENDING` (hoy lo es: solo
-  se completa al confirmar).
-- Qué debe suceder con `device_id` al **cancelar** una sesión (hoy no aplica: nunca se llegó a
-  crear un device).
-- Qué debe suceder al **expirar** una sesión (mismo caso: `device_id` nunca se completó).
-- Qué debe suceder cuando el pairing se **confirma** (hoy: se persiste el `id` del device recién
-  creado, de forma permanente).
-- Si se debe **conservar el `device_id` histórico** después de una revocación del device (para
-  mantener la trazabilidad de "este device vino de este pairing"), o si debería limpiarse.
-- Comportamiento ante una eventual **eliminación** (no solo revocación) de devices en el futuro —
-  hoy no existe eliminación de devices, solo revocación (ver punto 6).
-
-**No modificar esto ahora.** Queda registrado como decisión pendiente para cuando se trabaje en
-Device Management.
+- **¿Se agregó la FK?** Sí — los devices nunca se eliminan físicamente (solo se revocan), así que
+  la referencia nunca puede quedar huérfana; la FK solo formaliza esa invariante.
+- **¿`device_id` nullable mientras `PENDING`?** Sí, sigue siendo `null` en `PENDING`/`EXPIRED`/
+  `CANCELLED` — nunca se llegó a crear un device en esos casos.
+- **¿Qué pasa al cancelar/expirar?** Nada — `device_id` nunca se completó, no hay nada que limpiar.
+- **¿Qué pasa al confirmar?** Se persiste el `id` del device recién creado, de forma permanente.
+- **¿Se conserva el histórico tras una revocación?** Sí — `device_id` no se toca al revocar el
+  device; sigue siendo cierto que "este pairing produjo ese device", sin importar su estado actual.
+- **¿Eliminación futura de devices?** No aplica: este milestone confirmó explícitamente que los
+  devices no se eliminan físicamente (ver `DEVICE_MANAGEMENT.md` §Revocación permanente) — si eso
+  cambiara alguna vez, habría que revisar esta FK entonces, no antes.
 
 ### 2. Validar `PAIRING_HOST`
 
@@ -153,21 +148,32 @@ Dispositivo ya vinculado
 No implementar ahora — este documento solo deja el flujo esperado registrado para cuando se
 construya la UI.
 
-### 6. Device Management
+### 6. Device Management — ✅ Implementado (Milestone 7, backend)
 
-Este documento también sirve como recordatorio para el próximo milestone. Cuando comience Device
-Management, revisar:
+Todo lo listado acá para "cuando comience Device Management" ya está resuelto a nivel de backend —
+ver [`DEVICE_MANAGEMENT.md`](./DEVICE_MANAGEMENT.md):
 
-- Listado de devices.
-- Nombre.
-- Tipo (`desktop | mobile | tablet | web | other`).
-- Fecha de creación.
-- Último acceso (`lastSeenAt`, ya existe en el backend — ver `API_ACCESS.md` §`last_seen_at`).
-- Estado (`active | revoked`).
-- Revocación (la capacidad ya existe a nivel de servicio — `DevicesService.revoke()` — sin
-  endpoint HTTP ni UI todavía).
-- Auditoría.
-- Relación con `pairing_sessions.device_id` (ver punto 1).
+- Listado de devices — ✅ `GET /auth/devices`.
+- Nombre — ✅ incluido en el DTO, editable vía `PATCH /auth/devices/:id`.
+- Tipo (`desktop | mobile | tablet | web | other`) — ✅ incluido en el DTO, mismo enum existente.
+- Fecha de creación — ✅ incluida en el DTO.
+- Último acceso (`lastSeenAt`) — ✅ incluido en el DTO (ya existía en el backend desde Milestone 5).
+- Estado (`active | revoked`) — ✅ incluido en el DTO como `active: boolean`.
+- Revocación — ✅ `POST /auth/devices/:id/revoke`, con protección contra dejar la instalación sin
+  ningún dispositivo administrador (ver `DEVICE_MANAGEMENT.md` §Protección contra auto-revocación).
+- Auditoría — ✅ eventos `device.listed/viewed/updated/revoked/access.denied` vía `AppLogger`.
+- Relación con `pairing_sessions.device_id` — ✅ ver punto 1 (FK agregada).
+
+**Lo que sigue pendiente** (fuera de alcance de este milestone, ver
+`DEVICE_MANAGEMENT.md` §Fuera de alcance):
+
+- La **UI** en React/Electron — el backend está listo, pero no hay pantalla todavía.
+- Una forma de **promover** un dispositivo cliente a administrador (hoy solo el dispositivo de
+  bootstrap nace admin; no hay endpoint para cambiar `isAdmin` de otro device). Si se necesita en
+  el futuro, requiere decidir quién puede promover a quién — potencialmente el inicio de un
+  sistema de roles más real, evaluarlo con cuidado en ese momento.
+- Notificar al dispositivo afectado cuando es revocado (hoy simplemente deja de poder autenticarse
+  en su próxima request — no hay push/WebSocket).
 
 #### Regla de seguridad acordada: no existe reactivación de una credential revocada
 
@@ -194,24 +200,28 @@ estado `active` una vez `revoked`.
 ### 7. No resolver estos puntos ahora
 
 Este documento es únicamente un registro de pendientes. Ninguno de estos puntos implica, por sí
-mismo, modificar ahora: el schema de `devices`, agregar Foreign Keys, modificar `PAIRING_HOST`,
-agregar librerías de QR, modificar `PairingService`/`CredentialService`/`ApiAccessGuard`, agregar
-Device Management, modificar el flujo de autenticación, o hacer refactors sobre el Milestone 6. La
-implementación actual permanece intacta.
+mismo, modificar ahora: el schema de `devices`, agregar Foreign Keys adicionales, modificar
+`PAIRING_HOST`, agregar librerías de QR, modificar `PairingService`/`CredentialService`/
+`ApiAccessGuard`/`DevicesService`, agregar un sistema de roles/permisos, modificar el flujo de
+autenticación, o hacer refactors sobre los Milestones 6/7. La implementación actual permanece
+intacta.
 
 ### 8. Tabla resumen
 
-| Pendiente                          | Cuándo revisar      | Prioridad | Estado    |
-| ----------------------------------- | -------------------- | ---------: | ---------- |
-| `pairing_sessions.device_id` FK     | Device Management     |      Media | Pendiente |
-| Validación `PAIRING_HOST`           | Frontend/LAN config    |      Media | Pendiente |
-| Generación visual de QR             | Frontend Pairing       |       Alta | Pendiente |
-| Seguridad de datos sensibles en UI  | Frontend Pairing       |       Alta | Pendiente |
-| UX de estados del pairing           | Frontend Pairing       |      Media | Pendiente |
-| Regla de revocación permanente      | Device Management      |       Alta | Definida  |
+| Pendiente                              | Cuándo revisar      | Prioridad | Estado         |
+| ---------------------------------------- | -------------------- | ---------: | -------------- |
+| `pairing_sessions.device_id` FK          | Device Management     |      Media | Implementado   |
+| Validación `PAIRING_HOST`                | Frontend/LAN config    |      Media | Pendiente      |
+| Generación visual de QR                  | Frontend Pairing       |       Alta | Pendiente      |
+| Seguridad de datos sensibles en UI       | Frontend Pairing       |       Alta | Pendiente      |
+| UX de estados del pairing                | Frontend Pairing       |      Media | Pendiente      |
+| Regla de revocación permanente           | Device Management      |       Alta | Implementada   |
+| API de Device Management (backend)       | Device Management      |       Alta | Implementado   |
+| UI de Device Management (frontend)       | Frontend Device Mgmt.  |       Alta | Pendiente      |
+| Promoción de device cliente a admin      | Device Management (futuro) |  Baja | Pendiente      |
 
-Estados posibles: `Pendiente` (no resuelto todavía) · `Definido` (la decisión ya está tomada,
-falta implementarla) · `Implementado` (ya resuelto en código).
+Estados posibles: `Pendiente` (no resuelto todavía) · `Definido`/`Definida` (la decisión ya está
+tomada, falta implementarla) · `Implementado`/`Implementada` (ya resuelto en código).
 
 ### 9. Relación con los milestones
 
@@ -220,14 +230,15 @@ Milestone 6 — Pairing / QR
         ↓
 Pendientes documentados (este archivo)
         ↓
-Milestone 7 — Device Management
+Milestone 7 — Device Management (backend) ← ya implementado
         ↓
-Frontend Pairing / Device Management
+Frontend Pairing / Device Management ← todavía pendiente
         ↓
 LAN / Multi-device
 ```
 
-Estos puntos no significan que el Milestone 6 esté incompleto: son decisiones y puntos de
-integración que deliberadamente se dejaron para cuando exista la UI y Device Management, en línea
-con el principio ya aplicado en este proyecto de no construir abstracciones antes de tener una
-necesidad real (ver `apps/backend/src/core/README.md`).
+Estos puntos no significan que los Milestones 6/7 estén incompletos: son decisiones y puntos de
+integración que deliberadamente se dejaron para cuando exista la UI (o, en el caso de la promoción
+a administrador, para cuando exista una necesidad real de más de un dispositivo administrador), en
+línea con el principio ya aplicado en este proyecto de no construir abstracciones antes de tener
+una necesidad real (ver `apps/backend/src/core/README.md`).

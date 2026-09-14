@@ -38,3 +38,22 @@ export const pairingCancelSchema = z.object({
 });
 
 export type PairingCancelInput = z.infer<typeof pairingCancelSchema>;
+
+/**
+ * Body de `PATCH /auth/devices/:id`. Solo permite renombrar — el resto de los campos
+ * administrativos (`type`, `active`, `isAdmin`) no se exponen para edición directa en este
+ * milestone (ver docs/security/DEVICE_MANAGEMENT.md).
+ */
+export const updateDeviceSchema = z.object({
+  name: z
+    .string({ required_error: "El nombre es obligatorio" })
+    .trim()
+    .min(1, "El nombre es obligatorio")
+    .max(100, "El nombre no puede superar los 100 caracteres")
+    .refine(
+      (value) => ![...value].some((char) => char.charCodeAt(0) < 0x20 || char.charCodeAt(0) === 0x7f),
+      "El nombre contiene caracteres no permitidos",
+    ),
+});
+
+export type UpdateDeviceInput = z.infer<typeof updateDeviceSchema>;
