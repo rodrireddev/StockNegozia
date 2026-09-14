@@ -6,10 +6,10 @@ import { useUiStore } from "@/stores/ui-store";
 const navItems = [
   { to: "/", label: "Panel", end: true },
   { to: "/products", label: "Productos" },
-  { to: "/inventory", label: "Inventario" },
   { to: "/sales", label: "Ventas" },
-  { to: "/purchases", label: "Compras" },
-  { to: "/customers", label: "Clientes" },
+  { to: "/purchases", label: "Compras", comingSoon: true },
+  { to: "/inventory", label: "Inventario", comingSoon: true },
+  { to: "/customers", label: "Clientes", comingSoon: true },
 ];
 
 export function MainLayout() {
@@ -43,7 +43,18 @@ export function MainLayout() {
                 )
               }
             >
-              {sidebarCollapsed ? item.label.slice(0, 1) : item.label}
+              {sidebarCollapsed ? (
+                item.label.slice(0, 1)
+              ) : (
+                <span className="flex items-center justify-between">
+                  <span>{item.label}</span>
+                  {item.comingSoon && (
+                    <span className="ml-2 rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground">
+                      Pronto
+                    </span>
+                  )}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>

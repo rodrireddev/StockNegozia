@@ -45,6 +45,11 @@ export class BackendManager {
       this.child = spawn(process.execPath, [backendEntry], {
         env: { ...env, ELECTRON_RUN_AS_NODE: "1" },
         stdio: "inherit",
+        // El proceso Electron main no tiene una consola propia (es un binario GUI): sin
+        // `windowsHide`, Windows le abre una consola nueva y visible al hijo (cmd.exe cuando
+        // `shell: true`, o el propio ejecutable en modo empaquetado) — `stdio: "inherit"` igual
+        // sigue heredando los handles correctamente, así que los logs del backend no se pierden.
+        windowsHide: true,
       });
     } else {
       this.child = spawn("pnpm", ["--filter", "@stocknegozia/backend", "start:dev"], {
@@ -52,6 +57,7 @@ export class BackendManager {
         env,
         stdio: "inherit",
         shell: platform() === "win32",
+        windowsHide: true,
       });
     }
 
@@ -71,7 +77,7 @@ export class BackendManager {
 
     const pid = this.child.pid;
     if (pid && platform() === "win32") {
-      spawn("taskkill", ["/pid", String(pid), "/t", "/f"]);
+      spawn("taskkill", ["/pid", String(pid), "/t", "/f"], { windowsHide: true });
     } else {
       this.child.kill("SIGTERM");
     }

@@ -1,38 +1,47 @@
 # StockNegozia
 
-Plataforma modular de gestión empresarial. Este repositorio contiene la **infraestructura base**
-del proyecto (Etapa 1): monorepo, aplicación de escritorio (Electron + React) y backend (NestJS +
-Drizzle + SQLite), ya conectados y funcionando de punta a punta. **Todavía no incluye lógica de
-negocio** (productos, ventas, compras, clientes, etc.) — ver
-[`apps/backend/src/core/README.md`](apps/backend/src/core/README.md) y
-[`plugins/README.md`](plugins/README.md) para la dirección futura.
+Plataforma modular de gestión empresarial, pensada inicialmente para pequeños comercios. Este
+repositorio es un monorepo con aplicación de escritorio (Electron + React) y backend (NestJS +
+Drizzle + SQLite), conectados de punta a punta. El backend ya implementa lógica de negocio real
+para **Productos, Categorías, Proveedores, Compras, Ventas y Movimientos de stock**; el frontend
+tiene interfaz funcional real para **Productos** y **Ventas** — ver [Estado actual](#estado-actual)
+para el detalle de qué está terminado y qué todavía es un punto de extensión sin implementar.
 
 ## Estado actual
 
-- ✅ Monorepo pnpm + Turborepo funcionando (`typecheck`, `lint`, `build`, `format` limpios en las
-  6 packages/apps).
+- ✅ Monorepo pnpm + Turborepo funcionando (`typecheck`, `lint`, `build`, `test`, `format` limpios
+  en las 7 packages/apps).
 - ✅ `pnpm dev` levanta Electron, que arranca el backend NestJS como proceso hijo, espera a
   `/health`, muestra la ventana con React, y detiene el backend al cerrar la app.
-- ✅ Drizzle ORM conectado a SQLite real (`better-sqlite3`, compilado nativo), con una migración
-  generada y aplicada automáticamente contra una tabla de prueba (`app_meta`).
-- ✅ UI de React (Tailwind + shadcn/ui) consumiendo `/health` en vivo vía TanStack Query, con
-  routing (react-router-dom) y estado de UI en Zustand (sidebar colapsable).
-- ✅ Control de acceso a la API por credential de dispositivo (`API_ACCESS_MODE`) — ver
-  [Seguridad](#seguridad).
-- ⬜ Sin empaquetado de producción, sin autorización granular/pairing QR completo — ver
-  [Alcance de esta etapa](#alcance-de-esta-etapa).
+- ✅ Drizzle ORM conectado a SQLite real (`better-sqlite3`), con 9 migraciones aplicadas
+  automáticamente al bootear el backend — Productos, Categorías, Proveedores, Compras, Ventas,
+  Movimientos de stock, Dispositivos y Pairing ya están modelados y persistidos.
+- ✅ Backend: `products`, `categories`, `suppliers`, `purchases`, `sales` y `stock-movements`
+  tienen controller/service/repository reales (entidades, transacciones SQLite, auditoría de
+  stock), cubiertos por 211 tests (`pnpm --filter @stocknegozia/backend test`).
+- ✅ Frontend: **Productos** (crear, editar, buscar/filtrar, ajustar stock) y **Ventas** (buscar o
+  escanear producto, carrito persistente, confirmar venta) tienen interfaz real, con 28 tests
+  (`pnpm --filter @stocknegozia/desktop test`, Vitest + Testing Library).
+- ✅ Control de acceso a la API por credential de dispositivo (`API_ACCESS_MODE`) y pairing de
+  dispositivos adicionales vía QR + código de verificación — ver [Seguridad](#seguridad).
+- ⬜ Compras, Inventario (historial de movimientos) y Clientes: el backend de Compras y
+  Movimientos de stock ya está completo, pero todavía no tienen interfaz — son páginas placeholder
+  en el frontend (ver [Alcance de esta etapa](#alcance-de-esta-etapa)).
+- ⬜ Sin empaquetado de producción (no hay instalador), sin UI de pairing/Device Management, sin
+  backup/restore/exportación de datos.
 
 ## Arquitectura
 
 ```
 Desktop (Electron)              Backend (NestJS)
   ├─ Main process    ──spawn──►    Core
-  │   administra el              (Products, Inventory, Sales,
-  │   ciclo de vida del           Purchases, Customers, Users,
-  │   backend                     Permissions — placeholders)
-  └─ Renderer (React)                  │
-       consume la API HTTP             ▼
-       del backend (CORS)        Drizzle ORM ──► SQLite
+  │   administra el              (Products, Categories, Suppliers,
+  │   ciclo de vida del           Purchases, Sales, StockMovements — real;
+  │   backend                     Inventory, Customers, Users, Permissions
+  └─ Renderer (React)             — placeholders)
+       consume la API HTTP             │
+       del backend (CORS)              ▼
+                                  Drizzle ORM ──► SQLite
 ```
 
 El frontend **nunca** accede a SQLite directamente; siempre pasa por la API HTTP del backend.
@@ -58,15 +67,23 @@ StockNegozia/
 │   │   │   ├── index.html
 │   │   │   └── src/
 │   │   │       ├── app/                  App.tsx, router.tsx (createHashRouter)
-│   │   │       ├── features/             products, inventory, sales, purchases, customers,
-│   │   │       │                         dashboard — páginas placeholder
-│   │   │       ├── components/ui/        shadcn: button, card, separator
+│   │   │       ├── features/
+│   │   │       │   ├── products/         real — CRUD, búsqueda/filtros, ajuste de stock
+│   │   │       │   ├── sales/            real — búsqueda/escaneo, carrito, confirmar venta
+│   │   │       │   ├── purchases/        placeholder
+│   │   │       │   ├── inventory/        placeholder
+│   │   │       │   ├── customers/        placeholder
+│   │   │       │   └── dashboard/        widget de estado del backend (`/health`)
+│   │   │       ├── components/ui/        shadcn: button, card, badge, dialog, input, label,
+│   │   │       │                         select, table, textarea, separator, quantity-stepper
 │   │   │       ├── layouts/              MainLayout.tsx (sidebar + Outlet)
 │   │   │       ├── stores/               ui-store.ts (Zustand: sidebar colapsable)
 │   │   │       ├── hooks/                useHealth.ts (TanStack Query)
-│   │   │       ├── lib/                  api-client.ts, query-client.ts, utils.ts (cn)
+│   │   │       ├── lib/                  api-client.ts, query-client.ts, errors.ts, utils.ts
+│   │   │       ├── test/                 setup.ts (Testing Library + jest-dom)
 │   │   │       └── types/                global.d.ts (window.stockNegozia)
 │   │   ├── electron.vite.config.ts       build de main/preload/renderer
+│   │   ├── vitest.config.ts              tests del renderer (jsdom + Testing Library)
 │   │   ├── tailwind.config.ts / components.json
 │   │   └── package.json
 │   │
@@ -79,18 +96,24 @@ StockNegozia/
 │       │   ├── auth/                     ApiAccessGuard (APP_GUARD), AdminDeviceGuard, Device
 │       │   │                             Management/Credential/Bootstrap/Pairing — ver
 │       │   │                             docs/security/API_ACCESS.md, PAIRING.md, DEVICE_MANAGEMENT.md
-│       │   ├── core/                     CoreModule + módulos de dominio — Products, Sales y
-│       │   │                             StockMovements (real; ver docs/inventory/STOCK_MOVEMENTS.md),
-│       │   │                             el resto placeholders — ver core/README.md
+│       │   ├── core/                     CoreModule + módulos de dominio — Products, Categories,
+│       │   │                             Suppliers, Purchases, Sales y StockMovements (real; ver
+│       │   │                             docs/inventory/), Inventory/Customers/Users/Permissions
+│       │   │                             siguen siendo placeholders — ver core/README.md
 │       │   └── health/                   GET /health (@Public) con roundtrip real a SQLite
 │       ├── drizzle.config.ts             config de drizzle-kit (generate)
+│       ├── vitest.config.ts              211 tests (unit + e2e con supertest)
 │       ├── nest-cli.json
 │       └── package.json
 │
 ├── packages/
 │   ├── shared/            @stocknegozia/shared — AppInfo, APP_NAME, DEFAULT_BACKEND_PORT
-│   ├── api-contracts/     @stocknegozia/api-contracts — HealthStatus (contrato back↔front)
-│   ├── validation/        @stocknegozia/validation — backendEnvSchema (zod)
+│   ├── api-contracts/     @stocknegozia/api-contracts — DTOs compartidos back↔front (health,
+│   │                      products, sales, purchases, suppliers, inventory/stock-movements, auth)
+│   ├── validation/        @stocknegozia/validation — schemas Zod compartidos (env, products,
+│   │                      sales, purchases, suppliers, inventory, auth) — la misma fuente de
+│   │                      verdad valida en el backend (ZodValidationPipe) y en los formularios
+│   │                      del renderer
 │   └── config/            @stocknegozia/config — tsconfig (base/node/react), eslint, prettier
 │
 ├── plugins/
@@ -99,10 +122,10 @@ StockNegozia/
 ├── tooling/
 │   └── README.md          placeholder para scripts futuros del monorepo (vacío)
 │
-├── package.json           scripts raíz (dev/build/lint/typecheck/format) vía Turborepo
+├── package.json           scripts raíz (dev/build/lint/typecheck/test/format) vía Turborepo
 ├── pnpm-workspace.yaml     apps/*, packages/*; onlyBuiltDependencies/allowBuilds para
 │                           better-sqlite3, electron, esbuild
-├── turbo.json              pipeline: build (dependsOn ^build), dev (persistent), lint, typecheck
+├── turbo.json              pipeline: build (dependsOn ^build), dev (persistent), lint, test, typecheck
 ├── tsconfig.json           project references a los packages compartidos
 ├── eslint.config.js        re-exporta packages/config/eslint/base.js
 ├── .prettierrc.js / .prettierignore
@@ -121,7 +144,11 @@ StockNegozia/
   `file://` en producción.
 - **`@nestjs/event-emitter`** como Event Bus interno (preparado, sin eventos de negocio aún) — el
   paquete oficial de Nest para este propósito, evita un broker externo.
-- **`zod`** en `packages/validation` para validar el entorno del backend.
+- **`zod`** en `packages/validation`, compartido entre backend y frontend — un único punto de
+  verdad para reglas de validación (formato de precios, stock no negativo, campos obligatorios).
+- **Vitest** como test runner en backend (unit + e2e con `supertest`, contra SQLite en memoria con
+  migraciones reales) y en el renderer (`@testing-library/react` + `jsdom`, mockeando la capa de
+  API) — mismo runner en ambas apps, cada una con su propio `vitest.config.ts`.
 - **Ubicación de datos**: el backend resuelve el directorio de datos desde
   `STOCKNEGOZIA_DATA_DIR` (env var). Electron se lo inyecta como `app.getPath('userData')` al
   spawnear el proceso hijo; si el backend corre standalone, cae a `./data` relativo al cwd.
@@ -163,15 +190,43 @@ Otros scripts (raíz, vía Turborepo):
 pnpm build       # build de todos los packages/apps
 pnpm lint        # eslint en todo el monorepo
 pnpm typecheck   # tsc --noEmit en todo el monorepo
+pnpm test        # tests de backend y desktop (Vitest) en todo el monorepo
 pnpm format      # prettier --write
 pnpm format:check
 ```
 
+### Probar la app manualmente (QA a mano)
+
+`pnpm dev` (ver arriba) es el único comando que hace falta para tener la app funcionando en
+local — no requiere `.env` ni configuración previa (`API_ACCESS_MODE` cae en `development` por
+defecto, sin credential). Con la ventana de Electron abierta:
+
+1. **Productos** → `+ Nuevo producto` → cargar nombre, SKU y un stock inicial (ej. 10) → guardar.
+2. **Ventas** → el buscador ya tiene el foco; escribí el nombre o SKU del producto creado (o
+   tipeá el código de barras + Enter si simulás un lector) → click en el resultado para agregarlo
+   al carrito.
+3. Ajustá la cantidad con `+`/`-`, confirmá la venta, y volvé a **Productos** para verificar que
+   el stock bajó — cada venta genera además un `stock_movement` auditable (ver
+   [Inventario](#inventario)), consultable hoy solo vía API (`GET /products/:id/stock-movements`),
+   todavía sin pantalla propia.
+
+Para probar solo la API sin abrir Electron (por ejemplo con curl/Postman), se puede levantar el
+backend solo:
+
+```bash
+pnpm --filter @stocknegozia/backend start:dev
+```
+
+Queda escuchando en `http://localhost:38123` (`STOCKNEGOZIA_PORT`), con `/health` como primer
+chequeo. Esto es independiente de `pnpm test`, que corre la suite automatizada (backend + desktop)
+sin necesidad de tener la app corriendo.
+
 Scripts propios de cada app (`pnpm --filter <nombre> <script>`):
 
 - `@stocknegozia/backend`: `build`, `start:dev` (nest watch), `start:prod` (`node dist/main.js`),
-  `dev`, `typecheck`, `lint`, `db:generate` (drizzle-kit).
-- `@stocknegozia/desktop`: `dev`, `build`, `preview`, `typecheck`, `lint`.
+  `dev`, `typecheck`, `lint`, `test` (vitest run), `test:watch`, `db:generate` (drizzle-kit).
+- `@stocknegozia/desktop`: `dev`, `build`, `preview`, `typecheck`, `lint`, `test` (vitest run),
+  `test:watch`.
 
 ## Base de datos
 
@@ -186,15 +241,15 @@ Para generar una nueva migración tras modificar el schema de Drizzle (`apps/bac
 pnpm --filter @stocknegozia/backend db:generate
 ```
 
-Las migraciones (`apps/backend/src/database/migrations/`) se aplican automáticamente al iniciar el
-backend (se resuelven desde el árbol fuente, no desde `dist/`, para evitar condiciones de carrera
-con el watcher de `nest start --watch`).
+Las migraciones (`apps/backend/src/database/migrations/`, 9 hasta el momento) se aplican
+automáticamente al iniciar el backend (se resuelven desde el árbol fuente, no desde `dist/`, para
+evitar condiciones de carrera con el watcher de `nest start --watch`).
 
 ## Logging
 
-El backend registra cada request y cada operación de negocio relevante (ventas, ajustes de stock,
-transacciones) como logs estructurados JSONL, persistidos en disco e independientes de SQLite. Ver
-[`docs/logging/`](docs/logging/) para el detalle completo:
+El backend registra cada request y cada operación de negocio relevante (ventas, compras, ajustes
+de stock, transacciones) como logs estructurados JSONL, persistidos en disco e independientes de
+SQLite. Ver [`docs/logging/`](docs/logging/) para el detalle completo:
 
 - [`LOGGING.md`](docs/logging/LOGGING.md) — arquitectura, flujo y configuración.
 - [`LOG_SCHEMA.md`](docs/logging/LOG_SCHEMA.md) — contrato formal de cada campo y lista de eventos.
@@ -216,15 +271,28 @@ correlaciona todos los logs de ese request — útil para investigar un incident
 
 ## Inventario
 
-Toda modificación efectiva de `products.stock` — venta, cancelación, o ajuste manual — genera
-obligatoriamente un movimiento de stock auditable e inmutable (`stock_movements`), separado del
-estado actual (`products.stock`) y del log técnico (`app.log`). `ProductsService.adjustStock()` es
-el único punto de mutación de stock; no existe ninguna vía pública que lo evite. Los ajustes
+Toda modificación efectiva de `products.stock` — venta, cancelación, compra, o ajuste manual —
+genera obligatoriamente un movimiento de stock auditable e inmutable (`stock_movements`), separado
+del estado actual (`products.stock`) y del log técnico (`app.log`). `ProductsService.adjustStock()`
+es el único punto de mutación de stock; no existe ninguna vía pública que lo evite. Los ajustes
 manuales se hacen vía `POST /products/:id/stock-adjustments` (stock absoluto + motivo obligatorio
 — el backend calcula el delta internamente); no existe `PATCH /products/:id/stock`. Ver
-[`docs/inventory/STOCK_MOVEMENTS.md`](docs/inventory/STOCK_MOVEMENTS.md) para el detalle completo
-— modelo, tipos de movimiento, atomicidad, `requestId`, y endpoints de consulta
-(`GET /stock-movements`, `GET /products/:id/stock-movements`).
+[`docs/inventory/STOCK_MOVEMENTS.md`](docs/inventory/STOCK_MOVEMENTS.md) y
+[`docs/inventory/PURCHASES.md`](docs/inventory/PURCHASES.md) para el detalle completo — modelo,
+tipos de movimiento, atomicidad, `requestId`, y endpoints de consulta (`GET /stock-movements`,
+`GET /products/:id/stock-movements`). El historial de movimientos todavía no tiene interfaz propia
+en el frontend (ver [Alcance de esta etapa](#alcance-de-esta-etapa)).
+
+## Ventas
+
+La pantalla de Ventas (`/sales`) es la única interfaz pensada específicamente para una operación
+frecuente, no un CRUD genérico: buscador con foco automático (por nombre, SKU o código de barras —
+compatible con lectores de código de barras, que funcionan como un teclado que tipea y manda
+Enter), carrito persistente donde agregar el mismo producto dos veces incrementa la cantidad en vez
+de duplicar la línea, y confirmación que solo limpia el carrito después de que el backend confirmó
+la venta (`POST /sales`, transaccional — ver [Inventario](#inventario)). El backend es siempre la
+autoridad final sobre el stock disponible: la UI nunca lo modifica directamente ni confía
+exclusivamente en el stock mostrado en pantalla.
 
 ## Seguridad
 
@@ -243,6 +311,8 @@ Los dispositivos ya registrados se administran vía `/auth/devices/*` (listado, 
 renombrado, `/me`, revocación permanente — sin reactivación posible) — ver
 [`docs/security/DEVICE_MANAGEMENT.md`](docs/security/DEVICE_MANAGEMENT.md). Solo el dispositivo
 administrador de la instalación (el creado por bootstrap) puede administrar otros dispositivos.
+Todo esto está implementado a nivel de backend; todavía no tiene interfaz en el frontend (ver
+[Alcance de esta etapa](#alcance-de-esta-etapa)).
 
 Variables de entorno (`apps/backend/.env.example`):
 
@@ -251,6 +321,10 @@ API_ACCESS_MODE=development         # development = abierto | production = crede
 PAIRING_EXPIRATION_MINUTES=5        # duración de una sesión de pairing (QR + código)
 # PAIRING_HOST=192.168.1.100        # override del host embebido en el QR (default: autodetectado)
 ```
+
+`API_ACCESS_MODE` viene en `development` por defecto (pensado para no interrumpir el flujo de
+desarrollo) — cualquier instalación real debe fijarlo explícitamente en `production` para que la
+API exija credential.
 
 ## Notas técnicas / gotchas ya resueltos
 
@@ -262,26 +336,35 @@ PAIRING_EXPIRATION_MINUTES=5        # duración de una sesión de pairing (QR + 
 - **pnpm bloquea scripts de build nativos por defecto** (`better-sqlite3`, `electron`, `esbuild`);
   están aprobados explícitamente en `pnpm-workspace.yaml` (`onlyBuiltDependencies` +
   `allowBuilds`).
+- **Testing Library no limpia el DOM automáticamente entre tests con Vitest** (a diferencia de
+  Jest) salvo que se llame `cleanup()` explícitamente — ver
+  `apps/desktop/renderer/src/test/setup.ts`.
 
 ## Alcance de esta etapa
 
-Esta primera etapa se limita a la infraestructura: monorepo, arranque de Electron+React+NestJS,
-conexión real a SQLite vía Drizzle (con una tabla de prueba `app_meta`), y puntos de extensión
-limpios para Core, Plugins y Event Bus. **No incluye**:
+El backend tiene lógica de negocio real y testeada para **Productos, Categorías, Proveedores,
+Compras, Ventas y Movimientos de stock**, además de autenticación de dispositivos y pairing
+completos. El frontend tiene interfaz real para **Productos** y **Ventas**. Todavía **no incluye**:
 
-- Lógica de negocio (compras, proveedores, clientes, usuarios, permisos reales) — Products,
-  Categories, Sales y Stock Movements sí tienen implementación real (ver
-  [Inventario](#inventario)).
-- Empaquetado de producción (`electron-builder` / instalador).
+- Interfaz de **Compras**, **Inventario** (historial de movimientos) y **Clientes** — el backend
+  de Compras y Movimientos de stock ya está completo (ver [Inventario](#inventario)); solo falta
+  construir la UI. Son páginas placeholder en el frontend
+  (`apps/desktop/renderer/src/features/{purchases,inventory,customers}/`).
+- Lógica de negocio de **Usuarios y Permisos** — siguen siendo placeholders estructurales también
+  a nivel de backend (`apps/backend/src/core/{users,permissions}/`), ver
+  [`apps/backend/src/core/README.md`](apps/backend/src/core/README.md).
+- Empaquetado de producción (`electron-builder` / instalador) — no hay forma de distribuir la app
+  fuera de este repositorio en modo desarrollo todavía.
 - Autorización granular (roles/permisos), UI de Device Management, generación de QR en la UI de
   Electron/React, cliente Android/iOS real, descubrimiento automático de red (mDNS), sesiones de
   usuario, login con usuario/contraseña — la autenticación de dispositivo (`API_ACCESS_MODE`,
   credentials, bootstrap, pairing, administración de dispositivos vía API) sí está implementada,
   ver [Seguridad](#seguridad).
+- Backup, restore o exportación de datos — un único archivo SQLite, sin copia de seguridad
+  automática ni manual todavía.
+- Reportes y dashboard de negocio — el panel actual solo muestra el estado de conexión con el
+  backend (`/health`).
 - Plugins reales (WhatsApp, persistencia externa, etc.) — solo documentados en `plugins/README.md`.
 - Sincronización, servidor remoto/LAN, mobile, IA.
 
 Todo lo anterior queda documentado como dirección futura, no implementado.
-#   S t o c k N e g o z i a 
- 
- 
