@@ -24,6 +24,16 @@ export default defineConfig({
     resolve: {
       alias: {
         "@": resolve(__dirname, "renderer/src"),
+        // Se resuelven al código fuente (no a dist/) para que Rollup los trate como ESM nativo:
+        // los paquetes compartidos se compilan a CommonJS para que el backend (Node) los pueda
+        // usar con `require`, pero esa salida CJS confunde el análisis estático de Rollup cuando
+        // el renderer importa valores en tiempo de ejecución (no solo tipos) desde ellos.
+        "@stocknegozia/validation": resolve(__dirname, "../../packages/validation/src/index.ts"),
+        "@stocknegozia/api-contracts": resolve(
+          __dirname,
+          "../../packages/api-contracts/src/index.ts",
+        ),
+        "@stocknegozia/shared": resolve(__dirname, "../../packages/shared/src/index.ts"),
       },
     },
     plugins: [react()],

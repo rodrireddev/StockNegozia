@@ -21,6 +21,9 @@ import * as schema from "./schema";
 
         const sqlite = new Database(config.databaseFile);
         sqlite.pragma("journal_mode = WAL");
+        // SQLite no valida foreign keys por defecto; a partir de Sales (sale_items → sales,
+        // sale_items → products) las FKs declaradas en el schema deben aplicarse de verdad.
+        sqlite.pragma("foreign_keys = ON");
 
         const db = drizzle(sqlite, { schema });
         // Se resuelve desde el árbol fuente (no desde dist/) para evitar condiciones de
