@@ -168,6 +168,48 @@ SALE                  stockBefore=20  quantity=3  direction=OUT  stockAfter=17
 SALE_CANCELLATION      stockBefore=17  quantity=3  direction=IN   stockAfter=20
 ```
 
+## Precio histórico (`StockMovementDto.unitValue`)
+
+Un movimiento representa un hecho histórico — el precio que muestra debe ser el de **esa
+operación puntual**, nunca el precio *actual* de `products.purchasePrice`/`salePrice` (que puede
+cambiar libremente después, sin que eso deba alterar el pasado). Ejemplo: dos compras del mismo
+producto a $700 y $850 deben seguir mostrando esos dos valores aunque hoy el costo de compra del
+producto sea $950.
+
+**Decisión de diseño: no se agregó ninguna columna a `stock_movements`.** El valor histórico ya
+existe, inmutable, en otro lado:
+
+- `PURCHASE` → `purchase_items.unitCost` (la compra es inmutable — no hay `update`/`delete` sobre
+  `purchases`/`purchase_items`, ver docs/inventory/PURCHASES.md).
+- `SALE` / `SALE_CANCELLATION` → `sale_items.unitPrice` (snapshot tomado en el momento de la
+  venta — ver comentario en `database/schema/sales.ts`). Una cancelación comparte el `saleId` de
+  la venta original, así que resuelve al mismo precio.
+- `ADJUSTMENT` → no existe: un ajuste manual no es una transacción comercial, no tiene "precio
+  pagado" ni "precio cobrado". Se representa como `null`, nunca `0` (`0` significaría "esta unidad
+  no valía nada", que es una afirmación distinta a "esta operación no tiene precio").
+
+`StockMovementsRepository.findMany()` resuelve esto con dos `LEFT JOIN` — uno contra `sale_items`
+por `(sale_id, product_id)`, otro contra `purchase_items` por `(purchase_id, product_id)` — y
+`StockMovementsService` colapsa el que corresponda en un único campo `unitValue: number | null`.
+Ambos pares son únicos por construcción (`SalesService.create()` normaliza/suma cantidades
+duplicadas antes de insertar `sale_items`; `createPurchaseSchema` rechaza productos repetidos
+dentro de una misma compra), así que cada join matchea a lo sumo una fila — nunca hace falta
+desambiguar entre varias.
+
+Se evaluó la alternativa de guardar el precio directamente en `stock_movements` (una columna
+`unit_value` propia). Se descartó: hubiera significado una migración, duplicar un dato que ya
+vive, inmutable, en `sale_items`/`purchase_items`, y el riesgo (aunque remoto, al ser ambas tablas
+inmutables) de que las dos copias divergieran. Resolverlo con un join en el momento de leer
+consigue exactamente la misma propiedad (el valor nunca cambia después de creado) sin ese costo,
+y además funciona retroactivamente: no hizo falta ningún backfill para los movimientos que ya
+existían antes de este cambio — sus `sale_items`/`purchase_items` ya estaban ahí desde siempre.
+
+`record()` (el método que inserta un movimiento nuevo) no hace este join — devuelve el `unitValue`
+como `null` en su valor de retorno inmediato, porque nada del flujo real usa ese valor de retorno
+(`ProductsService.adjustStock()` lo descarta). El valor correcto siempre está disponible a través
+de `findMany()`/`findByProduct()`, que es el único camino que efectivamente consume la UI de
+Inventario.
+
 ## Integración con `ProductsService.adjustStock()`
 
 `adjustStock()` acepta un cuarto parámetro opcional:

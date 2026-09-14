@@ -7,6 +7,19 @@ export const MOVEMENT_TYPE_LABELS: Record<StockMovementType, string> = {
   ADJUSTMENT: "Ajuste",
 };
 
+const currencyFormatter = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
+
+/**
+ * `unitValue` es `null` cuando el movimiento no tiene precio de operación (`ADJUSTMENT`, ver
+ * docs/inventory/STOCK_MOVEMENTS.md §Precio histórico) — se muestra "—", nunca "$0" (que
+ * significaría "esta unidad no costó/valió nada", algo distinto a "esta operación no tiene
+ * precio").
+ */
+export function formatMovementUnitValue(unitValue: number | null): string {
+  if (unitValue === null) return "—";
+  return currencyFormatter.format(unitValue);
+}
+
 /** Cantidad con signo según la dirección — el texto nunca depende solo del color. */
 export function formatSignedQuantity(movement: Pick<StockMovementDto, "direction" | "quantity">): string {
   const sign = movement.direction === "IN" ? "+" : "-";

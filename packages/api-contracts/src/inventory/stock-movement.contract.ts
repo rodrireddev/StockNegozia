@@ -23,5 +23,12 @@ export interface StockMovementDto {
   requestId: string | null;
   /** Obligatorio para `ADJUSTMENT` (validado al crear); `null` en `SALE`/`SALE_CANCELLATION` y en movimientos históricos anteriores a este campo. */
   reason: string | null;
+  /**
+   * Valor unitario de la operación en el momento en que ocurrió — nunca el precio ACTUAL del
+   * producto (ver docs/inventory/STOCK_MOVEMENTS.md §Precio histórico). Semántica según `type`:
+   * costo pagado (`PURCHASE`), precio cobrado (`SALE`/`SALE_CANCELLATION`, tomado de la venta
+   * original), o `null` para `ADJUSTMENT` (un ajuste no tiene precio de operación).
+   */
+  unitValue: number | null;
   createdAt: string;
 }

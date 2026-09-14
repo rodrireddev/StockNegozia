@@ -6,8 +6,17 @@ import type { DrizzleExecutor } from "../../database/database.types";
 import { StockMovementsRepository, type NewStockMovementRecord, type StockMovementFilters } from "./stock-movements.repository";
 
 type StockMovementRow = ReturnType<StockMovementsRepository["findMany"]>[number];
+type InsertedStockMovementRow = ReturnType<StockMovementsRepository["insert"]>;
 
-function toDto(row: StockMovementRow): StockMovementDto {
+/**
+ * `record()` inserta y devuelve la fila recién creada sin volver a consultarla con el join a
+ * `sale_items`/`purchase_items` (sería una query extra que nada usa hoy — `ProductsService.
+ * adjustStock()` descarta el valor devuelto). Por eso esa fila no trae `saleUnitPrice`/
+ * `purchaseUnitCost` y acá se resuelve como `null`. El precio histórico real siempre está
+ * disponible a través de `findMany()`/`findByProduct()` — el camino que efectivamente usa la UI de
+ * Movimientos — nunca a través de esta rama.
+ */
+function toDto(row: StockMovementRow | InsertedStockMovementRow): StockMovementDto {
   return {
     id: row.id,
     productId: row.productId,
@@ -21,6 +30,10 @@ function toDto(row: StockMovementRow): StockMovementDto {
     requestId: row.requestId,
     reason: row.reason,
     createdAt: row.createdAt.toISOString(),
+    // Uno de los dos siempre es null (un movimiento nunca tiene sale_id y purchase_id a la vez —
+    // ver stock-movements.ts) y ambos son null para ADJUSTMENT. Nunca se sustituye por el precio
+    // actual del producto.
+    unitValue: "saleUnitPrice" in row ? (row.saleUnitPrice ?? row.purchaseUnitCost ?? null) : null,
   };
 }
 

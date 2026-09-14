@@ -3,7 +3,7 @@ import type { StockMovementDirection, StockMovementType } from "@stocknegozia/ap
 import { and, desc, eq, gte, lte, type SQL } from "drizzle-orm";
 import { DRIZZLE_CLIENT } from "../../database/database.constants";
 import type { Database, DrizzleExecutor } from "../../database/database.types";
-import { stockMovements } from "../../database/schema";
+import { purchaseItems, saleItems, stockMovements } from "../../database/schema";
 
 export interface NewStockMovementRecord {
   productId: number;
@@ -50,8 +50,40 @@ export class StockMovementsRepository {
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     return executor
-      .select()
+      .select({
+        id: stockMovements.id,
+        productId: stockMovements.productId,
+        type: stockMovements.type,
+        direction: stockMovements.direction,
+        quantity: stockMovements.quantity,
+        stockBefore: stockMovements.stockBefore,
+        stockAfter: stockMovements.stockAfter,
+        saleId: stockMovements.saleId,
+        purchaseId: stockMovements.purchaseId,
+        requestId: stockMovements.requestId,
+        reason: stockMovements.reason,
+        createdAt: stockMovements.createdAt,
+        // Precio histórico de la operación — nunca el precio ACTUAL del producto (ver
+        // docs/inventory/STOCK_MOVEMENTS.md §Precio histórico). `sale_items`/`purchase_items` son
+        // inmutables una vez creados, así que este valor no cambia si después se edita
+        // `products.salePrice`/`purchasePrice`. `(saleId, productId)` y `(purchaseId, productId)`
+        // son únicos por construcción (Sales normaliza duplicados antes de insertar, Purchases los
+        // rechaza), así que cada join matchea a lo sumo una fila.
+        saleUnitPrice: saleItems.unitPrice,
+        purchaseUnitCost: purchaseItems.unitCost,
+      })
       .from(stockMovements)
+      .leftJoin(
+        saleItems,
+        and(eq(stockMovements.saleId, saleItems.saleId), eq(stockMovements.productId, saleItems.productId)),
+      )
+      .leftJoin(
+        purchaseItems,
+        and(
+          eq(stockMovements.purchaseId, purchaseItems.purchaseId),
+          eq(stockMovements.productId, purchaseItems.productId),
+        ),
+      )
       .where(whereClause)
       // `id` como desempate: dos movimientos de una misma venta multi-item pueden compartir el
       // mismo `createdAt` (resolución de milisegundo) — el id autoincremental sí preserva el

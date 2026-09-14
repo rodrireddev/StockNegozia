@@ -9,7 +9,6 @@ const navItems = [
   { to: "/sales", label: "Ventas" },
   { to: "/purchases", label: "Compras" },
   { to: "/inventory", label: "Inventario" },
-  { to: "/customers", label: "Clientes", comingSoon: true },
 ];
 
 export function MainLayout() {
@@ -43,18 +42,7 @@ export function MainLayout() {
                 )
               }
             >
-              {sidebarCollapsed ? (
-                item.label.slice(0, 1)
-              ) : (
-                <span className="flex items-center justify-between">
-                  <span>{item.label}</span>
-                  {item.comingSoon && (
-                    <span className="ml-2 rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground">
-                      Pronto
-                    </span>
-                  )}
-                </span>
-              )}
+              {sidebarCollapsed ? item.label.slice(0, 1) : item.label}
             </NavLink>
           ))}
         </nav>

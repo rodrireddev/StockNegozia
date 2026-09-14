@@ -14,9 +14,16 @@ import {
 import { StockAdjustDialog } from "@/features/products/components/StockAdjustDialog";
 import { StockBadge } from "@/features/products/components/StockBadge";
 
+const currencyFormatter = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
+
 /** Pantalla de "¿qué stock tengo?" — a diferencia de `ProductsTable`, no tiene acciones de
  *  catálogo (editar/desactivar): solo ver stock, ajustarlo, y saltar al historial de ese
- *  producto. Es una tabla con propósito distinto, no la misma con menos columnas. */
+ *  producto. Es una tabla con propósito distinto, no la misma con menos columnas.
+ *
+ *  Precio compra/venta son los valores ACTUALES del producto (`products.purchasePrice`/
+ *  `salePrice`, ya presentes en `ProductDto` — sin cambios de backend). Representan el estado de
+ *  hoy, no el histórico de cada operación — eso vive en Movimientos (ver
+ *  docs/inventory/STOCK_MOVEMENTS.md §Precio histórico). */
 export function InventoryTable({ products }: { products: ProductDto[] }) {
   const navigate = useNavigate();
   const [adjustProduct, setAdjustProduct] = useState<ProductDto | null>(null);
@@ -30,6 +37,8 @@ export function InventoryTable({ products }: { products: ProductDto[] }) {
             <TableHead>SKU / código</TableHead>
             <TableHead>Categoría</TableHead>
             <TableHead>Stock</TableHead>
+            <TableHead className="text-right">Precio compra</TableHead>
+            <TableHead className="text-right">Precio venta</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
@@ -53,6 +62,12 @@ export function InventoryTable({ products }: { products: ProductDto[] }) {
                   <span>{product.stock}</span>
                   <StockBadge status={product.stockStatus} />
                 </button>
+              </TableCell>
+              <TableCell className="text-right tabular-nums text-muted-foreground">
+                {currencyFormatter.format(product.purchasePrice)}
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                {currencyFormatter.format(product.salePrice)}
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">

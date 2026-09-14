@@ -51,6 +51,7 @@ function makeMovement(overrides: Partial<StockMovementDto> & { id: number }): St
     purchaseId: null,
     requestId: null,
     reason: null,
+    unitValue: null,
     createdAt: "2026-01-01T12:00:00.000Z",
     ...overrides,
   };
@@ -98,7 +99,7 @@ describe("InventoryMovementsPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("renderiza el tipo traducido, la cantidad con signo y la referencia de compra/venta", async () => {
+  it("renderiza el tipo traducido, la cantidad con signo, el precio histórico y la referencia de compra/venta", async () => {
     fetchStockMovementsMock.mockResolvedValue([
       makeMovement({
         id: 1,
@@ -107,8 +108,17 @@ describe("InventoryMovementsPage", () => {
         quantity: 10,
         stockAfter: 20,
         purchaseId: 7,
+        unitValue: 850,
       }),
-      makeMovement({ id: 2, type: "SALE", direction: "OUT", quantity: 2, stockAfter: 18, saleId: 3 }),
+      makeMovement({
+        id: 2,
+        type: "SALE",
+        direction: "OUT",
+        quantity: 2,
+        stockAfter: 18,
+        saleId: 3,
+        unitValue: 1200,
+      }),
     ]);
     renderPage();
 
@@ -116,11 +126,31 @@ describe("InventoryMovementsPage", () => {
     // se busca específicamente la celda de la tabla, no cualquier texto en la página.
     expect(await screen.findByRole("cell", { name: "Compra" })).toBeInTheDocument();
     expect(await screen.findByText("+10")).toBeInTheDocument();
+    expect(await screen.findByText("$ 850,00")).toBeInTheDocument();
     expect(await screen.findByText("Compra #7")).toBeInTheDocument();
 
     expect(await screen.findByRole("cell", { name: "Venta" })).toBeInTheDocument();
     expect(await screen.findByText("-2")).toBeInTheDocument();
+    expect(await screen.findByText("$ 1.200,00")).toBeInTheDocument();
     expect(await screen.findByText("Venta #3")).toBeInTheDocument();
+  });
+
+  it("un ajuste sin precio de operación muestra '—', nunca un precio inventado", async () => {
+    fetchStockMovementsMock.mockResolvedValue([
+      makeMovement({
+        id: 1,
+        type: "ADJUSTMENT",
+        direction: "OUT",
+        quantity: 1,
+        unitValue: null,
+        reason: "Conteo físico", // fija la columna "Referencia / motivo" para no ambigüar con "—"
+      }),
+    ]);
+    renderPage();
+
+    expect(await screen.findByRole("cell", { name: "Ajuste" })).toBeInTheDocument();
+    expect(await screen.findByRole("cell", { name: "—" })).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: "Conteo físico" })).toBeInTheDocument();
   });
 
   it("filtrar por tipo vuelve a consultar el historial con ese filtro", async () => {

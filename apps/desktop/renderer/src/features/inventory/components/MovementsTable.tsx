@@ -1,7 +1,12 @@
 import type { ProductDto, StockMovementDto } from "@stocknegozia/api-contracts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { describeMovementReference, formatSignedQuantity, MOVEMENT_TYPE_LABELS } from "../lib/movement-labels";
+import {
+  describeMovementReference,
+  formatMovementUnitValue,
+  formatSignedQuantity,
+  MOVEMENT_TYPE_LABELS,
+} from "../lib/movement-labels";
 
 const dateFormatter = new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" });
 
@@ -22,6 +27,7 @@ export function MovementsTable({ movements, productsById }: MovementsTableProps)
           <TableHead>Producto</TableHead>
           <TableHead>Tipo</TableHead>
           <TableHead className="text-right">Cantidad</TableHead>
+          <TableHead className="text-right">Precio</TableHead>
           <TableHead className="text-right">Stock</TableHead>
           <TableHead>Referencia / motivo</TableHead>
         </TableRow>
@@ -44,6 +50,9 @@ export function MovementsTable({ movements, productsById }: MovementsTableProps)
                 )}
               >
                 {formatSignedQuantity(movement)}
+              </TableCell>
+              <TableCell className="text-right tabular-nums text-muted-foreground">
+                {formatMovementUnitValue(movement.unitValue)}
               </TableCell>
               <TableCell className="text-right tabular-nums">{movement.stockAfter}</TableCell>
               <TableCell className="text-muted-foreground">{reference ?? "—"}</TableCell>

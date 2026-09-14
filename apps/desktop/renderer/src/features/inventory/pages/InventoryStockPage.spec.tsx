@@ -90,6 +90,17 @@ describe("InventoryStockPage", () => {
     expect(screen.getByText("14")).toBeInTheDocument();
   });
 
+  it("muestra el precio de compra y venta ACTUALES del producto (no histórico)", async () => {
+    fetchProductsMock.mockResolvedValue([
+      makeProduct({ id: 1, name: "Coca-Cola 2L", purchasePrice: 850, salePrice: 1200 }),
+    ]);
+    renderPage();
+
+    await screen.findByText("Coca-Cola 2L");
+    expect(screen.getByText("$ 850,00")).toBeInTheDocument();
+    expect(screen.getByText("$ 1.200,00")).toBeInTheDocument();
+  });
+
   it("el botón Ajustar abre el diálogo de ajuste de stock ya existente para ese producto", async () => {
     fetchProductsMock.mockResolvedValue([makeProduct({ id: 1, name: "Coca-Cola 2L" })]);
     const user = userEvent.setup();
