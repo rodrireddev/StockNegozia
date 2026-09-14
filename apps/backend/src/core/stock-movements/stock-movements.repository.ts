@@ -13,6 +13,7 @@ export interface NewStockMovementRecord {
   stockBefore: number;
   stockAfter: number;
   saleId?: number;
+  purchaseId?: number;
   requestId?: string;
   reason?: string;
 }

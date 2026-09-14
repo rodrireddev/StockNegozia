@@ -1,6 +1,7 @@
 import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 import { products } from "./products";
 import { sales } from "./sales";
+import { purchases } from "./purchases";
 
 /**
  * Historial auditable de modificaciones de stock — ver docs/inventory/STOCK_MOVEMENTS.md.
@@ -19,13 +20,16 @@ export const stockMovements = sqliteTable(
     productId: integer("product_id")
       .notNull()
       .references(() => products.id),
-    type: text("type", { enum: ["SALE", "SALE_CANCELLATION", "ADJUSTMENT"] }).notNull(),
+    type: text("type", { enum: ["SALE", "SALE_CANCELLATION", "ADJUSTMENT", "PURCHASE"] }).notNull(),
     direction: text("direction", { enum: ["IN", "OUT"] }).notNull(),
     // Siempre positiva — la dirección es un campo separado (nunca +3/-3 acá).
     quantity: integer("quantity").notNull(),
     stockBefore: integer("stock_before").notNull(),
     stockAfter: integer("stock_after").notNull(),
     saleId: integer("sale_id").references(() => sales.id),
+    // FK específica hacia purchases, mismo criterio que saleId (no referenceType/referenceId
+    // polimórfico) — ver docs/inventory/PURCHASES.md. Nullable: solo la usan movimientos PURCHASE.
+    purchaseId: integer("purchase_id").references(() => purchases.id),
     // Nullable: un movimiento puede ocurrir fuera de un contexto HTTP (ver RequestContext).
     requestId: text("request_id"),
     // Nullable a nivel de columna (SALE/SALE_CANCELLATION no lo usan, y los movimientos
@@ -38,5 +42,6 @@ export const stockMovements = sqliteTable(
     productIdIdx: index("stock_movements_product_id_idx").on(table.productId),
     createdAtIdx: index("stock_movements_created_at_idx").on(table.createdAt),
     saleIdIdx: index("stock_movements_sale_id_idx").on(table.saleId),
+    purchaseIdIdx: index("stock_movements_purchase_id_idx").on(table.purchaseId),
   }),
 );

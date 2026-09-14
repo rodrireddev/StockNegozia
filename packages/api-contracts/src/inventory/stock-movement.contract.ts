@@ -1,4 +1,4 @@
-export type StockMovementType = "SALE" | "SALE_CANCELLATION" | "ADJUSTMENT";
+export type StockMovementType = "SALE" | "SALE_CANCELLATION" | "ADJUSTMENT" | "PURCHASE";
 export type StockMovementDirection = "IN" | "OUT";
 
 /**
@@ -15,8 +15,10 @@ export interface StockMovementDto {
   quantity: number;
   stockBefore: number;
   stockAfter: number;
-  /** Venta que originó el movimiento (`SALE`/`SALE_CANCELLATION`) — `null` para `ADJUSTMENT`. */
+  /** Venta que originó el movimiento (`SALE`/`SALE_CANCELLATION`) — `null` para `ADJUSTMENT`/`PURCHASE`. */
   saleId: number | null;
+  /** Compra que originó el movimiento (`PURCHASE`) — `null` para el resto de los tipos. */
+  purchaseId: number | null;
   /** `X-Request-Id` del request que originó el movimiento — `null` si ocurrió fuera de un contexto HTTP. */
   requestId: string | null;
   /** Obligatorio para `ADJUSTMENT` (validado al crear); `null` en `SALE`/`SALE_CANCELLATION` y en movimientos históricos anteriores a este campo. */

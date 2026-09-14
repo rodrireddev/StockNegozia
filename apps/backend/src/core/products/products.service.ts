@@ -27,8 +27,10 @@ type ProductRow = ReturnType<ProductsRepository["findById"]>;
  */
 export interface AdjustStockOptions {
   type?: StockMovementType;
-  /** Venta que origina el ajuste (`SALE`/`SALE_CANCELLATION`) — no aplica a `ADJUSTMENT`. */
+  /** Venta que origina el ajuste (`SALE`/`SALE_CANCELLATION`) — no aplica a `ADJUSTMENT`/`PURCHASE`. */
   saleId?: number;
+  /** Compra que origina el ajuste (`PURCHASE`) — ver docs/inventory/PURCHASES.md. */
+  purchaseId?: number;
   /** Obligatorio cuando `type` es `ADJUSTMENT` (ver docs/inventory/STOCK_MOVEMENTS.md §reason). */
   reason?: string;
 }
@@ -206,6 +208,7 @@ export class ProductsService {
             stockBefore: product.stock,
             stockAfter: updated.stock,
             saleId: options.saleId,
+            purchaseId: options.purchaseId,
             reason: options.reason,
           },
           executor,

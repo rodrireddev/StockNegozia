@@ -57,6 +57,13 @@
       "when": 1789399818165,
       "tag": "0007_useful_marvel_zombies",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1789402015349,
+      "tag": "0008_glossy_trauma",
+      "breakpoints": true
     }
   ]
 }

@@ -17,6 +17,7 @@ function toDto(row: StockMovementRow): StockMovementDto {
     stockBefore: row.stockBefore,
     stockAfter: row.stockAfter,
     saleId: row.saleId,
+    purchaseId: row.purchaseId,
     requestId: row.requestId,
     reason: row.reason,
     createdAt: row.createdAt.toISOString(),
@@ -74,6 +75,7 @@ export class StockMovementsService {
         stockBefore: input.stockBefore,
         stockAfter: input.stockAfter,
         saleId: input.saleId,
+        purchaseId: input.purchaseId,
         reason: input.reason,
       },
     });
