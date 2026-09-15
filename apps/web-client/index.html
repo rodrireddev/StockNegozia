@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StockNegozia LAN Test Client</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 560px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        color: #1a1a1a;
+      }
+      h1 {
+        font-size: 1.25rem;
+      }
+      code {
+        background: #f0f0f0;
+        padding: 0.15rem 0.35rem;
+        border-radius: 4px;
+      }
+      .status {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+        margin: 1rem 0;
+      }
+      .status.connected {
+        color: #1a7f37;
+      }
+      .status.disconnected {
+        color: #b42318;
+      }
+      button {
+        padding: 0.5rem 1rem;
+        margin-right: 0.5rem;
+        cursor: pointer;
+      }
+      section {
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid #ddd;
+      }
+      .error {
+        color: #b42318;
+      }
+      ul {
+        padding-left: 1.25rem;
+      }
+      .banner {
+        background: #fff8e1;
+        border: 1px solid #e0c46c;
+        padding: 0.75rem 1rem;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="banner">
+      Herramienta de prueba de conectividad LAN (M13) — sin diseño, sin autenticación de
+      dispositivos (eso es M14). No es el frontend de StockNegozia.
+    </div>
+
+    <h1>StockNegozia LAN Test Client</h1>
+
+    <p>Backend: <code id="backend-url"></code></p>
+    <p class="status" id="status">○ Sin verificar</p>
+
+    <section>
+      <button id="check-backend">Check Backend</button>
+      <p id="health-result"></p>
+    </section>
+
+    <section>
+      <button id="load-products">Load Products</button>
+      <p id="products-error" class="error"></p>
+      <div id="products-result"></div>
+    </section>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

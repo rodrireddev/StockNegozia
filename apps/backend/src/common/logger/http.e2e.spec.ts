@@ -109,6 +109,21 @@ describe("HTTP: request id + exception filter", () => {
     expect(events).toContain("http.request.completed");
   });
 
+  it("registra la IP del cliente en http.request.started/completed (necesario para diagnosticar accesos LAN)", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/test/ok")
+      .set("X-Request-Id", "trace-me-client-ip");
+    expect(res.status).toBe(200);
+
+    const reader = new LogReader(path.join(dir, "app.log"));
+    const entries = await reader.findByRequestId("trace-me-client-ip");
+    const started = entries.find((e) => e.event === "http.request.started");
+    const completed = entries.find((e) => e.event === "http.request.completed");
+    expect(started?.metadata?.clientIp).toBeTruthy();
+    expect(completed?.metadata?.clientIp).toBeTruthy();
+    expect(started?.metadata?.clientIp).toBe(completed?.metadata?.clientIp);
+  });
+
   it("un error inesperado queda registrado como http.unhandled_exception con stack en el log interno", async () => {
     const res = await request(app.getHttpServer())
       .get("/test/boom")

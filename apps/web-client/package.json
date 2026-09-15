@@ -1,0 +1,26 @@
+{
+  "name": "@stocknegozia/web-client",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Cliente web mínimo de prueba de conectividad LAN (M13) — no es el frontend de StockNegozia",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@stocknegozia/api-contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@stocknegozia/config": "workspace:*",
+    "@types/node": "^22.10.5",
+    "jsdom": "^25.0.1",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.6",
+    "vitest": "^2.1.8"
+  }
+}

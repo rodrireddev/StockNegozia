@@ -364,6 +364,31 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.20.2)(jsdom@25.0.1(supports-color@8.1.1))(supports-color@8.1.1)(terser@5.51.2)
 
+  apps/web-client:
+    dependencies:
+      '@stocknegozia/api-contracts':
+        specifier: workspace:*
+        version: link:../../packages/api-contracts
+    devDependencies:
+      '@stocknegozia/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@types/node':
+        specifier: ^22.10.5
+        version: 22.20.2
+      jsdom:
+        specifier: ^25.0.1
+        version: 25.0.1(supports-color@8.1.1)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vite:
+        specifier: ^6.0.6
+        version: 6.4.3(@types/node@22.20.2)(jiti@1.21.7)(terser@5.51.2)
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.2)(jsdom@25.0.1(supports-color@8.1.1))(supports-color@8.1.1)(terser@5.51.2)
+
   packages/api-contracts:
     devDependencies:
       '@stocknegozia/config':

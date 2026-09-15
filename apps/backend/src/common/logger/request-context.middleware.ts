@@ -13,6 +13,18 @@ interface MinimalRequest {
   method: string;
   path: string;
   originalUrl?: string;
+  ip?: string;
+  socket?: { remoteAddress?: string };
+}
+
+/**
+ * `req.ip` (Express) ya resuelve la IP real del socket — no confiamos en headers como
+ * `X-Forwarded-For` (nadie más está en el medio: no hay proxy delante de este backend) porque un
+ * cliente podría falsificarlos. `socket.remoteAddress` es el fallback si `req.ip` no está
+ * disponible (algún mock de test, por ejemplo).
+ */
+function resolveClientIp(req: MinimalRequest): string | undefined {
+  return req.ip ?? req.socket?.remoteAddress;
 }
 
 interface MinimalResponse {
@@ -39,6 +51,7 @@ export class RequestContextMiddleware implements NestMiddleware {
     RequestContext.run({ requestId }, () => {
       const path = req.originalUrl ?? req.path;
       const operation = `${req.method} ${path}`;
+      const clientIp = resolveClientIp(req);
       const startedAt = Date.now();
 
       this.logger.info({
@@ -46,7 +59,7 @@ export class RequestContextMiddleware implements NestMiddleware {
         operation,
         event: "http.request.started",
         message: "Request started",
-        metadata: { method: req.method, path },
+        metadata: { method: req.method, path, clientIp },
       });
 
       res.on("finish", () => {
@@ -57,7 +70,7 @@ export class RequestContextMiddleware implements NestMiddleware {
           operation,
           event: failed ? "http.request.failed" : "http.request.completed",
           message: failed ? "Request failed" : "Request completed",
-          metadata: { method: req.method, path, statusCode: res.statusCode, durationMs },
+          metadata: { method: req.method, path, statusCode: res.statusCode, durationMs, clientIp },
         };
         if (res.statusCode >= 500) this.logger.error(fields);
         else if (failed) this.logger.warn(fields);
