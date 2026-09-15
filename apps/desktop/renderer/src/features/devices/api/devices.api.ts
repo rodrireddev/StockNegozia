@@ -6,6 +6,11 @@ export function fetchDevices(): Promise<DeviceDto[]> {
   return apiGet<DeviceDto[]>("/auth/devices");
 }
 
+/** El dispositivo que hace la request — usado para no ofrecer "Revocar" sobre uno mismo. */
+export function fetchMe(): Promise<DeviceDto> {
+  return apiGet<DeviceDto>("/auth/devices/me");
+}
+
 export function renameDevice(id: string, input: UpdateDeviceInput): Promise<DeviceDto> {
   return apiPatch<DeviceDto>(`/auth/devices/${id}`, input);
 }

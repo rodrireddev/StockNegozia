@@ -59,12 +59,12 @@ apps/mobile/
 │   ├── auth/                # CredentialStore, AuthContext, manejo de 401
 │   ├── devices/             # datos del dispositivo propio (GET /auth/devices/me)
 │   ├── features/
-│   │   ├── pairing/         # parseo del QR pegado, hook de mutación, pantalla
+│   │   ├── pairing/         # wizard de 5 pasos (components/steps/), parseo del QR, mutación
 │   │   ├── products/        # hook de listado, item de lista, pantalla
-│   │   └── scanner/         # SOLO el contrato ScanResult — ver §Scanner
-│   ├── components/          # primitivos de UI (Button, Card, EmptyState, ...)
+│   │   └── scanner/         # contrato ScanResult para el FUTURO scanner de productos — ver §Scanner
+│   ├── components/          # primitivos de UI (Button, Card, Checkbox, EmptyState, ...)
 │   ├── navigation/          # AdaptiveShell (bottom bar / side rail)
-│   ├── config/              # env.ts, backendUrlStore.ts
+│   ├── config/              # env.ts, backendUrlStore.ts, termsStore.ts
 │   ├── theme/                # tokens de color/spacing/tipografía
 │   └── hooks/                # useDeviceSize (phone/tablet)
 └── scripts/
@@ -128,9 +128,15 @@ alcance). Por eso hay dos mecanismos, no uno:
 1. **`EXPO_PUBLIC_API_URL`** (`.env`, ver `.env.example`) — conveniencia solo para `expo start` en
    desarrollo. Se lee una vez al arrancar Metro.
 2. **URL persistida en el dispositivo** (`src/config/backendUrlStore.ts`, `AsyncStorage` — no es un
-   secreto, es una IP LAN) — la fuente de verdad real en preview/production. Se edita desde la
-   propia pantalla de Pairing o desde "Este dispositivo" una vez autenticado. Esto es lo que
-   permite que un mismo `.aab` funcione en instalaciones distintas sin recompilar.
+   secreto, es una IP LAN) — la fuente de verdad real en preview/production.
+
+**La persona nunca escribe esta URL a mano.** El QR de pairing ya trae `host`/`port`
+(`PairingQrPayload`, resueltos por `resolveLanHost()` del lado del backend) — al escanearlo,
+`parsePairingPayload()` arma `backendUrl` automáticamente y el wizard de pairing la persiste antes
+de confirmar (ver §Pairing). No existe ningún campo de "URL del backend" en ninguna pantalla: es un
+detalle de red interno, no algo que el usuario del celular tenga que conocer. Esto es lo que
+permite que un mismo `.aab` funcione en instalaciones distintas sin recompilar y sin pedirle nada
+a la persona más que escanear el QR.
 
 `src/config/env.ts` + `src/config/backendUrlStore.ts` implementan esta separación.
 
@@ -152,24 +158,64 @@ móvil hubiera sido innecesario y es exactamente lo que el milestone pide no hac
 
 ## Pairing
 
-Reutiliza el mecanismo existente sin ningún cambio de contrato:
+Reutiliza el mecanismo existente sin ningún cambio de contrato. La UI es un wizard lineal de 5
+pasos (`src/features/pairing/screens/PairingScreen.tsx`), no un formulario único:
 
 ```
+1. Instrucciones      — cómo generar el QR desde el Desktop
+2. Términos de uso     — aceptación simulada (ver nota más abajo), una sola vez por instalación
+3. Escanear QR         — cámara real (expo-camera), reemplaza el "pegar JSON" de M15
+4. Código de verificación
+5. Nombre del dispositivo → recién acá se confirma el pairing
+
 Desktop → POST /auth/pairing → QR + verificationCode
-Mobile  → pega el JSON del QR (mismo criterio que el Web Client — sin cámara, ver §Scanner)
+Mobile  → escanea el QR con la cámara → parsePairingPayload() valida el payload y arma
+          backendUrl automáticamente (host/port ya vienen en el QR, ver §Configuración)
         → POST /auth/pairing/confirm { pairingId, token, verificationCode, deviceName?, deviceType }
         → { device, credential }        (única vez que se revela)
-Mobile  → guarda `credential` con SecureStore
+Mobile  → guarda `credential` con SecureStore, recién ahí queda "sincronizado"
 ```
 
 `deviceType` se infiere del ancho de pantalla (`useDeviceSize().isTablet`) al momento de emparejar
 — `mobile` o `tablet`, el mismo enum que ya acepta el backend. `src/features/pairing/`:
 
-- `parsePairingPayload.ts` — valida `version === 1` y extrae `pairingId`/`token`, igual que
-  `apps/web-client/src/pairing.ts`.
-- `hooks/usePairDevice.ts` — mutación de React Query sobre `AuthContext.pair()`.
-- `screens/PairingScreen.tsx` — formulario: URL del backend, JSON del QR, código de verificación,
-  nombre del dispositivo (prellenado con `expo-device`).
+- `parsePairingPayload.ts` — valida `version === 1` y que `host`/`port`/`protocol` estén presentes
+  (hacen falta para armar `backendUrl`); ya no ignora esos campos como hacía
+  `apps/web-client/src/pairing.ts` (correcto ahí, porque el Web Client corre en la misma LAN que se
+  está probando — Mobile no tiene esa garantía).
+- `components/steps/` — un componente por paso del wizard: `InstructionsStep`, `TermsStep`,
+  `ScanStep` (cámara), `VerifyStep`, `NameStep`. Cada uno solo conoce su propio paso; el estado
+  compartido (el payload escaneado, el código, el nombre) vive en `PairingScreen`.
+- `hooks/usePairDevice.ts` — mutación de React Query sobre `AuthContext.pair()`, disparada recién
+  en el último paso (`NameStep`).
+
+### Escaneo de QR (cámara real)
+
+`ScanStep.tsx` usa `expo-camera` (`CameraView` + `useCameraPermissions`), no una librería de
+terceros — es el módulo oficial de Expo y ya cubre detección de QR nativamente
+(`barcodeScannerSettings={{ barcodeTypes: ["qr"] }}`), sin necesitar `expo-barcode-scanner`
+(deprecado/fusionado en `expo-camera` desde hace varias versiones de Expo).
+
+- Permiso `CAMERA` — ver `app.json` (`plugins: [["expo-camera", { recordAudioAndroid: false }]]`).
+  `recordAudioAndroid: false` evita que el plugin agregue `RECORD_AUDIO`, que no hace falta: nunca
+  se graba audio ni video, solo se lee el QR en vivo.
+- Un QR inválido (JSON mal formado, `version` distinta, o sin `host`/`port`/`protocol`) muestra un
+  mensaje y permite reintentar sin salir de la pantalla — nunca crashea ni bloquea el flujo.
+- El contrato genérico de escaneo preparado a futuro (`src/features/scanner/types.ts`,
+  `ScanResult { code, format }`) sigue existiendo para cuando se implemente el escaneo de
+  productos/barcodes (EAN, Code128, etc.) — eso **todavía no está implementado**; lo que se agregó
+  acá es específicamente el escaneo del QR de pairing, con `expo-camera` directamente en
+  `ScanStep`, no a través de ese contrato genérico (son necesidades distintas: pairing necesita el
+  JSON completo del QR, no un código/formato simple).
+
+### Términos de uso (simulados)
+
+StockNegozia todavía no tiene un texto legal real. `TermsStep.tsx` muestra un texto de ejemplo,
+claramente marcado como placeholder en el propio código, con un checkbox de aceptación obligatorio
+antes de continuar. La aceptación se persiste una sola vez (`src/config/termsStore.ts`,
+`AsyncStorage` — no es un dato sensible) para no volver a pedirla si la persona repite el wizard
+(por ejemplo, tras "Olvidar este dispositivo"). **Reemplazar por el texto legal definitivo antes de
+publicar en Google Play** — ver §Privacy / Data Safety.
 
 ## Credential storage
 
@@ -261,12 +307,19 @@ accesibilidad exhaustiva, comparación con apps similares) es explícitamente un
 ("Mobile UX/UI Optimization"). M15 entrega una base visual coherente y funcional, no el resultado
 de esa investigación.
 
-## Scanner-ready architecture
+## Scanner de cámara
 
-**No implementado en M15** — sin cámara, sin librería de barcode/QR, sin permiso `CAMERA`
-(`app.json` → `android.permissions: []`, vacío a propósito).
+**El escaneo del QR de pairing SÍ está implementado** (ver §Pairing → Escaneo de QR) —
+`expo-camera`, permiso `CAMERA` real declarado vía el plugin de `expo-camera` en `app.json`. Esto
+reemplaza al "pegar el JSON" que usaba M15 originalmente (documentado ahí como decisión deliberada
+para no implementar cámara en ese momento — se revirtió en un fix posterior a pedido explícito,
+ver el historial de commits).
 
-`src/features/scanner/types.ts` define el único contrato preparado:
+**Lo que sigue sin implementarse**: el escaneo de códigos de producto (barcode/EAN/UPC/Code128)
+para altas rápidas de inventario — un feature distinto, de otro milestone. `Products` no depende
+de ninguna librería de cámara.
+
+`src/features/scanner/types.ts` define el contrato preparado para ESE caso futuro:
 
 ```ts
 interface ScanResult {
@@ -275,11 +328,12 @@ interface ScanResult {
 }
 ```
 
-Nada en `features/products` ni en `features/pairing` importa esto ni depende de ninguna librería
-de cámara — cuando se implemente el scanner (milestone futuro), va a producir un `ScanResult` y
-entregárselo al feature correspondiente sin que ese feature necesite saber qué librería de cámara
-se usó, igual que hoy `features/pairing` no sabe (ni le importa) que el JSON del QR se obtuvo
-pegándolo a mano en vez de escaneándolo.
+`features/pairing` no usa este contrato — el escaneo de pairing necesita el JSON completo del QR
+(`PairingQrPayload`), no un `{code, format}` simple, así que `ScanStep.tsx` usa `expo-camera`
+directamente. Cuando se implemente el escaneo de productos, va a producir un `ScanResult` y
+entregárselo a `features/products` sin que ese feature necesite saber qué librería de cámara se
+usó — la misma separación que ya existía, ahora con un precedente real (`ScanStep`) de cómo se ve
+un feature de cámara integrado en esta arquitectura.
 
 ## Products
 
@@ -350,28 +404,48 @@ ver Milestone §22 — "no inventar una declaración de Data Safety"):
 | Dato                                             | ¿Se almacena en el dispositivo?                                                                                                | ¿Se envía al backend?                               | Detalle                                                                                                   |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | Device credential                                | Sí — cifrada (`expo-secure-store`, Android Keystore)                                                                           | Sí — header `Authorization` en cada request         | Nunca en texto plano, nunca en logs.                                                                      |
-| URL del backend (IP LAN)                         | Sí — `AsyncStorage`, sin cifrar                                                                                                | No (es la dirección de destino, no un dato enviado) | No es información personal ni sensible.                                                                   |
+| URL del backend (IP LAN)                         | Sí — `AsyncStorage`, sin cifrar                                                                                                | No (es la dirección de destino, no un dato enviado) | Se arma automáticamente al escanear el QR (ver §Configuración) — la persona nunca la ve ni la escribe.    |
+| Aceptación de términos                           | Sí — fecha/hora en `AsyncStorage` (`termsStore.ts`)                                                                            | No                                                  | Solo la marca de que se aceptó, no el texto en sí.                                                        |
 | Nombre del dispositivo                           | No se persiste en el dispositivo más allá del formulario                                                                       | Sí — una vez, en `POST /auth/pairing/confirm`       | Elegido por la persona; puede ser el nombre real del teléfono si usa el valor sugerido por `expo-device`. |
+| Imagen de la cámara (QR de pairing)              | No — el frame se procesa en memoria para leer el QR y se descarta de inmediato                                                 | No, nunca                                           | `expo-camera` solo se usa para detección de código en vivo; no se toman fotos ni se graba video.          |
 | Datos de productos (nombre, precio, stock, etc.) | No — se piden en cada carga de pantalla, sin cache persistente entre sesiones de la app (solo cache en memoria de React Query) | Se reciben del backend (`GET /products`)            | Mismos datos que ya administra Desktop; no son datos personales de usuarios de la app.                    |
 | Logs                                             | Solo logs de desarrollo (consola de Metro)                                                                                     | No aplica                                           | Nunca contienen credential/token/código — ver §Credential storage.                                        |
 
-No se integró ningún SDK de analytics/telemetría/crash-reporting de terceros en M15.
+No se integró ningún SDK de analytics/telemetría/crash-reporting de terceros.
+
+**Permiso `CAMERA`**: único permiso peligroso declarado (vía el plugin de `expo-camera`, ver
+§Pairing → Escaneo de QR). Su uso está acotado a leer el QR de pairing en vivo — el formulario de
+Data Safety de Play Console debe declarar "Cámara" con propósito "Funcionalidad de la app", sin
+recolección ni compartición de esas imágenes.
+
+## Entorno de emulador Android (para pruebas de este equipo)
+
+Instalado ad-hoc en `C:\Android` (SDK, JDK 21 Temurin, un AVD `StockNegozia_Test` — Pixel 4,
+Android 14/API 34, `google_apis/x86_64`) para poder correr y capturar pantallas de la app sin
+depender de un dispositivo físico. Confirmado que **WHPX (Windows Hypervisor Platform) acelera el
+emulador realmente** en esta máquina — no es software rendering puro. No forma parte del
+repositorio ni de ningún script de CI: es infraestructura local de esta sesión de trabajo, no algo
+que otra persona clonando el repo obtenga automáticamente. Quien quiera reproducirlo:
+
+```bash
+# SDK command-line tools + JDK 21 (Temurin) + un system image de API 34
+sdkmanager --sdk_root=<ruta> "platform-tools" "platforms;android-34" \
+  "system-images;android-34;google_apis;x86_64" "build-tools;34.0.0"
+avdmanager create avd -n <nombre> -k "system-images;android-34;google_apis;x86_64" -d "pixel_4"
+emulator -avd <nombre> -gpu swiftshader_indirect
+```
 
 ## Riesgos / recomendaciones para M16
 
-- **Prueba física de punta a punta pendiente**: este entorno no tiene un dispositivo Android físico
-  ni una segunda máquina en la misma LAN. La secuencia completa (Desktop → pairing → Mobile →
-  credential → request autenticada → revocación → 401 → re-pairing) está verificada por tests
-  unitarios/de integración de cada pieza por separado, pero no por una corrida manual real con
-  hardware — igual que quedó pendiente para M13/M14, es responsabilidad de quien tiene el hardware
-  ejecutar el checklist de la §34 del milestone.
 - **Build de producción real (`.aab`) no generado**: requiere una cuenta EAS (ver §Builds). No se
   puede demostrar el artefacto final sin credenciales del usuario.
 - **`react-native-reanimated`/`react-native-worklets`**: quedaron en `package.json` porque son
   parte de la base que instala el template oficial de `expo-router` en SDK 57 (no una elección
-  activa de este milestone) — no se usó ninguna animación en el código propio de M15. Si M16 no los
-  necesita, podrían removerse revisando primero que `expo-router`/`react-native-screens` no los
-  requieran transitivamente.
-- **M16 candidato natural**: implementar el scanner real (cámara + `expo-camera` o
-  `vision-camera`) sobre el contrato `ScanResult` ya preparado, y el milestone dedicado de
-  "Mobile UX/UI Optimization" mencionado en la spec de M15.
+  activa de este milestone) — no se usó ninguna animación en el código propio hasta ahora. Si no
+  se necesitan, podrían removerse revisando primero que `expo-router`/`react-native-screens` no
+  los requieran transitivamente.
+- **Términos y condiciones simulados** (`TermsStep.tsx`): reemplazar por el texto legal real antes
+  de publicar en Google Play — ver §Pairing → Términos de uso.
+- **Escaneo de códigos de producto** (barcode/EAN/UPC para altas rápidas de inventario) sigue sin
+  implementarse — es un feature distinto del escaneo de pairing (ver §Scanner de cámara), candidato
+  natural para el próximo milestone, junto con la "Mobile UX/UI Optimization" ya mencionada.

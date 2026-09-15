@@ -12,9 +12,13 @@ const validPayload = {
 };
 
 describe("parsePairingPayload", () => {
-  it("parsea un PairingQrPayload válido y extrae pairingId/token", () => {
+  it("parsea un PairingQrPayload válido y arma la URL del backend automáticamente", () => {
     const result = parsePairingPayload(JSON.stringify(validPayload));
-    expect(result).toEqual({ pairingId: validPayload.pairingId, token: validPayload.token });
+    expect(result).toEqual({
+      pairingId: validPayload.pairingId,
+      token: validPayload.token,
+      backendUrl: "http://192.168.1.30:38123",
+    });
   });
 
   it("devuelve null si el JSON está mal formado", () => {
@@ -45,8 +49,21 @@ describe("parsePairingPayload", () => {
     expect(parsePairingPayload(JSON.stringify({ ...validPayload, token: "" }))).toBeNull();
   });
 
-  it("ignora campos extra no usados (host/port/expiresAt) sin fallar", () => {
-    const result = parsePairingPayload(JSON.stringify({ ...validPayload, host: undefined }));
-    expect(result).toEqual({ pairingId: validPayload.pairingId, token: validPayload.token });
+  it("devuelve null si falta host, port o protocol — hacen falta para armar la URL del backend", () => {
+    const { host: _host, ...withoutHost } = validPayload;
+    expect(parsePairingPayload(JSON.stringify(withoutHost))).toBeNull();
+    const { port: _port, ...withoutPort } = validPayload;
+    expect(parsePairingPayload(JSON.stringify(withoutPort))).toBeNull();
+    expect(parsePairingPayload(JSON.stringify({ ...validPayload, protocol: "https" }))).toBeNull();
+  });
+
+  it("ignora campos extra no usados (expiresAt) sin fallar", () => {
+    const { expiresAt: _expiresAt, ...rest } = validPayload;
+    const result = parsePairingPayload(JSON.stringify(rest));
+    expect(result).toEqual({
+      pairingId: validPayload.pairingId,
+      token: validPayload.token,
+      backendUrl: "http://192.168.1.30:38123",
+    });
   });
 });

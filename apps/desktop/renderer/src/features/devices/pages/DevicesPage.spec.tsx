@@ -5,14 +5,16 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DevicesPage } from "./DevicesPage";
 
-const { fetchDevicesMock, revokeDeviceMock, createPairingMock } = vi.hoisted(() => ({
+const { fetchDevicesMock, fetchMeMock, revokeDeviceMock, createPairingMock } = vi.hoisted(() => ({
   fetchDevicesMock: vi.fn(),
+  fetchMeMock: vi.fn(),
   revokeDeviceMock: vi.fn(),
   createPairingMock: vi.fn(),
 }));
 
 vi.mock("@/features/devices/api/devices.api", () => ({
   fetchDevices: fetchDevicesMock,
+  fetchMe: fetchMeMock,
   revokeDevice: revokeDeviceMock,
   renameDevice: vi.fn(),
 }));
@@ -54,6 +56,10 @@ function renderPage() {
 
 beforeEach(() => {
   fetchDevicesMock.mockReset();
+  fetchMeMock.mockReset();
+  // Por default "yo" no soy ninguno de los devices de la lista, para no ocultar el botón
+  // Revocar en los tests que no están probando específicamente el caso de auto-revocación.
+  fetchMeMock.mockResolvedValue({ ...activeDevice, id: "device-self" });
   revokeDeviceMock.mockReset();
   createPairingMock.mockReset();
   createPairingMock.mockReturnValue(new Promise(() => {})); // nunca resuelve por default
@@ -113,5 +119,15 @@ describe("DevicesPage", () => {
     await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
 
     expect(revokeDeviceMock).not.toHaveBeenCalled();
+  });
+
+  it("no ofrece Revocar sobre el propio dispositivo, ni siquiera al único administrador", async () => {
+    fetchDevicesMock.mockResolvedValue([activeDevice, revokedDevice]);
+    fetchMeMock.mockResolvedValue(activeDevice);
+    renderPage();
+
+    await screen.findByText("Notebook Administración");
+    expect(screen.getByText(/este dispositivo/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Revocar" })).not.toBeInTheDocument();
   });
 });

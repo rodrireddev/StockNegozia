@@ -32,6 +32,12 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "recordAudioAndroid": false
+        }
       ]
     ],
     "experiments": {

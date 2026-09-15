@@ -6,10 +6,12 @@ import { DeviceCard } from "../components/DeviceCard";
 import { PairingDialog } from "../components/PairingDialog";
 import { RevokeConfirmDialog } from "../components/RevokeConfirmDialog";
 import { useDevices } from "../hooks/useDevices";
+import { useMe } from "../hooks/useMe";
 import { useRevokeDevice } from "../hooks/useRevokeDevice";
 
 export function DevicesPage() {
   const devices = useDevices();
+  const me = useMe();
   const revokeDevice = useRevokeDevice();
   const [pairingOpen, setPairingOpen] = useState(false);
   const [deviceToRevoke, setDeviceToRevoke] = useState<DeviceDto | null>(null);
@@ -40,7 +42,12 @@ export function DevicesPage() {
 
       <div className="space-y-3">
         {devices.data?.map((device) => (
-          <DeviceCard key={device.id} device={device} onRevoke={setDeviceToRevoke} />
+          <DeviceCard
+            key={device.id}
+            device={device}
+            isSelf={device.id === me.data?.id}
+            onRevoke={setDeviceToRevoke}
+          />
         ))}
       </div>
 

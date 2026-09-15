@@ -1,7 +1,7 @@
 import { Text } from "react-native";
 import { render, waitFor } from "@testing-library/react-native";
 import { AuthProvider, useAuth } from "./AuthContext";
-import { AuthRequiredError } from "@/api/errors";
+import { AuthRequiredError, NetworkError } from "@/api/errors";
 
 jest.mock("@/config/backendUrlStore", () => ({
   loadBackendUrl: jest.fn().mockResolvedValue("http://192.168.1.30:38123"),
@@ -78,4 +78,46 @@ describe("AuthProvider", () => {
     );
     await waitFor(() => expect(getByText("status:unauthenticated")).toBeTruthy());
   });
+
+  it("reintenta ante fallas de red transitorias y no se queda pegado en bootstrapping", async () => {
+    mockedCredentialStore.getCredential.mockResolvedValue("sn_valid");
+    mockedGetMe
+      .mockRejectedValueOnce(new NetworkError())
+      .mockRejectedValueOnce(new NetworkError())
+      .mockResolvedValueOnce({
+        id: "device-1",
+        name: "Mi teléfono",
+        type: "mobile",
+        active: true,
+        isAdmin: false,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        lastSeenAt: null,
+      });
+
+    const { getByText, queryByText } = await render(
+      <AuthProvider>
+        <StatusProbe />
+      </AuthProvider>,
+    );
+
+    // Nunca debería mostrarse "unauthenticated" de paso mientras reintenta — un dispositivo con
+    // credential guardada no debe verse expulsado a Pairing por una falla de red transitoria.
+    await waitFor(() => expect(getByText("status:authenticated")).toBeTruthy(), { timeout: 4000 });
+    expect(queryByText("status:unauthenticated")).toBeNull();
+    expect(mockedGetMe).toHaveBeenCalledTimes(3);
+  }, 10_000);
+
+  it("si la red sigue fallando tras reintentar, cae a authenticated de forma optimista (no bloquea el uso offline)", async () => {
+    mockedCredentialStore.getCredential.mockResolvedValue("sn_valid");
+    mockedGetMe.mockRejectedValue(new NetworkError());
+
+    const { getByText } = await render(
+      <AuthProvider>
+        <StatusProbe />
+      </AuthProvider>,
+    );
+
+    await waitFor(() => expect(getByText("status:authenticated")).toBeTruthy(), { timeout: 4000 });
+    expect(mockedGetMe).toHaveBeenCalledTimes(3);
+  }, 10_000);
 });

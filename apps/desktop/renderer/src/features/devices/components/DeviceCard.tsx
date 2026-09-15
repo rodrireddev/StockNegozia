@@ -26,10 +26,19 @@ const TYPE_LABELS: Record<DeviceDto["type"], string> = {
 
 interface DeviceCardProps {
   device: DeviceDto;
+  /** El dispositivo con el que se está usando el Desktop en este momento. */
+  isSelf: boolean;
   onRevoke: (device: DeviceDto) => void;
 }
 
-export function DeviceCard({ device, onRevoke }: DeviceCardProps) {
+/**
+ * Nunca se ofrece "Revocar" sobre el propio dispositivo — más allá de que el backend ya bloquea
+ * la auto-revocación del único administrador activo (ver docs/security/DEVICE_MANAGEMENT.md
+ * §Protección contra auto-revocación), dejar el botón habilitado invitaría a un 409 confuso o, si
+ * alguna vez existiera más de un administrador, a cortar la propia sesión sin aviso. Quien quiere
+ * revocar este dispositivo tiene que hacerlo desde otro dispositivo administrador.
+ */
+export function DeviceCard({ device, isSelf, onRevoke }: DeviceCardProps) {
   return (
     <Card>
       <CardHeader className="flex-row items-start justify-between gap-2 space-y-0">
@@ -38,6 +47,7 @@ export function DeviceCard({ device, onRevoke }: DeviceCardProps) {
           <p className="text-sm text-muted-foreground">
             {TYPE_LABELS[device.type]}
             {device.isAdmin ? " · Administrador" : ""}
+            {isSelf ? " · Este dispositivo" : ""}
           </p>
         </div>
         <Badge variant={device.active ? "success" : "destructive"}>
@@ -50,7 +60,7 @@ export function DeviceCard({ device, onRevoke }: DeviceCardProps) {
             ? `Visto ${formatRelativeTime(device.lastSeenAt)}`
             : "Todavía no se conectó"}
         </p>
-        {device.active && (
+        {device.active && !isSelf && (
           <Button variant="outline" size="sm" onClick={() => onRevoke(device)}>
             Revocar
           </Button>

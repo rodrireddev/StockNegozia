@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { confirmPairing, getMe, type ConfirmPairingInput } from "@/api/endpoints/auth";
-import { AuthRequiredError } from "@/api/errors";
+import { AuthRequiredError, NetworkError } from "@/api/errors";
 import {
   getBackendUrl,
   loadBackendUrl,
@@ -27,6 +27,29 @@ export interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Reintenta `getMe()` ante fallas de red transitorias (backend todavía arrancando, LAN
+ * asentándose) antes de rendirse — sin esto, un arranque en frío donde el teléfono se conecta a
+ * la LAN casi al mismo tiempo que el backend produce un "flash" donde el splash ya se escondió
+ * pero la primera pantalla autenticada muestra un error de conexión que en realidad era
+ * momentáneo. Un `AuthRequiredError` (401 real) nunca se reintenta — no es transitorio.
+ */
+async function getMeWithRetries(attempts = 3, delayMs = 700): Promise<void> {
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      await getMe();
+      return;
+    } catch (error) {
+      if (!(error instanceof NetworkError) || attempt === attempts) throw error;
+      await delay(delayMs);
+    }
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("bootstrapping");
@@ -50,11 +73,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Verificamos contra el backend cuando hay conexión — un dispositivo revocado no debería
       // ver la pantalla de Products ni por un instante (ver docs/security/PAIRING.md §Estado
-      // `cancelled`/revocación). Si el backend no es alcanzable, quedamos autenticados de forma
-      // optimista: `useProducts`/`useDeviceInfo` van a reintentar la verificación real más tarde,
-      // y cualquier 401 futuro limpia la sesión igual (ver `src/api/client.ts`).
+      // `cancelled`/revocación). Reintentamos ante fallas de red (ver `getMeWithRetries`) para no
+      // confundir un arranque en frío con un backend inalcanzable de verdad. Si tras reintentar
+      // sigue sin ser alcanzable, quedamos autenticados de forma optimista: `useProducts`/
+      // `useDeviceInfo` van a reintentar la verificación real más tarde, y cualquier 401 futuro
+      // limpia la sesión igual (ver `src/api/client.ts`).
       try {
-        await getMe();
+        await getMeWithRetries();
         if (cancelled) return;
         setStatus("authenticated");
       } catch (error) {

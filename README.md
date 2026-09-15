@@ -1,17 +1,19 @@
 # StockNegozia
 
 Plataforma modular de gestión empresarial, pensada inicialmente para pequeños comercios. Este
-repositorio es un monorepo con aplicación de escritorio (Electron + React) y backend (NestJS +
-Drizzle + SQLite), conectados de punta a punta. El backend ya implementa lógica de negocio real
-para **Productos, Categorías, Proveedores, Compras, Ventas y Movimientos de stock**; el frontend
-tiene interfaz funcional real para **Productos, Ventas, Compras, Proveedores e Inventario**, más
-**Backup/Restore manual** de la base de datos — ver [Estado actual](#estado-actual) para el detalle
-de qué está terminado y qué todavía es un punto de extensión sin implementar.
+repositorio es un monorepo con aplicación de escritorio (Electron + React), cliente móvil Android
+(React Native + Expo) y backend (NestJS + Drizzle + SQLite), conectados de punta a punta. El
+backend ya implementa lógica de negocio real para **Productos, Categorías, Proveedores, Compras,
+Ventas y Movimientos de stock**; el frontend de Desktop tiene interfaz funcional real para
+**Productos, Ventas, Compras, Proveedores e Inventario**, más **Backup/Restore manual** de la base
+de datos; el cliente **Mobile** (Android) consume el mismo backend por LAN con autenticación de
+dispositivo real — ver [Estado actual](#estado-actual) para el detalle de qué está terminado y qué
+todavía es un punto de extensión sin implementar.
 
 ## Estado actual
 
 - ✅ Monorepo pnpm + Turborepo funcionando (`typecheck`, `lint`, `build`, `test`, `format` limpios
-  en las 7 packages/apps).
+  en las 8 packages/apps — desktop, backend, mobile, web-client + 4 packages compartidos).
 - ✅ `pnpm dev` levanta Electron, que arranca el backend NestJS como proceso hijo, espera a
   `/health`, muestra la ventana con React, y detiene el backend al cerrar la app.
 - ✅ Drizzle ORM conectado a SQLite real (`better-sqlite3`), con 9 migraciones aplicadas
@@ -98,25 +100,42 @@ StockNegozia/
 │   │   ├── tailwind.config.ts / components.json
 │   │   └── package.json
 │   │
-│   └── backend/                          @stocknegozia/backend — NestJS
+│   ├── backend/                          @stocknegozia/backend — NestJS
+│   │   ├── src/
+│   │   │   ├── main.ts                   bootstrap, CORS, puerto configurable
+│   │   │   ├── app.module.ts             ConfigModule, EventEmitterModule, Database/Core/Health
+│   │   │   ├── config/                   configuration.ts (env+data dir), ensure-data-dirs.ts
+│   │   │   ├── database/                 database.module.ts (Drizzle+SQLite), schema/, migrations/
+│   │   │   ├── auth/                     ApiAccessGuard (APP_GUARD), AdminDeviceGuard, Device
+│   │   │   │                             Management/Credential/Bootstrap/Pairing — ver
+│   │   │   │                             docs/security/API_ACCESS.md, PAIRING.md, DEVICE_MANAGEMENT.md
+│   │   │   ├── core/                     CoreModule + módulos de dominio — Products, Categories,
+│   │   │   │                             Suppliers, Purchases, Sales y StockMovements (real; ver
+│   │   │   │                             docs/inventory/), Inventory/Customers/Users/Permissions
+│   │   │   │                             siguen siendo placeholders — ver core/README.md
+│   │   │   ├── backup/                   BackupController/Service — crear/validar backups (SQLite
+│   │   │   │                             Online Backup API) — ver docs/backup/BACKUP_RESTORE.md
+│   │   │   └── health/                   GET /health (@Public) con roundtrip real a SQLite
+│   │   ├── drizzle.config.ts             config de drizzle-kit (generate)
+│   │   ├── vitest.config.ts              211 tests (unit + e2e con supertest)
+│   │   ├── nest-cli.json
+│   │   └── package.json
+│   │
+│   └── mobile/                           @stocknegozia/mobile — React Native + Expo (Android, M15)
+│       ├── app.json / eas.json           identidad de la app, íconos, splash; perfiles de build
+│       │                                 (development/preview/production)
 │       ├── src/
-│       │   ├── main.ts                   bootstrap, CORS, puerto configurable
-│       │   ├── app.module.ts             ConfigModule, EventEmitterModule, Database/Core/Health
-│       │   ├── config/                   configuration.ts (env+data dir), ensure-data-dirs.ts
-│       │   ├── database/                 database.module.ts (Drizzle+SQLite), schema/, migrations/
-│       │   ├── auth/                     ApiAccessGuard (APP_GUARD), AdminDeviceGuard, Device
-│       │   │                             Management/Credential/Bootstrap/Pairing — ver
-│       │   │                             docs/security/API_ACCESS.md, PAIRING.md, DEVICE_MANAGEMENT.md
-│       │   ├── core/                     CoreModule + módulos de dominio — Products, Categories,
-│       │   │                             Suppliers, Purchases, Sales y StockMovements (real; ver
-│       │   │                             docs/inventory/), Inventory/Customers/Users/Permissions
-│       │   │                             siguen siendo placeholders — ver core/README.md
-│       │   ├── backup/                   BackupController/Service — crear/validar backups (SQLite
-│       │   │                             Online Backup API) — ver docs/backup/BACKUP_RESTORE.md
-│       │   └── health/                   GET /health (@Public) con roundtrip real a SQLite
-│       ├── drizzle.config.ts             config de drizzle-kit (generate)
-│       ├── vitest.config.ts              211 tests (unit + e2e con supertest)
-│       ├── nest-cli.json
+│       │   ├── app/                      expo-router (file-based routing) — pantallas finas
+│       │   ├── api/                      cliente HTTP + endpoints tipados (auth, products)
+│       │   ├── auth/                     CredentialStore (expo-secure-store), AuthContext, 401
+│       │   ├── devices/                  GET /auth/devices/me
+│       │   ├── features/                 pairing/ (pega el JSON del QR), products/, scanner/
+│       │   │                             (solo el contrato ScanResult — sin cámara todavía)
+│       │   ├── components/               primitivos de UI propios (sin Tailwind/shadcn)
+│       │   ├── navigation/               AdaptiveShell — bottom tabs (phone) / side rail (tablet)
+│       │   ├── config/                   URL del backend (env de dev + override persistido)
+│       │   └── theme/                    tokens portados de la paleta de Desktop
+│       ├── jest.config.js                jest-expo — 35 tests
 │       └── package.json
 │
 ├── packages/
@@ -184,6 +203,10 @@ StockNegozia/
 - pnpm (ver `packageManager` en `package.json`; se activa vía `corepack` o `npm i -g pnpm`)
 - En Windows: Visual Studio Build Tools (workload "Desktop development with C++") + Python, para
   compilar `better-sqlite3` vía node-gyp.
+- Para el cliente **Mobile**: no hace falta Android Studio/SDK para desarrollar con `expo start`
+  (Metro + Expo Go/dev client) — solo si querés compilar un dev client localmente
+  (`pnpm --filter @stocknegozia/mobile android`). Los builds instalables/de producción se generan
+  con EAS (cuenta de Expo), ver [`docs/mobile/MOBILE_CLIENT.md`](docs/mobile/MOBILE_CLIENT.md).
 
 ## Uso
 
@@ -203,7 +226,7 @@ Otros scripts (raíz, vía Turborepo):
 pnpm build       # build de todos los packages/apps
 pnpm lint        # eslint en todo el monorepo
 pnpm typecheck   # tsc --noEmit en todo el monorepo
-pnpm test        # tests de backend y desktop (Vitest) en todo el monorepo
+pnpm test        # backend + desktop + web-client (Vitest) y mobile (Jest) en todo el monorepo
 pnpm format      # prettier --write
 pnpm format:check
 ```
@@ -231,8 +254,25 @@ pnpm --filter @stocknegozia/backend start:dev
 ```
 
 Queda escuchando en `http://localhost:38123` (`STOCKNEGOZIA_PORT`), con `/health` como primer
-chequeo. Esto es independiente de `pnpm test`, que corre la suite automatizada (backend + desktop)
-sin necesidad de tener la app corriendo.
+chequeo. Esto es independiente de `pnpm test`, que corre la suite automatizada de todas las
+apps/packages sin necesidad de tener ninguna corriendo.
+
+### Probar el cliente Mobile (Android)
+
+A diferencia de Desktop, Mobile necesita el backend accesible por IP LAN (no `localhost` — ver
+[`docs/lan/LAN_TESTING.md`](docs/lan/LAN_TESTING.md)) y un dispositivo ya emparejado:
+
+```bash
+pnpm --filter @stocknegozia/backend start:dev      # anotar la IP LAN que imprime
+cp apps/mobile/.env.example apps/mobile/.env       # editar EXPO_PUBLIC_API_URL con esa IP
+pnpm --filter @stocknegozia/mobile start
+```
+
+Abrí la app (Expo Go o un dev client) desde un teléfono/tablet Android en la misma red. Sin
+credential guardada, arranca en la pantalla de **Pairing**: generá un pairing desde el Desktop
+(`Dispositivos` → `Emparejar dispositivo`), pegá el JSON del QR + el código de verificación en el
+teléfono, y confirmá — ver [`docs/mobile/MOBILE_CLIENT.md`](docs/mobile/MOBILE_CLIENT.md) para el
+detalle completo (credential storage, layout adaptativo, builds de EAS, requisitos de Google Play).
 
 Scripts propios de cada app (`pnpm --filter <nombre> <script>`):
 
@@ -240,6 +280,9 @@ Scripts propios de cada app (`pnpm --filter <nombre> <script>`):
   `dev`, `typecheck`, `lint`, `test` (vitest run), `test:watch`, `db:generate` (drizzle-kit).
 - `@stocknegozia/desktop`: `dev`, `build`, `preview`, `typecheck`, `lint`, `test` (vitest run),
   `test:watch`.
+- `@stocknegozia/mobile`: `start` (Metro), `android` (build + instala un dev client local),
+  `typecheck`, `lint`, `test` (jest), `test:watch`, `branding:generate`, `build:dev` /
+  `build:preview` / `build:production` (EAS).
 
 ## Base de datos
 
@@ -330,14 +373,15 @@ modelo de seguridad local.
 
 Un dispositivo ya autenticado puede emparejar dispositivos adicionales (mobile, otra laptop,
 tablet) vía QR + código de verificación, sin reusar el bootstrap — ver
-[`docs/security/PAIRING.md`](docs/security/PAIRING.md).
+[`docs/security/PAIRING.md`](docs/security/PAIRING.md). El Desktop ya tiene UI real para generar
+ese QR y administrar dispositivos (`Dispositivos` → listar/revocar/emparejar); el Web Client y el
+cliente Mobile son quienes confirman el pairing del lado del dispositivo nuevo — ver
+[Mobile](#mobile) y [`docs/lan/DEVICE_MANAGEMENT.md`](docs/lan/DEVICE_MANAGEMENT.md).
 
 Los dispositivos ya registrados se administran vía `/auth/devices/*` (listado, consulta,
 renombrado, `/me`, revocación permanente — sin reactivación posible) — ver
 [`docs/security/DEVICE_MANAGEMENT.md`](docs/security/DEVICE_MANAGEMENT.md). Solo el dispositivo
 administrador de la instalación (el creado por bootstrap) puede administrar otros dispositivos.
-Todo esto está implementado a nivel de backend; todavía no tiene interfaz en el frontend (ver
-[Alcance de esta etapa](#alcance-de-esta-etapa)).
 
 Variables de entorno (`apps/backend/.env.example`):
 
@@ -350,6 +394,29 @@ PAIRING_EXPIRATION_MINUTES=5        # duración de una sesión de pairing (QR + 
 `API_ACCESS_MODE` viene en `development` por defecto (pensado para no interrumpir el flujo de
 desarrollo) — cualquier instalación real debe fijarlo explícitamente en `production` para que la
 API exija credential.
+
+## Mobile
+
+Cliente móvil oficial (`apps/mobile`, Android — React Native + Expo + TypeScript, M15), pensado
+para producción y publicación en Google Play, no como demo. Reutiliza el sistema de auth/pairing
+existente sin ningún cambio de backend:
+
+- **Pairing**: igual que el Web Client, pega el JSON del QR generado en el Desktop + el código de
+  verificación (el scanner de cámara no está implementado todavía — ver
+  [`docs/mobile/MOBILE_CLIENT.md`](docs/mobile/MOBILE_CLIENT.md) §Scanner-ready architecture).
+- **Credential storage**: `expo-secure-store` (Android Keystore) — nunca `AsyncStorage` para la
+  credential.
+- **401/revocación**: un dispositivo revocado vuelve automáticamente a la pantalla de Pairing, sin
+  distinguir el motivo (mismo criterio anti-enumeración del backend).
+- **Layout adaptativo**: bottom tabs en teléfono, side rail persistente en tablet, mismo breakpoint
+  de ancho de pantalla en toda la app.
+- **Products**: primera feature real de datos (listado autenticado, `GET /products`), demostrando
+  la cadena completa credential → API → backend.
+- **Google Play**: `targetSdk`/`compileSdk` 36, compatible con el requisito de 16 KB page size,
+  perfiles de EAS para development/preview/production (`.aab` en production).
+
+Ver [`docs/mobile/MOBILE_CLIENT.md`](docs/mobile/MOBILE_CLIENT.md) para la arquitectura completa,
+qué se reutilizó de Desktop y qué no (y por qué), configuración de LAN, y el detalle de builds/EAS.
 
 ## Notas técnicas / gotchas ya resueltos
 
@@ -369,8 +436,10 @@ API exija credential.
 
 El backend tiene lógica de negocio real y testeada para **Productos, Categorías, Proveedores,
 Compras, Ventas y Movimientos de stock**, además de autenticación de dispositivos, pairing y
-Backup/Restore completos. El frontend tiene interfaz real para **Productos, Ventas, Compras,
-Proveedores, Inventario** y **Backup/Restore**. Todavía **no incluye**:
+Backup/Restore completos. El frontend de **Desktop** tiene interfaz real para **Productos, Ventas,
+Compras, Proveedores, Inventario** y **Backup/Restore**; **Mobile** (Android) tiene pairing,
+autenticación y un listado de **Productos** de solo lectura (ver [Mobile](#mobile)). Todavía **no
+incluye**:
 
 - **Clientes** — ni siquiera existe como placeholder: se quitó la entrada del sidebar y la página
   vacía correspondiente (ver [Alcance de esta etapa](#alcance-de-esta-etapa) de versiones
@@ -381,17 +450,18 @@ Proveedores, Inventario** y **Backup/Restore**. Todavía **no incluye**:
   [`apps/backend/src/core/README.md`](apps/backend/src/core/README.md).
 - Empaquetado de producción (`electron-builder` / instalador) — no hay forma de distribuir la app
   fuera de este repositorio en modo desarrollo todavía.
-- Autorización granular (roles/permisos), UI de Device Management, generación de QR en la UI de
-  Electron/React, cliente Android/iOS real, descubrimiento automático de red (mDNS), sesiones de
-  usuario, login con usuario/contraseña — la autenticación de dispositivo (`API_ACCESS_MODE`,
-  credentials, bootstrap, pairing, administración de dispositivos vía API) sí está implementada,
-  ver [Seguridad](#seguridad).
+- Autorización granular (roles/permisos), scanner de cámara en Mobile, cliente iOS, descubrimiento
+  automático de red (mDNS), sesiones de usuario, login con usuario/contraseña — la autenticación de
+  dispositivo (`API_ACCESS_MODE`, credentials, bootstrap, pairing, UI de Device Management en
+  Desktop, cliente Android real) sí está implementada, ver [Seguridad](#seguridad) y
+  [Mobile](#mobile).
 - Exportación de datos (CSV/Excel), backups automáticos/programados, cifrado de backups,
   sincronización en la nube — Backup/Restore manual sí está implementado, ver
   [Backup y Restore](#backup-y-restore).
 - Reportes y dashboard de negocio — el panel actual solo muestra el estado de conexión con el
   backend (`/health`).
 - Plugins reales (WhatsApp, persistencia externa, etc.) — solo documentados en `plugins/README.md`.
-- Sincronización, servidor remoto/LAN, mobile, IA.
+- Sincronización offline, IA. LAN (Web Client) y Mobile (Android) sí están implementados, ver
+  [Mobile](#mobile).
 
 Todo lo anterior queda documentado como dirección futura, no implementado.

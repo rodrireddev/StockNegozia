@@ -1,67 +1,72 @@
-import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from "react-native";
-import * as Device from "expo-device";
-import { QrCode } from "lucide-react-native";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/auth/AuthContext";
 import { usePairDevice } from "@/features/pairing/hooks/usePairDevice";
-import { parsePairingPayload } from "@/features/pairing/parsePairingPayload";
+import type { ParsedPairingPayload } from "@/features/pairing/parsePairingPayload";
+import { acceptTerms, hasAcceptedTerms } from "@/config/termsStore";
 import { ScreenContainer } from "@/components/ScreenContainer";
-import { Card } from "@/components/Card";
-import { TextField } from "@/components/TextField";
-import { Button } from "@/components/Button";
 import { useDeviceSize } from "@/hooks/useDeviceSize";
-import { useTheme } from "@/theme/useTheme";
-import { spacing, typography } from "@/theme/tokens";
+import { InstructionsStep } from "../components/steps/InstructionsStep";
+import { TermsStep } from "../components/steps/TermsStep";
+import { ScanStep } from "../components/steps/ScanStep";
+import { VerifyStep } from "../components/steps/VerifyStep";
+import { NameStep } from "../components/steps/NameStep";
 
-const defaultDeviceName = Device.deviceName ?? Device.modelName ?? "";
+type Step = "instructions" | "terms" | "scan" | "verify" | "name";
 
+/**
+ * Wizard de emparejamiento — instrucciones → términos → escanear QR → código de verificación →
+ * nombre del dispositivo → sincronizado. La URL del backend NUNCA se le pide a la persona: se
+ * arma automáticamente a partir de `host`/`port` del propio QR escaneado
+ * (`ParsedPairingPayload.backendUrl`, ver `parsePairingPayload.ts`) — es un detalle interno de
+ * red, no algo que el usuario del celular tenga que conocer o escribir.
+ */
 export function PairingScreen() {
   const auth = useAuth();
   const { isTablet } = useDeviceSize();
-  const { colors } = useTheme();
   const pairMutation = usePairDevice();
 
-  const [backendUrl, setBackendUrl] = useState(auth.backendUrl ?? "");
-  const [qrPayload, setQrPayload] = useState("");
+  const [step, setStep] = useState<Step>("instructions");
+  const [termsAlreadyAccepted, setTermsAlreadyAccepted] = useState(false);
+  const [scanned, setScanned] = useState<ParsedPairingPayload | null>(null);
   const [verificationCode, setVerificationCode] = useState("");
-  const [deviceName, setDeviceName] = useState(defaultDeviceName);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  async function handleSubmit() {
-    setFormError(null);
+  useEffect(() => {
+    let cancelled = false;
+    hasAcceptedTerms().then((accepted) => {
+      if (!cancelled) setTermsAlreadyAccepted(accepted);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-    const trimmedUrl = backendUrl.trim();
-    if (trimmedUrl.length === 0) {
-      setFormError("Ingresá la dirección del backend.");
-      return;
-    }
+  function handleScanned(payload: ParsedPairingPayload) {
+    setScanned(payload);
+    setStep("verify");
+  }
 
-    const parsed = parsePairingPayload(qrPayload.trim());
-    if (!parsed) {
-      setFormError(
-        "El código QR pegado no es válido. Copiá el JSON completo mostrado en el Desktop.",
-      );
-      return;
-    }
+  function handleVerifyNext(code: string) {
+    setVerificationCode(code);
+    setStep("name");
+  }
 
-    if (!/^\d{6}$/.test(verificationCode.trim())) {
-      setFormError("El código de verificación debe tener 6 dígitos.");
-      return;
-    }
-
-    await auth.configureBackendUrl(trimmedUrl);
+  async function handleNameSubmit(deviceName: string) {
+    if (!scanned) return;
+    setSubmitError(null);
+    await auth.configureBackendUrl(scanned.backendUrl);
 
     pairMutation.mutate(
       {
-        pairingId: parsed.pairingId,
-        token: parsed.token,
-        verificationCode: verificationCode.trim(),
-        deviceName: deviceName.trim() || undefined,
+        pairingId: scanned.pairingId,
+        token: scanned.token,
+        verificationCode,
+        deviceName: deviceName || undefined,
         deviceType: isTablet ? "tablet" : "mobile",
       },
       {
         onError: (error) => {
-          setFormError(
+          setSubmitError(
             error instanceof Error ? error.message : "No se pudo emparejar el dispositivo.",
           );
         },
@@ -71,77 +76,34 @@ export function PairingScreen() {
 
   return (
     <ScreenContainer>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <QrCode color={colors.primary} size={40} />
-          <Text style={[styles.title, { color: colors.foreground }]}>Emparejar dispositivo</Text>
-          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-            Desde el Desktop de StockNegozia: Dispositivos → Emparejar dispositivo. Pegá acá el
-            texto del código QR y el código de verificación que aparecen en pantalla.
-          </Text>
-
-          <Card style={styles.formCard}>
-            <TextField
-              label="URL del backend"
-              value={backendUrl}
-              onChangeText={setBackendUrl}
-              placeholder="http://192.168.1.30:38123"
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-            />
-            <TextField
-              label="Contenido del QR"
-              value={qrPayload}
-              onChangeText={setQrPayload}
-              placeholder='{"version":1,"type":"stocknegozia-pairing",...}'
-              autoCapitalize="none"
-              autoCorrect={false}
-              multiline
-              numberOfLines={4}
-              style={styles.multiline}
-            />
-            <TextField
-              label="Código de verificación"
-              value={verificationCode}
-              onChangeText={setVerificationCode}
-              placeholder="123456"
-              keyboardType="number-pad"
-              maxLength={6}
-            />
-            <TextField
-              label="Nombre del dispositivo (opcional)"
-              value={deviceName}
-              onChangeText={setDeviceName}
-              placeholder="Mi teléfono"
-            />
-
-            {formError ? (
-              <Text style={[styles.error, { color: colors.danger }]}>{formError}</Text>
-            ) : null}
-
-            <Button
-              label="Emparejar"
-              onPress={handleSubmit}
-              loading={pairMutation.isPending}
-              testID="pairing-submit"
-            />
-          </Card>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      {step === "instructions" && (
+        <InstructionsStep onNext={() => setStep(termsAlreadyAccepted ? "scan" : "terms")} />
+      )}
+      {step === "terms" && (
+        <TermsStep
+          onNext={async () => {
+            await acceptTerms();
+            setTermsAlreadyAccepted(true);
+            setStep("scan");
+          }}
+          onBack={() => setStep("instructions")}
+        />
+      )}
+      {step === "scan" && (
+        <ScanStep
+          onScanned={handleScanned}
+          onBack={() => setStep(termsAlreadyAccepted ? "instructions" : "terms")}
+        />
+      )}
+      {step === "verify" && <VerifyStep onNext={handleVerifyNext} onBack={() => setStep("scan")} />}
+      {step === "name" && (
+        <NameStep
+          onSubmit={handleNameSubmit}
+          onBack={() => setStep("verify")}
+          isPending={pairMutation.isPending}
+          error={submitError}
+        />
+      )}
     </ScreenContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  content: { gap: spacing.md, paddingBottom: spacing.xxl },
-  title: { ...typography.title },
-  subtitle: { ...typography.body },
-  formCard: { gap: spacing.md, marginTop: spacing.md },
-  multiline: { minHeight: 96, textAlignVertical: "top", paddingTop: spacing.sm },
-  error: { ...typography.caption },
-});
