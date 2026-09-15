@@ -288,6 +288,88 @@ describe("Pairing: QR + código de verificación", () => {
         .set("Authorization", `Bearer ${pairedCredential}`);
       expect(res.status).toBe(401);
     });
+
+    it("un request autenticado deja el deviceId en http.request.completed", async () => {
+      const res = await request(app.getHttpServer())
+        .post("/auth/pairing")
+        .set("Authorization", `Bearer ${deviceCredential}`)
+        .set("X-Request-Id", "trace-device-id-in-logs");
+      expect(res.status).toBe(201);
+
+      const reader = new LogReader(path.join(dir, "app.log"));
+      const entries = await reader.findByRequestId("trace-device-id-in-logs");
+      const completed = entries.find((e) => e.event === "http.request.completed");
+      expect(completed?.metadata?.deviceId).toBeTruthy();
+    });
+  });
+
+  describe("consultar estado (GET /auth/pairing/:id)", () => {
+    it("sin autenticación devuelve 401", async () => {
+      const res = await request(app.getHttpServer()).get("/auth/pairing/cualquiera");
+      expect(res.status).toBe(401);
+    });
+
+    it("un pairingId inexistente devuelve 404", async () => {
+      const res = await request(app.getHttpServer())
+        .get("/auth/pairing/00000000-0000-0000-0000-000000000000")
+        .set("Authorization", `Bearer ${deviceCredential}`);
+      expect(res.status).toBe(404);
+    });
+
+    it("una sesión recién creada devuelve status pending, sin exponer token ni código", async () => {
+      const created = await request(app.getHttpServer())
+        .post("/auth/pairing")
+        .set("Authorization", `Bearer ${deviceCredential}`);
+
+      const res = await request(app.getHttpServer())
+        .get(`/auth/pairing/${created.body.pairingId}`)
+        .set("Authorization", `Bearer ${deviceCredential}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.pairingId).toBe(created.body.pairingId);
+      expect(res.body.status).toBe("pending");
+      // SQLite guarda `expiresAt` como segundos enteros — se compara con tolerancia contra el
+      // valor devuelto por `create` (que sí tiene milisegundos, calculado en memoria).
+      expect(Object.keys(res.body).sort()).toEqual(["expiresAt", "pairingId", "status"]);
+      expect(
+        Math.abs(new Date(res.body.expiresAt).getTime() - new Date(created.body.expiresAt).getTime()),
+      ).toBeLessThan(1000);
+    });
+
+    it("después de confirmar, el status pasa a confirmed", async () => {
+      const created = await request(app.getHttpServer())
+        .post("/auth/pairing")
+        .set("Authorization", `Bearer ${deviceCredential}`);
+
+      await request(app.getHttpServer()).post("/auth/pairing/confirm").send({
+        pairingId: created.body.pairingId,
+        token: created.body.qr.token,
+        verificationCode: created.body.verificationCode,
+      });
+
+      const res = await request(app.getHttpServer())
+        .get(`/auth/pairing/${created.body.pairingId}`)
+        .set("Authorization", `Bearer ${deviceCredential}`);
+
+      expect(res.body.status).toBe("confirmed");
+    });
+
+    it("después de cancelar, el status pasa a cancelled", async () => {
+      const created = await request(app.getHttpServer())
+        .post("/auth/pairing")
+        .set("Authorization", `Bearer ${deviceCredential}`);
+
+      await request(app.getHttpServer())
+        .post("/auth/pairing/cancel")
+        .set("Authorization", `Bearer ${deviceCredential}`)
+        .send({ pairingId: created.body.pairingId });
+
+      const res = await request(app.getHttpServer())
+        .get(`/auth/pairing/${created.body.pairingId}`)
+        .set("Authorization", `Bearer ${deviceCredential}`);
+
+      expect(res.body.status).toBe("cancelled");
+    });
   });
 
   it("el pairing token, el verification code y la credential nunca aparecen en app.log", async () => {

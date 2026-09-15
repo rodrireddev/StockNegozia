@@ -1,6 +1,11 @@
 import type { ProductDto } from "@stocknegozia/api-contracts";
 import { describe, expect, it } from "vitest";
-import { formatConnectedStatus, formatDisconnectedStatus, formatProductsList } from "./render";
+import {
+  formatAuthorized,
+  formatDisconnectedStatus,
+  formatPairingNeeded,
+  formatProductsList,
+} from "./render";
 
 function product(overrides: Partial<ProductDto>): ProductDto {
   return {
@@ -38,11 +43,7 @@ describe("formatProductsList", () => {
   });
 });
 
-describe("formatConnectedStatus / formatDisconnectedStatus", () => {
-  it("connected muestra el punto lleno y la clase correcta", () => {
-    expect(formatConnectedStatus()).toEqual({ text: "● Connected", className: "status connected" });
-  });
-
+describe("formatDisconnectedStatus", () => {
   it("disconnected muestra el punto vacío sin mensaje adicional", () => {
     expect(formatDisconnectedStatus()).toEqual({
       text: "○ Disconnected",
@@ -54,6 +55,22 @@ describe("formatConnectedStatus / formatDisconnectedStatus", () => {
     expect(formatDisconnectedStatus("timeout")).toEqual({
       text: "○ Disconnected — timeout",
       className: "status disconnected",
+    });
+  });
+});
+
+describe("formatPairingNeeded / formatAuthorized", () => {
+  it("formatPairingNeeded usa la clase disconnected", () => {
+    expect(formatPairingNeeded()).toEqual({
+      text: "○ Sin emparejar",
+      className: "status disconnected",
+    });
+  });
+
+  it("formatAuthorized incluye el nombre del dispositivo y la clase connected", () => {
+    expect(formatAuthorized("Notebook")).toEqual({
+      text: "● Autorizado (Notebook)",
+      className: "status connected",
     });
   });
 });

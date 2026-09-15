@@ -15,6 +15,12 @@ interface MinimalRequest {
   originalUrl?: string;
   ip?: string;
   socket?: { remoteAddress?: string };
+  /**
+   * Poblado por `ApiAccessGuard`, que corre después de este middleware pero antes de que la
+   * respuesta termine — por eso ya está disponible en el handler de `res.on("finish")` de abajo,
+   * aunque no lo esté todavía cuando se loggea `http.request.started`.
+   */
+  device?: { id: string };
 }
 
 /**
@@ -70,7 +76,14 @@ export class RequestContextMiddleware implements NestMiddleware {
           operation,
           event: failed ? "http.request.failed" : "http.request.completed",
           message: failed ? "Request failed" : "Request completed",
-          metadata: { method: req.method, path, statusCode: res.statusCode, durationMs, clientIp },
+          metadata: {
+            method: req.method,
+            path,
+            statusCode: res.statusCode,
+            durationMs,
+            clientIp,
+            deviceId: req.device?.id,
+          },
         };
         if (res.statusCode >= 500) this.logger.error(fields);
         else if (failed) this.logger.warn(fields);

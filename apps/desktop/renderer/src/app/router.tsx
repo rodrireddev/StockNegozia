@@ -1,6 +1,7 @@
 import { createHashRouter } from "react-router-dom";
 import { SettingsPage } from "@/features/backup/pages/SettingsPage";
 import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
+import { DevicesPage } from "@/features/devices/pages/DevicesPage";
 import { InventoryCategoriesPage } from "@/features/inventory/pages/InventoryCategoriesPage";
 import { InventoryMovementsPage } from "@/features/inventory/pages/InventoryMovementsPage";
 import { InventoryStockPage } from "@/features/inventory/pages/InventoryStockPage";
@@ -26,6 +27,7 @@ export const router = createHashRouter([
       { path: "inventory", element: <InventoryStockPage /> },
       { path: "inventory/categories", element: <InventoryCategoriesPage /> },
       { path: "inventory/movements", element: <InventoryMovementsPage /> },
+      { path: "devices", element: <DevicesPage /> },
       { path: "settings", element: <SettingsPage /> },
     ],
   },

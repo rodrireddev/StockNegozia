@@ -28,6 +28,10 @@ export const backendEnvSchema = z.object({
   // pueda llegar al backend (localhost no sirve desde otro dispositivo). Sin esta variable, se
   // intenta autodetectar la primera IP de LAN no interna — ver `resolveLanHost`.
   PAIRING_HOST: z.string().optional(),
+  // Orígenes adicionales permitidos por CORS, separados por coma (ej. el build empaquetado del
+  // Desktop, un futuro cliente Mobile) — se suman a los orígenes conocidos por defecto (renderer de
+  // Electron en dev, Web Client en dev/LAN). Ver docs/lan/DEVICE_MANAGEMENT.md §CORS.
+  CORS_ALLOWED_ORIGINS: z.string().optional(),
 });
 
 export type BackendEnv = z.infer<typeof backendEnvSchema>;

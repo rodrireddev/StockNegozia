@@ -63,3 +63,13 @@ export interface PairingConfirmResult {
   device: { id: string; name: string; type: DeviceType };
   credential: string;
 }
+
+/**
+ * Respuesta de `GET /auth/pairing/:id` — para que quien generó el QR sepa cuándo el otro
+ * dispositivo confirmó, sin exponer nunca el token ni el código de verificación.
+ */
+export interface PairingStatusResult {
+  pairingId: string;
+  status: PairingStatus;
+  expiresAt: string;
+}

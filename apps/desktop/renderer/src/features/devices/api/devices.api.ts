@@ -1,0 +1,15 @@
+import type { DeviceDto } from "@stocknegozia/api-contracts";
+import type { UpdateDeviceInput } from "@stocknegozia/validation";
+import { apiGet, apiPatch, apiPost } from "@/lib/api-client";
+
+export function fetchDevices(): Promise<DeviceDto[]> {
+  return apiGet<DeviceDto[]>("/auth/devices");
+}
+
+export function renameDevice(id: string, input: UpdateDeviceInput): Promise<DeviceDto> {
+  return apiPatch<DeviceDto>(`/auth/devices/${id}`, input);
+}
+
+export function revokeDevice(id: string): Promise<DeviceDto> {
+  return apiPost<DeviceDto>(`/auth/devices/${id}/revoke`);
+}

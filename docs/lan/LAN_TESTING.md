@@ -1,12 +1,11 @@
 # LAN Development — M13: prueba de conectividad
 
-> **M13 = prueba de concepto de conectividad LAN.** Confirma que el backend es alcanzable desde
-> otro dispositivo de la misma red y que un cliente HTTP mínimo puede consumir datos reales.
-> **M14 = autenticación/autorización de esos dispositivos** (registro, pairing, tokens, revocación)
-> — explícitamente fuera de alcance acá. Ver la sección "Seguridad" más abajo y
-> [`docs/security/API_ACCESS.md`](../security/API_ACCESS.md) para el sistema de pairing que ya
-> existe (pensado hoy para Electron↔backend, no para dispositivos LAN arbitrarios — extenderlo a
-> estos últimos es justamente el trabajo de M14).
+> **M13 = prueba de concepto de conectividad LAN**, sin autenticación de dispositivos. **M14 ya
+> implementó** esa autenticación/autorización (pairing real desde el Web Client, UI de Desktop,
+> CORS restringido) — ver [`docs/lan/DEVICE_MANAGEMENT.md`](./DEVICE_MANAGEMENT.md). Este
+> documento se mantiene tal cual para la parte que sigue vigente sin cambios: cómo levantar el
+> backend y el Web Client en la LAN, `VITE_API_URL`, firewall. La sección "Seguridad" de acá abajo
+> describe el estado de M13 — ya superado por M14 en cuanto a autenticación.
 
 ## Qué demuestra este milestone
 
@@ -29,12 +28,12 @@ JSON de vuelta al Cliente Web
 
 Sin datos falsos: `Load Products` pega a `GET /products`, el mismo endpoint que usa el Desktop.
 
-## Qué NO incluye (ver M14)
+## Qué NO incluía (resuelto por M14)
 
-Ningún registro/autenticación/autorización de dispositivos, tokens permanentes para el cliente
-LAN, lista/revocación de dispositivos, WebSockets, sync offline, ni cliente mobile. El sistema de
-pairing que ya existe (`docs/security/PAIRING.md`) sigue siendo exclusivamente para dispositivos
-que pasan por ese flujo (típicamente Electron) — este cliente web de prueba no lo usa.
+Al momento de M13: ningún registro/autenticación/autorización de dispositivos, tokens permanentes
+para el cliente LAN, lista/revocación de dispositivos. **M14 resolvió todo esto** — ver
+[`DEVICE_MANAGEMENT.md`](./DEVICE_MANAGEMENT.md). Sigue sin haber WebSockets, sync offline, ni
+cliente mobile (mobile es M15).
 
 ## Arquitectura: qué se tocó y qué no
 
@@ -147,23 +146,12 @@ Verificá primero desde la propia Máquina A pegándole a su IP LAN (`curl http:
 
 ## CORS
 
-`app.enableCors()` sin `origin` explícito refleja `Access-Control-Allow-Origin: *` — cualquier
-origen puede leer la respuesta. Esto **no es nuevo de este milestone**: ya así desde que existe el
-backend (para que el renderer de Electron, un origen distinto, pudiera consumir la API).
-
-**Por qué es aceptable dejarlo así por ahora**: la frontera de seguridad real de este backend es
-`ApiAccessGuard`/`API_ACCESS_MODE` (ver `docs/security/API_ACCESS.md`), no el `Origin` del
-request — un origen puede leerse a sí mismo fácilmente sin CORS de por medio (falsificar `Origin`
-es trivial), así que restringir CORS sin agregar autenticación real no sube la barrera de
-seguridad, solo la complejidad. En `API_ACCESS_MODE=development` (el default, y el único modo
-soportado por este cliente de prueba) los endpoints ya son de acceso libre — CORS abierto es
-consistente con eso, no una debilidad adicional.
-
-**Qué cambiaría en producción**: cuando M14 agregue autenticación real de dispositivos LAN
-(`API_ACCESS_MODE=production` + credential por dispositivo), ahí sí conviene restringir `origin` a
-una lista explícita de orígenes conocidos, como capa adicional de defensa en profundidad — queda
-preparado para ese momento, no implementado ahora porque hacerlo sin la autenticación real de M14
-no aporta seguridad, solo fricción de desarrollo.
+**Actualizado por M14** — ya no refleja `*`. Ver
+[`DEVICE_MANAGEMENT.md`](./DEVICE_MANAGEMENT.md) §CORS para la allowlist actual
+(`apps/backend/src/config/cors-origin.ts`) y `CORS_ALLOWED_ORIGINS`. El razonamiento de fondo
+sigue siendo el mismo que documentaba M13: la frontera de seguridad real es
+`ApiAccessGuard`/`API_ACCESS_MODE`, no el `Origin` del request — CORS es una capa adicional, no un
+reemplazo.
 
 ## Logging
 
@@ -207,18 +195,17 @@ firewall bloqueando) llega al cliente como una falla de `fetch` (`TypeError: Fai
 distinta de un error HTTP de negocio (4xx/5xx con `{ message }`) — el cliente distingue ambos casos
 en `apps/web-client/src/main.ts`.
 
-## Seguridad — limitaciones explícitas de este milestone
+## Seguridad — estado al momento de M13 (ver M14 para lo actual)
 
-- **Sin autenticación de dispositivos LAN.** Cualquier dispositivo en la misma red puede pegarle a
-  este backend mientras `API_ACCESS_MODE=development` (el default). Esto es intencional para esta
-  prueba — no lo uses en una red que no controlás, y no lo actives por default en un entorno real
-  hasta que M14 agregue la autenticación correspondiente.
-- No se guardan credenciales nuevas, no se exponen rutas administrativas nuevas, no se abren
-  puertos adicionales (el cliente web usa su propio puerto de dev server, `5544`, no un puerto del
-  backend), no se modificó el esquema de la base de datos.
-- El cliente de prueba usa `POST /products` (endpoint real, ya protegido por el mismo guard que
+- **Sin autenticación de dispositivos LAN.** Cualquier dispositivo en la misma red podía pegarle a
+  este backend mientras `API_ACCESS_MODE=development` (el default). Esto era intencional para
+  esta prueba puntual — **M14 agregó la autenticación correspondiente**, ver
+  [`DEVICE_MANAGEMENT.md`](./DEVICE_MANAGEMENT.md). `API_ACCESS_MODE=development` sigue siendo el
+  default (no cambiado por M14) — para exigir autenticación real, configurar
+  `API_ACCESS_MODE=production`.
+- El cliente de prueba usa `GET /products` (endpoint real, ya protegido por el mismo guard que
   todo lo demás) para poder demostrar `Load Products` con datos reales — no crea una vía de acceso
-  nueva.
+  nueva. Desde M14, además, lo hace autenticado (ver `DEVICE_MANAGEMENT.md`).
 
 ## Limitaciones actuales
 
@@ -229,8 +216,8 @@ en `apps/web-client/src/main.ts`.
 - El cliente web no persiste nada (ni la URL configurada más allá de la build, ni el estado entre
   recargas) — es deliberadamente efímero, para probar conectividad, no para uso diario.
 
-## Pendiente para M14
+## M14 (resuelto)
 
-Registro/autenticación de dispositivos LAN (extender el pairing existente o un flujo nuevo),
-lista/revocación de esos dispositivos, y — recién ahí — CORS restringido a orígenes conocidos como
-defensa en profundidad adicional.
+Registro/autenticación de dispositivos LAN, lista/revocación de esos dispositivos, y CORS
+restringido a orígenes conocidos — todo esto ya está implementado, ver
+[`DEVICE_MANAGEMENT.md`](./DEVICE_MANAGEMENT.md). Pendiente real: solo Mobile (M15).

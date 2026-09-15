@@ -1,6 +1,11 @@
-import { Inject, Injectable, UnauthorizedException } from "@nestjs/common";
+import { Inject, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { ConfigService, ConfigType } from "@nestjs/config";
-import type { PairingConfirmResult, PairingCreateResult, PairingQrPayload } from "@stocknegozia/api-contracts";
+import type {
+  PairingConfirmResult,
+  PairingCreateResult,
+  PairingQrPayload,
+  PairingStatusResult,
+} from "@stocknegozia/api-contracts";
 import type { PairingConfirmInput } from "@stocknegozia/validation";
 import { randomBytes, randomInt, randomUUID } from "node:crypto";
 import { appConfig } from "../../config/configuration";
@@ -145,6 +150,26 @@ export class PairingService {
     return {
       device: { id: deviceId, name: input.deviceName ?? DEFAULT_PAIRED_DEVICE_NAME, type: deviceType },
       credential,
+    };
+  }
+
+  /**
+   * Estado de una sesión de pairing (`pending/confirmed/expired/cancelled`) — para que la UI que
+   * generó el QR sepa cuándo el otro dispositivo confirmó, sin exponer el token ni el código. No
+   * requiere anti-enumeración especial: solo lo puede llamar un dispositivo ya autenticado (mismo
+   * guard que `create`/`cancel`), no es un endpoint público como `confirm`.
+   */
+  getStatus(pairingId: string): PairingStatusResult {
+    const now = new Date();
+    this.repository.expireStale(now);
+
+    const session = this.repository.findById(pairingId);
+    if (!session) throw new NotFoundException("Sesión de pairing no encontrada");
+
+    return {
+      pairingId: session.id,
+      status: session.status,
+      expiresAt: session.expiresAt.toISOString(),
     };
   }
 

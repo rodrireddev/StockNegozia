@@ -322,6 +322,18 @@ igual acá — el pairing no promete más aislamiento que el resto de la API.
 
 ## UI / Electron Integration Tests — Pending
 
+> **Actualización M14:** la UI de pairing del Desktop **ya existe**
+> (`apps/desktop/renderer/src/features/devices/components/PairingDialog.tsx`) y el Web Client
+> (`apps/web-client`) ya puede confirmar un pairing real — ver
+> [`docs/lan/DEVICE_MANAGEMENT.md`](../lan/DEVICE_MANAGEMENT.md). Esto resuelve, en la práctica,
+> buena parte de lo que este checklist marcaba `TODO` por falta de UI/de un segundo cliente real
+> (secciones 1–3 y 5 más abajo, principalmente). Lo que sigue sin existir y sigue siendo `TODO`
+> genuino: un cliente QR con cámara real (el Web Client pega el JSON en vez de escanear), un
+> cliente Android/iOS real (Mobile es M15), y el almacenamiento seguro de una credential de
+> *pairing* en un segundo Electron/Desktop (`DeviceCredentialStore` hoy solo cubre la credential de
+> *bootstrap* — ver la nota en §2 más abajo, que sigue vigente). Este checklist no se reescribió
+> punto por punto; se deja como referencia histórica del estado pre-M14 más esta nota.
+
 **Estas pruebas no son un faltante del backend ni representan bugs conocidos.** Todo lo descrito
 en este documento hasta acá (generación de token/código, expiración, single-use, creación de
 `Device`, emisión de credential, logging, `ApiAccessGuard`) está implementado y probado —

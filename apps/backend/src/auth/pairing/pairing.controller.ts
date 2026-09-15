@@ -1,5 +1,9 @@
-import { Body, Controller, Inject, Post, Req } from "@nestjs/common";
-import type { PairingConfirmResult, PairingCreateResult } from "@stocknegozia/api-contracts";
+import { Body, Controller, Get, Inject, Param, Post, Req } from "@nestjs/common";
+import type {
+  PairingConfirmResult,
+  PairingCreateResult,
+  PairingStatusResult,
+} from "@stocknegozia/api-contracts";
 import {
   pairingCancelSchema,
   pairingConfirmSchema,
@@ -25,6 +29,11 @@ export class PairingController {
   @Post()
   create(@Req() request: RequestWithDevice): PairingCreateResult {
     return this.pairingService.createPairing({ initiatedByDeviceId: request.device?.id });
+  }
+
+  @Get(":id")
+  getStatus(@Param("id") id: string): PairingStatusResult {
+    return this.pairingService.getStatus(id);
   }
 
   @Public()

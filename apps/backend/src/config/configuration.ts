@@ -27,6 +27,11 @@ function loadConfig() {
     accessMode: env.API_ACCESS_MODE,
     pairingExpirationMinutes: env.PAIRING_EXPIRATION_MINUTES,
     pairingHostOverride: env.PAIRING_HOST,
+    corsAllowedOrigins: env.CORS_ALLOWED_ORIGINS
+      ? env.CORS_ALLOWED_ORIGINS.split(",")
+          .map((origin) => origin.trim())
+          .filter((origin) => origin.length > 0)
+      : [],
   };
 }
 

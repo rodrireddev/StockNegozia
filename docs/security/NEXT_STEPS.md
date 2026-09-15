@@ -60,43 +60,47 @@ directamente, sin validar que sea una IP o hostname válido.
 **No cambiar la configuración actual solo por este pendiente.** Resolverlo cuando exista la
 interfaz de configuración o se defina formalmente el protocolo LAN.
 
-### 3. Generación real del QR
+### 3. Generación real del QR — ✅ Implementado (M14)
 
 El backend (`PairingService.createPairing()`) devuelve un payload estructurado y versionado
 (`PairingQrPayload`, `packages/api-contracts/src/auth/auth.contract.ts`) preparado para
 convertirse en QR. El backend **no** genera una imagen QR — es intencional (ver `PAIRING.md`
 §UI/generación de QR): la responsabilidad de renderizado es de la UI, no del dominio de seguridad.
 
-**Pendiente para Frontend:**
+**Implementado en M14** (`apps/desktop/renderer/src/features/devices/components/PairingDialog.tsx`,
+librería `qrcode`):
 
 ```text
 PairingService.createPairing()
         ↓
 QR payload
         ↓
-Frontend
+Frontend (Desktop)
         ↓
-QR visual
+QR visual + código + countdown
 ```
 
-La UI debería mostrar, como mínimo:
+La UI muestra:
 
-- El QR.
-- El código de verificación (fuera del QR — es el segundo factor, ver `PAIRING.md`).
-- El tiempo restante antes de expirar.
-- El estado del pairing (`pending` / `confirmed` / `expired` / `cancelled`).
-- Una opción para cancelar (`POST /auth/pairing/cancel`, ya implementado en el backend).
+- El QR (imagen generada client-side desde `PairingQrPayload`).
+- El código de verificación (fuera del QR).
+- El tiempo restante antes de expirar (countdown desde `expiresAt`).
+- El estado del pairing — vía el endpoint nuevo `GET /auth/pairing/:id` (polling cada 2s; no
+  existía antes de M14, ver `DEVICE_MANAGEMENT.md`).
+- Una opción para cancelar (`POST /auth/pairing/cancel`).
 - Feedback cuando el dispositivo fue vinculado exitosamente.
-- Feedback cuando expiró sin confirmarse.
+- Feedback cuando expiró sin confirmarse (con opción de generar un pairing nuevo).
 
 **Importante:** el frontend nunca debe transformar el pairing token en una credential permanente.
 El token del QR es temporal y de un solo uso. La credential permanente solo debe entregarse al
 dispositivo nuevo como respuesta de una confirmación exitosa (`POST /auth/pairing/confirm`), nunca
 derivada ni reconstruida en el cliente.
 
-### 4. Seguridad del frontend
+### 4. Seguridad del frontend — ✅ Aplicado (M14, Desktop)
 
-Cuando se implemente la UI de Pairing, revisar especialmente que:
+Verificado al implementar `PairingDialog` en M14 — el Desktop nunca ve ni maneja la credential
+del dispositivo que confirma (solo `pairingId`/`verificationCode`/estado). Sigue aplicando el
+mismo checklist para cualquier futuro cliente (ej. Mobile en M15):
 
 - El pairing token no se escriba en logs del renderer (consola del navegador/DevTools de Electron).
 - El verification code no se escriba en logs.
@@ -112,9 +116,9 @@ Cuando se implemente la UI de Pairing, revisar especialmente que:
 - No se permita copiar accidentalmente una credential permanente a logs o a salidas de
   debug/consola durante desarrollo.
 
-### 5. UX del pairing
+### 5. UX del pairing — ✅ Implementado (M14, Desktop)
 
-Cuando se implemente el frontend, el flujo esperado es aproximadamente:
+El flujo implementado en `PairingDialog.tsx`:
 
 ```text
 Crear nuevo dispositivo
@@ -134,19 +138,11 @@ Mostrar nombre/tipo
 Pairing terminado
 ```
 
-También contemplar, como estados de error/fin de flujo:
-
-```text
-Pairing expirado
-Pairing cancelado
-Código incorrecto
-Token inválido
-Servidor no disponible
-Dispositivo ya vinculado
-```
-
-No implementar ahora — este documento solo deja el flujo esperado registrado para cuando se
-construya la UI.
+Estados de error/fin de flujo cubiertos en el Desktop: pairing expirado (con opción de generar uno
+nuevo) y errores de creación del pairing (mensaje amigable). El resto de los casos de error
+(código incorrecto, token inválido, dispositivo ya vinculado) los recibe **el dispositivo que
+confirma** (por ejemplo, el Web Client — ver `DEVICE_MANAGEMENT.md`), no el Desktop, que solo
+genera el pairing y espera su confirmación.
 
 ### 6. Device Management — ✅ Implementado (Milestone 7, backend)
 
@@ -164,10 +160,12 @@ ver [`DEVICE_MANAGEMENT.md`](./DEVICE_MANAGEMENT.md):
 - Auditoría — ✅ eventos `device.listed/viewed/updated/revoked/access.denied` vía `AppLogger`.
 - Relación con `pairing_sessions.device_id` — ✅ ver punto 1 (FK agregada).
 
-**Lo que sigue pendiente** (fuera de alcance de este milestone, ver
+**Lo que sigue pendiente** (fuera de alcance de M14 también, ver
 `DEVICE_MANAGEMENT.md` §Fuera de alcance):
 
-- La **UI** en React/Electron — el backend está listo, pero no hay pantalla todavía.
+- ~~La **UI** en React/Electron~~ — ✅ implementada en M14
+  (`apps/desktop/renderer/src/features/devices/`, ver
+  [`docs/lan/DEVICE_MANAGEMENT.md`](../lan/DEVICE_MANAGEMENT.md)).
 - Una forma de **promover** un dispositivo cliente a administrador (hoy solo el dispositivo de
   bootstrap nace admin; no hay endpoint para cambiar `isAdmin` de otro device). Si se necesita en
   el futuro, requiere decidir quién puede promover a quién — potencialmente el inicio de un
@@ -201,10 +199,14 @@ estado `active` una vez `revoked`.
 
 Este documento es únicamente un registro de pendientes. Ninguno de estos puntos implica, por sí
 mismo, modificar ahora: el schema de `devices`, agregar Foreign Keys adicionales, modificar
-`PAIRING_HOST`, agregar librerías de QR, modificar `PairingService`/`CredentialService`/
-`ApiAccessGuard`/`DevicesService`, agregar un sistema de roles/permisos, modificar el flujo de
-autenticación, o hacer refactors sobre los Milestones 6/7. La implementación actual permanece
-intacta.
+`PAIRING_HOST`, un sistema de roles/permisos, o el flujo de autenticación. La implementación de
+los Milestones 6/7 permanece intacta.
+
+**Nota (M14):** M14 agregó una librería de QR en el Desktop (`qrcode`, solo frontend) y un método
+de solo-lectura nuevo en `PairingService` (`getStatus`, expone el estado de una sesión de pairing
+— ver [`docs/lan/DEVICE_MANAGEMENT.md`](../lan/DEVICE_MANAGEMENT.md)). Ninguno de los dos cambia
+el comportamiento existente de `confirmPairing`/`cancelPairing`/`CredentialService`/
+`ApiAccessGuard`/`DevicesService` — son adiciones puras, no refactors.
 
 ### 8. Tabla resumen
 
@@ -212,12 +214,14 @@ intacta.
 | ---------------------------------------- | -------------------- | ---------: | -------------- |
 | `pairing_sessions.device_id` FK          | Device Management     |      Media | Implementado   |
 | Validación `PAIRING_HOST`                | Frontend/LAN config    |      Media | Pendiente      |
-| Generación visual de QR                  | Frontend Pairing       |       Alta | Pendiente      |
-| Seguridad de datos sensibles en UI       | Frontend Pairing       |       Alta | Pendiente      |
-| UX de estados del pairing                | Frontend Pairing       |      Media | Pendiente      |
+| Generación visual de QR                  | Frontend Pairing       |       Alta | Implementado (M14) |
+| Seguridad de datos sensibles en UI       | Frontend Pairing       |       Alta | Implementado (M14) |
+| UX de estados del pairing                | Frontend Pairing       |      Media | Implementado (M14) |
 | Regla de revocación permanente           | Device Management      |       Alta | Implementada   |
 | API de Device Management (backend)       | Device Management      |       Alta | Implementado   |
-| UI de Device Management (frontend)       | Frontend Device Mgmt.  |       Alta | Pendiente      |
+| UI de Device Management (frontend)       | Frontend Device Mgmt.  |       Alta | Implementado (M14) |
+| Pairing real desde un cliente LAN (Web Client) | Frontend LAN     |       Alta | Implementado (M14) |
+| CORS restringido a orígenes conocidos    | LAN/M14                |      Media | Implementado (M14) |
 | Promoción de device cliente a admin      | Device Management (futuro) |  Baja | Pendiente      |
 
 Estados posibles: `Pendiente` (no resuelto todavía) · `Definido`/`Definida` (la decisión ya está
@@ -232,9 +236,9 @@ Pendientes documentados (este archivo)
         ↓
 Milestone 7 — Device Management (backend) ← ya implementado
         ↓
-Frontend Pairing / Device Management ← todavía pendiente
+M14 — Frontend Pairing / Device Management + LAN ← ✅ implementado
         ↓
-LAN / Multi-device
+M15 — Mobile ← pendiente
 ```
 
 Estos puntos no significan que los Milestones 6/7 estén incompletos: son decisiones y puntos de

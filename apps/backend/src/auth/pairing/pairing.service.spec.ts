@@ -1,5 +1,5 @@
 import { ConfigService } from "@nestjs/config";
-import { UnauthorizedException } from "@nestjs/common";
+import { NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createSilentTestLogger } from "../../test/create-test-logger";
 import { createTestDb } from "../../test/create-test-db";
@@ -217,6 +217,64 @@ describe("PairingService", () => {
           verificationCode: "123456",
         }),
       ).toThrow(UnauthorizedException);
+    });
+  });
+
+  describe("getStatus", () => {
+    it("devuelve status pending sin exponer token ni código", () => {
+      const service = createService();
+      const created = service.createPairing();
+
+      const status = service.getStatus(created.pairingId);
+
+      expect(status.pairingId).toBe(created.pairingId);
+      expect(status.status).toBe("pending");
+      // SQLite guarda `expiresAt` como segundos enteros (mode "timestamp") — el valor recién
+      // creado en memoria tiene milisegundos, así que se compara con tolerancia, no con toEqual.
+      expect(Object.keys(status).sort()).toEqual(["expiresAt", "pairingId", "status"]);
+      expect(
+        Math.abs(new Date(status.expiresAt).getTime() - new Date(created.expiresAt).getTime()),
+      ).toBeLessThan(1000);
+    });
+
+    it("refleja confirmed después de confirmar", () => {
+      const service = createService();
+      const created = service.createPairing();
+      service.confirmPairing({
+        pairingId: created.pairingId,
+        token: created.qr.token,
+        verificationCode: created.verificationCode,
+      });
+
+      expect(service.getStatus(created.pairingId).status).toBe("confirmed");
+    });
+
+    it("refleja cancelled después de cancelar", () => {
+      const service = createService();
+      const created = service.createPairing();
+      service.cancelPairing(created.pairingId);
+
+      expect(service.getStatus(created.pairingId).status).toBe("cancelled");
+    });
+
+    it("refleja expired cuando el TTL pasó", () => {
+      vi.useFakeTimers();
+      try {
+        const service = createService(5);
+        const created = service.createPairing();
+        vi.advanceTimersByTime(6 * 60_000);
+
+        expect(service.getStatus(created.pairingId).status).toBe("expired");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("una sesión inexistente lanza NotFoundException", () => {
+      const service = createService();
+      expect(() => service.getStatus("00000000-0000-0000-0000-000000000000")).toThrow(
+        NotFoundException,
+      );
     });
   });
 
