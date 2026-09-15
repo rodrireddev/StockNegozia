@@ -1,4 +1,5 @@
 import { createHashRouter } from "react-router-dom";
+import { SettingsPage } from "@/features/backup/pages/SettingsPage";
 import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
 import { InventoryCategoriesPage } from "@/features/inventory/pages/InventoryCategoriesPage";
 import { InventoryMovementsPage } from "@/features/inventory/pages/InventoryMovementsPage";
@@ -25,6 +26,7 @@ export const router = createHashRouter([
       { path: "inventory", element: <InventoryStockPage /> },
       { path: "inventory/categories", element: <InventoryCategoriesPage /> },
       { path: "inventory/movements", element: <InventoryMovementsPage /> },
+      { path: "settings", element: <SettingsPage /> },
     ],
   },
 ]);

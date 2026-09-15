@@ -71,16 +71,34 @@ export class BackendManager {
     });
   }
 
-  stop(): void {
-    if (!this.child || this.stopping) return;
+  /**
+   * Devuelve una Promise que resuelve cuando el proceso hijo terminó de verdad (`true`), o cuando
+   * se cumplió `timeoutMs` sin confirmación de salida (`false`) — necesario para Restore (ver
+   * docs/backup/BACKUP_RESTORE.md §Arquitectura de Restore): no se puede reemplazar el archivo de
+   * SQLite mientras el backend todavía podría tenerlo abierto, así que ese llamador debe poder
+   * abortar si no hay certeza de que el proceso salió. Los llamadores que no necesitan esperar
+   * (ej. `before-quit`) pueden seguir llamando `stop()` sin `await`, igual que antes — no cambia
+   * ningún comportamiento existente.
+   */
+  stop(timeoutMs = 10_000): Promise<boolean> {
+    if (!this.child || this.stopping) return Promise.resolve(true);
     this.stopping = true;
+    const child = this.child;
 
-    const pid = this.child.pid;
-    if (pid && platform() === "win32") {
-      spawn("taskkill", ["/pid", String(pid), "/t", "/f"], { windowsHide: true });
-    } else {
-      this.child.kill("SIGTERM");
-    }
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => resolve(false), timeoutMs);
+      child.once("exit", () => {
+        clearTimeout(timeout);
+        resolve(true);
+      });
+
+      const pid = child.pid;
+      if (pid && platform() === "win32") {
+        spawn("taskkill", ["/pid", String(pid), "/t", "/f"], { windowsHide: true });
+      } else {
+        child.kill("SIGTERM");
+      }
+    });
   }
 
   async waitUntilHealthy(timeoutMs = 30_000, intervalMs = 300): Promise<void> {

@@ -6,6 +6,7 @@ import { RequestContextMiddleware } from "./common/logger/request-context.middle
 import { LoggerModule } from "./common/logger/logger.module";
 import { AuthModule } from "./auth/auth.module";
 import { PairingModule } from "./auth/pairing/pairing.module";
+import { BackupModule } from "./backup/backup.module";
 import { CoreModule } from "./core/core.module";
 import { DatabaseModule } from "./database/database.module";
 import { HealthModule } from "./health/health.module";
@@ -23,6 +24,7 @@ import { HealthModule } from "./health/health.module";
     PairingModule,
     CoreModule,
     HealthModule,
+    BackupModule,
   ],
 })
 export class AppModule implements NestModule {

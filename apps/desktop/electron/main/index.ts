@@ -1,6 +1,7 @@
-import { app, BrowserWindow, dialog, session } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, session } from "electron";
 import { join } from "node:path";
 import { BackendManager } from "./backend-manager";
+import { BackupManager } from "./backup-manager";
 import { ensureDeviceCredential } from "./bootstrap-device";
 import { DeviceCredentialStore } from "./device-credential-store";
 import { createMainWindow } from "./window";
@@ -16,12 +17,6 @@ const backendManager = new BackendManager({
 
 const credentialStore = new DeviceCredentialStore(dataDir);
 
-/**
- * Adjunta `Authorization: Bearer <credential>` a toda request de la sesión hacia el backend local,
- * a nivel de red — la credential nunca llega al proceso renderer/React (ni localStorage, ni
- * código de UI), así que `api-client.ts` no necesita saber que existe. No-op si todavía no hay
- * credential (desarrollo, o bootstrap pendiente).
- */
 function attachDeviceCredential(credential: string): void {
   session.defaultSession.webRequest.onBeforeSendHeaders(
     { urls: [`${backendManager.baseUrl}/*`] },
@@ -44,6 +39,15 @@ app.commandLine.appendSwitch("disable-gpu-sandbox");
 app.commandLine.appendSwitch("in-process-gpu");
 
 let mainWindow: BrowserWindow | null = null;
+
+const backupManager = new BackupManager(backendManager, credentialStore, dataDir, () => mainWindow);
+
+// Único punto de entrada de filesystem/backend para Backup/Restore desde el Renderer — ver
+// docs/backup/BACKUP_RESTORE.md §Seguridad. El Renderer nunca recibe ni envía una ruta de
+// archivo: solo dispara la acción y recibe el resultado ya resuelto por Electron Main.
+ipcMain.handle("backup:create", () => backupManager.createBackup());
+ipcMain.handle("backup:selectAndValidate", () => backupManager.selectAndValidateRestoreFile());
+ipcMain.handle("backup:restore", () => backupManager.restoreSelectedFile());
 
 async function bootstrap(): Promise<void> {
   if (mainWindow) return;

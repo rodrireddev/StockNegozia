@@ -20,7 +20,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: false,
-    include: ["renderer/src/**/*.spec.{ts,tsx}"],
+    include: ["renderer/src/**/*.spec.{ts,tsx}", "electron/main/**/*.spec.ts"],
     setupFiles: ["renderer/src/test/setup.ts"],
   },
 });

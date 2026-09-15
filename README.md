@@ -4,8 +4,9 @@ Plataforma modular de gestión empresarial, pensada inicialmente para pequeños 
 repositorio es un monorepo con aplicación de escritorio (Electron + React) y backend (NestJS +
 Drizzle + SQLite), conectados de punta a punta. El backend ya implementa lógica de negocio real
 para **Productos, Categorías, Proveedores, Compras, Ventas y Movimientos de stock**; el frontend
-tiene interfaz funcional real para **Productos** y **Ventas** — ver [Estado actual](#estado-actual)
-para el detalle de qué está terminado y qué todavía es un punto de extensión sin implementar.
+tiene interfaz funcional real para **Productos, Ventas, Compras, Proveedores e Inventario**, más
+**Backup/Restore manual** de la base de datos — ver [Estado actual](#estado-actual) para el detalle
+de qué está terminado y qué todavía es un punto de extensión sin implementar.
 
 ## Estado actual
 
@@ -24,11 +25,15 @@ para el detalle de qué está terminado y qué todavía es un punto de extensió
   (`pnpm --filter @stocknegozia/desktop test`, Vitest + Testing Library).
 - ✅ Control de acceso a la API por credential de dispositivo (`API_ACCESS_MODE`) y pairing de
   dispositivos adicionales vía QR + código de verificación — ver [Seguridad](#seguridad).
-- ⬜ Compras, Inventario (historial de movimientos) y Clientes: el backend de Compras y
-  Movimientos de stock ya está completo, pero todavía no tienen interfaz — son páginas placeholder
-  en el frontend (ver [Alcance de esta etapa](#alcance-de-esta-etapa)).
+- ✅ Backup manual (SQLite Online Backup API, consistente con WAL) y restore manual con doble
+  confirmación, backup de seguridad automático y rollback si falla — ver
+  [Backup y Restore](#backup-y-restore).
+- ✅ Frontend: **Compras** (proveedor + búsqueda/escaneo + carrito de líneas con costo editable),
+  **Proveedores** y **Inventario** (stock, categorías y movimientos, con precios actuales e
+  históricos) también tienen interfaz real — solo **Clientes** sigue siendo un placeholder
+  estructural.
 - ⬜ Sin empaquetado de producción (no hay instalador), sin UI de pairing/Device Management, sin
-  backup/restore/exportación de datos.
+  exportación de datos (CSV/Excel), sin backups automáticos/programados.
 
 ## Arquitectura
 
@@ -56,13 +61,14 @@ StockNegozia/
 │   ├── desktop/                          @stocknegozia/desktop — Electron + React
 │   │   ├── electron/
 │   │   │   ├── main/
-│   │   │   │   ├── index.ts              ciclo de vida de la app, flags de GPU, bootstrap
-│   │   │   │   ├── backend-manager.ts    spawn/stop/supervisión/health-poll del backend
+│   │   │   │   ├── index.ts              ciclo de vida de la app, flags de GPU, bootstrap, IPC
+│   │   │   │   ├── backend-manager.ts    spawn/stop (awaitable)/supervisión/health-poll del backend
+│   │   │   │   ├── backup-manager.ts     diálogos nativos + orquestación de backup/restore
 │   │   │   │   ├── bootstrap-device.ts   canjea el token de bootstrap por una credential propia
 │   │   │   │   ├── device-credential-store.ts  credential cifrada con `safeStorage`
 │   │   │   │   └── window.ts             creación del BrowserWindow
 │   │   │   └── preload/
-│   │   │       └── index.ts              contextBridge mínimo (backendBaseUrl, versions)
+│   │   │       └── index.ts              contextBridge mínimo (backendBaseUrl, versions, backup)
 │   │   ├── renderer/
 │   │   │   ├── index.html
 │   │   │   └── src/
@@ -70,9 +76,10 @@ StockNegozia/
 │   │   │       ├── features/
 │   │   │       │   ├── products/         real — CRUD, búsqueda/filtros, ajuste de stock
 │   │   │       │   ├── sales/            real — búsqueda/escaneo, carrito, confirmar venta
-│   │   │       │   ├── purchases/        placeholder
-│   │   │       │   ├── inventory/        placeholder
-│   │   │       │   ├── customers/        placeholder
+│   │   │       │   ├── purchases/        real — proveedor, búsqueda/escaneo, carrito de costos
+│   │   │       │   ├── suppliers/        real — listado + alta de proveedor
+│   │   │       │   ├── inventory/        real — stock, categorías y movimientos (con precios)
+│   │   │       │   ├── backup/           real — crear/restaurar backup (Configuración)
 │   │   │       │   └── dashboard/        widget de estado del backend (`/health`)
 │   │   │       ├── components/ui/        shadcn: button, card, badge, dialog, input, label,
 │   │   │       │                         select, table, textarea, separator, quantity-stepper
@@ -100,6 +107,8 @@ StockNegozia/
 │       │   │                             Suppliers, Purchases, Sales y StockMovements (real; ver
 │       │   │                             docs/inventory/), Inventory/Customers/Users/Permissions
 │       │   │                             siguen siendo placeholders — ver core/README.md
+│       │   ├── backup/                   BackupController/Service — crear/validar backups (SQLite
+│       │   │                             Online Backup API) — ver docs/backup/BACKUP_RESTORE.md
 │       │   └── health/                   GET /health (@Public) con roundtrip real a SQLite
 │       ├── drizzle.config.ts             config de drizzle-kit (generate)
 │       ├── vitest.config.ts              211 tests (unit + e2e con supertest)
@@ -294,6 +303,18 @@ la venta (`POST /sales`, transaccional — ver [Inventario](#inventario)). El ba
 autoridad final sobre el stock disponible: la UI nunca lo modifica directamente ni confía
 exclusivamente en el stock mostrado en pantalla.
 
+## Backup y Restore
+
+Backup manual (SQLite Online Backup API vía `better-sqlite3` — segura con WAL, sin detener la
+aplicación) y restore manual con doble confirmación explícita, backup de seguridad automático
+antes de reemplazar cualquier dato, y rollback si algo falla a mitad de camino. El Renderer nunca
+ve una ruta de archivo — los diálogos nativos y el reemplazo del archivo SQLite viven en Electron
+Main (`apps/desktop/electron/main/backup-manager.ts`), coordinados con el ciclo de vida del backend
+que ya existía (`BackendManager.stop()/start()/waitUntilHealthy()`). Ver
+[`docs/backup/BACKUP_RESTORE.md`](docs/backup/BACKUP_RESTORE.md) para la arquitectura completa,
+la estrategia de compatibilidad de schema (reutiliza la tabla `__drizzle_migrations` de Drizzle,
+sin un sistema de versionado propio), y qué NO protege todavía este sistema.
+
 ## Seguridad
 
 La API HTTP del backend está protegida por una frontera de autenticación centralizada
@@ -343,13 +364,14 @@ API exija credential.
 ## Alcance de esta etapa
 
 El backend tiene lógica de negocio real y testeada para **Productos, Categorías, Proveedores,
-Compras, Ventas y Movimientos de stock**, además de autenticación de dispositivos y pairing
-completos. El frontend tiene interfaz real para **Productos** y **Ventas**. Todavía **no incluye**:
+Compras, Ventas y Movimientos de stock**, además de autenticación de dispositivos, pairing y
+Backup/Restore completos. El frontend tiene interfaz real para **Productos, Ventas, Compras,
+Proveedores, Inventario** y **Backup/Restore**. Todavía **no incluye**:
 
-- Interfaz de **Compras**, **Inventario** (historial de movimientos) y **Clientes** — el backend
-  de Compras y Movimientos de stock ya está completo (ver [Inventario](#inventario)); solo falta
-  construir la UI. Son páginas placeholder en el frontend
-  (`apps/desktop/renderer/src/features/{purchases,inventory,customers}/`).
+- **Clientes** — ni siquiera existe como placeholder: se quitó la entrada del sidebar y la página
+  vacía correspondiente (ver [Alcance de esta etapa](#alcance-de-esta-etapa) de versiones
+  anteriores en el historial de git) — la aplicación solo muestra secciones que realmente
+  funcionan hoy.
 - Lógica de negocio de **Usuarios y Permisos** — siguen siendo placeholders estructurales también
   a nivel de backend (`apps/backend/src/core/{users,permissions}/`), ver
   [`apps/backend/src/core/README.md`](apps/backend/src/core/README.md).
@@ -360,8 +382,9 @@ completos. El frontend tiene interfaz real para **Productos** y **Ventas**. Toda
   usuario, login con usuario/contraseña — la autenticación de dispositivo (`API_ACCESS_MODE`,
   credentials, bootstrap, pairing, administración de dispositivos vía API) sí está implementada,
   ver [Seguridad](#seguridad).
-- Backup, restore o exportación de datos — un único archivo SQLite, sin copia de seguridad
-  automática ni manual todavía.
+- Exportación de datos (CSV/Excel), backups automáticos/programados, cifrado de backups,
+  sincronización en la nube — Backup/Restore manual sí está implementado, ver
+  [Backup y Restore](#backup-y-restore).
 - Reportes y dashboard de negocio — el panel actual solo muestra el estado de conexión con el
   backend (`/health`).
 - Plugins reales (WhatsApp, persistencia externa, etc.) — solo documentados en `plugins/README.md`.
