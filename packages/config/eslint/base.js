@@ -24,4 +24,16 @@ module.exports = tseslint.config(
       "**/*.config.ts",
     ],
   },
+  {
+    // Scripts de Node ejecutados directamente (no TypeScript, no bundle) — a diferencia de los
+    // `.ts` del resto del monorepo, estos no pasan por el parser de typescript-eslint, así que
+    // ESLint no conoce los globals de Node por sí solo.
+    files: ["**/scripts/**/*.{mjs,cjs,js}"],
+    languageOptions: {
+      globals: {
+        console: "readonly",
+        process: "readonly",
+      },
+    },
+  },
 );

@@ -2,8 +2,9 @@ import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { BackupValidationResult } from "@/types/global";
+import type { BackupValidationResult, ThemePreference } from "@/types/global";
 import { getUserFriendlyError } from "@/lib/errors";
+import { setThemePreference, useThemeStore } from "@/stores/theme-store";
 import { RestoreConfirmDialog } from "../components/RestoreConfirmDialog";
 import { useCreateBackup } from "../hooks/useCreateBackup";
 import { useRestoreBackup } from "../hooks/useRestoreBackup";
@@ -11,6 +12,39 @@ import { useSelectAndValidateBackup } from "../hooks/useSelectAndValidateBackup"
 import { formatFileSize } from "../lib/format-file-size";
 
 const dateFormatter = new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" });
+
+const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
+  { value: "system", label: "Sistema" },
+  { value: "light", label: "Claro" },
+  { value: "dark", label: "Oscuro" },
+];
+
+function AppearanceCard() {
+  const preference = useThemeStore((state) => state.preference);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Apariencia</CardTitle>
+        <CardDescription>
+          Elegí cómo se ve StockNegozia. "Sistema" sigue el tema de Windows.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex gap-2">
+        {THEME_OPTIONS.map((option) => (
+          <Button
+            key={option.value}
+            type="button"
+            variant={preference === option.value ? "default" : "outline"}
+            onClick={() => void setThemePreference(option.value)}
+          >
+            {option.label}
+          </Button>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
 
 export function SettingsPage() {
   const [backupSuccessMessage, setBackupSuccessMessage] = useState<string | null>(null);
@@ -84,7 +118,12 @@ export function SettingsPage() {
 
   return (
     <div className="max-w-2xl space-y-4">
-      <h1 className="text-xl font-semibold">Configuración</h1>
+      <div className="flex items-center gap-2">
+        <img src="/branding/logo.png" alt="" className="h-6 w-6" />
+        <h1 className="text-xl font-semibold">Configuración</h1>
+      </div>
+
+      <AppearanceCard />
 
       <Card>
         <CardHeader>
@@ -105,12 +144,12 @@ export function SettingsPage() {
             )}
           </Button>
           {backupSuccessMessage && (
-            <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/50 dark:text-emerald-400">
               {backupSuccessMessage}
             </p>
           )}
           {backupErrorMessage && (
-            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400">
               {backupErrorMessage}
             </p>
           )}
@@ -138,7 +177,7 @@ export function SettingsPage() {
             )}
           </Button>
           {selectErrorMessage && (
-            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400">
               {selectErrorMessage}
             </p>
           )}

@@ -1,5 +1,12 @@
 import type { ProductDto, StockMovementDto } from "@stocknegozia/api-contracts";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import {
   describeMovementReference,
@@ -41,12 +48,16 @@ export function MovementsTable({ movements, productsById }: MovementsTableProps)
               <TableCell className="whitespace-nowrap text-muted-foreground">
                 {dateFormatter.format(new Date(movement.createdAt))}
               </TableCell>
-              <TableCell className="font-medium">{product?.name ?? `Producto #${movement.productId}`}</TableCell>
+              <TableCell className="font-medium">
+                {product?.name ?? `Producto #${movement.productId}`}
+              </TableCell>
               <TableCell>{MOVEMENT_TYPE_LABELS[movement.type]}</TableCell>
               <TableCell
                 className={cn(
                   "text-right tabular-nums font-medium",
-                  movement.direction === "IN" ? "text-emerald-700" : "text-foreground",
+                  movement.direction === "IN"
+                    ? "text-emerald-700 dark:text-emerald-400"
+                    : "text-foreground",
                 )}
               >
                 {formatSignedQuantity(movement)}

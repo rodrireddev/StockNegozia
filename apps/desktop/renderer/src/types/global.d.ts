@@ -44,8 +44,7 @@ export type SelectAndValidateOutcome =
   | { cancelled: false; error: string };
 
 export type RestoreOutcome =
-  | { success: true; preRestoreBackupFileName: string }
-  | { success: false; error: string };
+  { success: true; preRestoreBackupFileName: string } | { success: false; error: string };
 
 export interface BackupApi {
   create(): Promise<CreateBackupOutcome>;
@@ -53,10 +52,24 @@ export interface BackupApi {
   restore(): Promise<RestoreOutcome>;
 }
 
+export type ThemePreference = "system" | "light" | "dark";
+
+export interface ThemeStatus {
+  preference: ThemePreference;
+  resolvedDark: boolean;
+}
+
+export interface ThemeApi {
+  get(): Promise<ThemeStatus>;
+  set(preference: ThemePreference): Promise<ThemeStatus>;
+  onUpdated(callback: (resolvedDark: boolean) => void): () => void;
+}
+
 declare global {
   interface Window {
     stockNegozia: StockNegoziaApi;
     backup: BackupApi;
+    theme: ThemeApi;
   }
 }
 

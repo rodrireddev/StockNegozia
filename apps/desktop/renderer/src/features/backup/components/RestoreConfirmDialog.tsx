@@ -54,7 +54,9 @@ export function RestoreConfirmDialog({
             <dt className="text-muted-foreground">Archivo</dt>
             <dd className="font-medium">{validation.fileName}</dd>
             <dt className="text-muted-foreground">Fecha</dt>
-            <dd>{validation.createdAt ? dateFormatter.format(new Date(validation.createdAt)) : "—"}</dd>
+            <dd>
+              {validation.createdAt ? dateFormatter.format(new Date(validation.createdAt)) : "—"}
+            </dd>
             <dt className="text-muted-foreground">Versión</dt>
             <dd>{validation.migrationCount ?? "—"}</dd>
             <dt className="text-muted-foreground">Estado</dt>
@@ -62,27 +64,27 @@ export function RestoreConfirmDialog({
           </dl>
 
           {!isValid && (
-            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-red-700">
+            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-red-700 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400">
               {validation.message}
             </p>
           )}
 
           {isValid && !restoreSuccess && (
-            <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
+            <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/50 dark:text-amber-400">
               Restaurar este backup reemplazará los datos actuales de StockNegozia. Los datos
-              creados después de la fecha del backup podrían perderse. Antes de continuar se
-              creará automáticamente un backup de seguridad de los datos actuales.
+              creados después de la fecha del backup podrían perderse. Antes de continuar se creará
+              automáticamente un backup de seguridad de los datos actuales.
             </p>
           )}
 
           {restoreError && (
-            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-red-700">
+            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-red-700 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400">
               {restoreError}
             </p>
           )}
 
           {restoreSuccess && (
-            <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-700">
+            <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/50 dark:text-emerald-400">
               {restoreSuccess}
             </p>
           )}

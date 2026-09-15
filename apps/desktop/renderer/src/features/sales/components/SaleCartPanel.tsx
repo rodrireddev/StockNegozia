@@ -73,9 +73,9 @@ export function SaleCartPanel({
                     </span>
                   </div>
                   {insufficientStock && (
-                    <p className="text-xs text-amber-700">
-                      Stock disponible: {item.availableStock}. Puede haber cambiado — se confirma
-                      al registrar la venta.
+                    <p className="text-xs text-amber-700 dark:text-amber-400">
+                      Stock disponible: {item.availableStock}. Puede haber cambiado — se confirma al
+                      registrar la venta.
                     </p>
                   )}
                 </li>
@@ -87,12 +87,12 @@ export function SaleCartPanel({
 
       <div className="space-y-3 border-t border-border p-4">
         {errorMessage && (
-          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400">
             {errorMessage}
           </p>
         )}
         {successMessage && (
-          <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+          <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/50 dark:text-emerald-400">
             {successMessage}
           </p>
         )}

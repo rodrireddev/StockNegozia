@@ -12,7 +12,9 @@ export function DashboardPage() {
       </CardHeader>
       <CardContent className="space-y-1 text-sm">
         {isLoading && <p className="text-muted-foreground">Consultando backend…</p>}
-        {isError && <p className="text-red-600">No se pudo contactar al backend.</p>}
+        {isError && (
+          <p className="text-red-600 dark:text-red-400">No se pudo contactar al backend.</p>
+        )}
         {data && (
           <>
             <p>

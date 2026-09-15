@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { useThemeStore } from "@/stores/theme-store";
 import { SettingsPage } from "./SettingsPage";
 
 const { createBackupMock, selectAndValidateBackupMock, restoreBackupMock } = vi.hoisted(() => ({
@@ -29,6 +30,12 @@ beforeEach(() => {
   createBackupMock.mockReset();
   selectAndValidateBackupMock.mockReset();
   restoreBackupMock.mockReset();
+  useThemeStore.setState({ preference: "system", resolvedDark: false });
+  window.theme = {
+    get: vi.fn().mockResolvedValue({ preference: "system", resolvedDark: false }),
+    set: vi.fn().mockResolvedValue({ preference: "dark", resolvedDark: true }),
+    onUpdated: vi.fn().mockReturnValue(() => {}),
+  };
 });
 
 describe("SettingsPage", () => {
@@ -38,6 +45,24 @@ describe("SettingsPage", () => {
     expect(screen.getByText("Restaurar")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /crear backup/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /seleccionar backup/i })).toBeInTheDocument();
+  });
+
+  it("muestra la sección Apariencia con las tres opciones de tema", () => {
+    renderPage();
+    expect(screen.getByText("Apariencia")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sistema" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Claro" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Oscuro" })).toBeInTheDocument();
+  });
+
+  it("elegir Oscuro llama a window.theme.set y actualiza el store sin reiniciar", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getByRole("button", { name: "Oscuro" }));
+
+    expect(window.theme.set).toHaveBeenCalledWith("dark");
+    expect(useThemeStore.getState()).toEqual({ preference: "dark", resolvedDark: true });
   });
 
   it("crear un backup exitoso muestra el archivo, el tamaño y la fecha", async () => {
@@ -75,7 +100,8 @@ describe("SettingsPage", () => {
   it("un backup fallido muestra un mensaje amigable", async () => {
     createBackupMock.mockResolvedValue({
       cancelled: false,
-      error: "No se pudo crear el backup. Verificá que la ubicación seleccionada tenga permisos de escritura.",
+      error:
+        "No se pudo crear el backup. Verificá que la ubicación seleccionada tenga permisos de escritura.",
     });
     const user = userEvent.setup();
     renderPage();
@@ -167,7 +193,10 @@ describe("SettingsPage", () => {
 
     expect(screen.getByRole("button", { name: /restaurando/i })).toBeDisabled();
 
-    resolveRestore({ success: true, preRestoreBackupFileName: "stocknegozia-pre-restore-2026-09-14.db" });
+    resolveRestore({
+      success: true,
+      preRestoreBackupFileName: "stocknegozia-pre-restore-2026-09-14.db",
+    });
     await screen.findByText(/restauración completa/i);
   });
 

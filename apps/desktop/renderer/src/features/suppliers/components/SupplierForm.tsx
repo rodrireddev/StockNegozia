@@ -39,8 +39,8 @@ export function SupplierForm() {
           value={name}
           onChange={(event) => setName(event.target.value)}
         />
-        {fieldError && <p className="text-sm text-red-600">{fieldError}</p>}
-        {formError && <p className="text-sm text-red-600">{formError}</p>}
+        {fieldError && <p className="text-sm text-red-600 dark:text-red-400">{fieldError}</p>}
+        {formError && <p className="text-sm text-red-600 dark:text-red-400">{formError}</p>}
       </div>
       <Button type="submit" disabled={createSupplier.isPending}>
         {createSupplier.isPending ? "Guardando…" : "Agregar"}

@@ -85,7 +85,7 @@ export function StockAdjustDialog({ product, onOpenChange }: StockAdjustDialogPr
               onChange={(event) => setReason(event.target.value)}
             />
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

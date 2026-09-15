@@ -4,10 +4,15 @@ import { BackendManager } from "./backend-manager";
 import { BackupManager } from "./backup-manager";
 import { ensureDeviceCredential } from "./bootstrap-device";
 import { DeviceCredentialStore } from "./device-credential-store";
+import { PreferencesStore } from "./preferences-store";
+import { createSplashWindow } from "./splash";
+import { ensureMinimumVisible, MIN_SPLASH_VISIBLE_MS } from "./splash-timing";
+import { ThemeController } from "./theme-controller";
 import { createMainWindow } from "./window";
 
 const repoRoot = app.isPackaged ? process.resourcesPath : join(app.getAppPath(), "..", "..");
 const dataDir = app.getPath("userData");
+const iconPath = join(repoRoot, "assets", "branding", "generated", "windows", "icon.ico");
 
 const backendManager = new BackendManager({
   repoRoot,
@@ -16,6 +21,8 @@ const backendManager = new BackendManager({
 });
 
 const credentialStore = new DeviceCredentialStore(dataDir);
+const preferencesStore = new PreferencesStore(dataDir);
+const themeController = new ThemeController(preferencesStore);
 
 function attachDeviceCredential(credential: string): void {
   session.defaultSession.webRequest.onBeforeSendHeaders(
@@ -49,14 +56,34 @@ ipcMain.handle("backup:create", () => backupManager.createBackup());
 ipcMain.handle("backup:selectAndValidate", () => backupManager.selectAndValidateRestoreFile());
 ipcMain.handle("backup:restore", () => backupManager.restoreSelectedFile());
 
+themeController.registerIpcHandlers();
+
+/**
+ * Orden del arranque (ver docs/desktop/SPLASH.md para el diagrama completo):
+ * 1. Resolver el tema guardado a un booleano explícito (`resolvedDark`) — antes de crear cualquier
+ *    ventana, para que el splash nazca ya con el fondo correcto (sin flash blanco→oscuro ni splash
+ *    con el tema equivocado).
+ * 2. Mostrar el splash de inmediato (no depende del backend ni del renderer).
+ * 3. Arrancar el backend y esperar su health check real — el splash cubre exactamente ese tiempo,
+ *    sea cual sea; no hay ningún `setTimeout` fijo que lo reemplace.
+ * 4. Crear la ventana principal (oculta) y, recién cuando emite `ready-to-show`, esperar el piso
+ *    de `MIN_SPLASH_VISIBLE_MS` desde que el splash se mostró (`ensureMinimumVisible`) y cerrar el
+ *    splash + mostrarla en el mismo paso, para que no haya un frame intermedio sin ninguna ventana.
+ */
 async function bootstrap(): Promise<void> {
   if (mainWindow) return;
+
+  const resolvedDark = themeController.applyStoredPreference();
+
+  const splash = createSplashWindow({ repoRoot, iconPath, dark: resolvedDark });
+  const splashShownAt = Date.now();
 
   backendManager.start();
 
   try {
     await backendManager.waitUntilHealthy();
   } catch (error) {
+    splash.close();
     dialog.showErrorBox(
       "StockNegozia",
       `No se pudo conectar con el backend: ${(error as Error).message}`,
@@ -78,7 +105,13 @@ async function bootstrap(): Promise<void> {
     console.error(`[bootstrap-device] No se pudo resolver la credential del dispositivo: ${error}`);
   }
 
-  mainWindow = createMainWindow();
+  mainWindow = createMainWindow(iconPath);
+  mainWindow.once("ready-to-show", () => {
+    void ensureMinimumVisible(splashShownAt, MIN_SPLASH_VISIBLE_MS).then(() => {
+      splash.close();
+      mainWindow?.show();
+    });
+  });
   mainWindow.on("closed", () => {
     mainWindow = null;
   });

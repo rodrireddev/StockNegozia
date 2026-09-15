@@ -11,15 +11,16 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "lint": "eslint .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "branding:generate": "node scripts/generate-branding-assets.mjs"
   },
   "dependencies": {
-    "@stocknegozia/api-contracts": "workspace:*",
-    "@stocknegozia/shared": "workspace:*",
-    "@stocknegozia/validation": "workspace:*",
     "@radix-ui/react-dialog": "^1.1.4",
     "@radix-ui/react-separator": "^1.1.1",
     "@radix-ui/react-slot": "^1.1.1",
+    "@stocknegozia/api-contracts": "workspace:*",
+    "@stocknegozia/shared": "workspace:*",
+    "@stocknegozia/validation": "workspace:*",
     "@tanstack/react-query": "^5.62.11",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -44,8 +45,10 @@
     "electron-vite": "^2.3.0",
     "jsdom": "^25.0.1",
     "postcss": "^8.4.49",
+    "sharp": "^0.35.4",
     "tailwindcss": "^3.4.17",
     "tailwindcss-animate": "^1.0.7",
+    "to-ico": "^1.1.5",
     "typescript": "^5.7.2",
     "vite": "^6.0.6",
     "vitest": "^2.1.8"

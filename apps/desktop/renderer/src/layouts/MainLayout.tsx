@@ -24,7 +24,12 @@ export function MainLayout() {
         )}
       >
         <div className="mb-6 flex items-center justify-between">
-          {!sidebarCollapsed && <h1 className="text-lg font-semibold">StockNegozia</h1>}
+          {!sidebarCollapsed && (
+            <div className="flex items-center gap-2">
+              <img src="/branding/logo.png" alt="" className="h-6 w-6" />
+              <h1 className="text-lg font-semibold">StockNegozia</h1>
+            </div>
+          )}
           <Button variant="ghost" size="icon" onClick={toggleSidebar}>
             {sidebarCollapsed ? "»" : "«"}
           </Button>
