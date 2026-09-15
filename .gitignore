@@ -14,12 +14,17 @@ release/
 
 # Database (local dev data — never commit real data)
 apps/backend/data/
+apps/backend/data-*/
 *.sqlite
 *.sqlite3
 *.sqlite-journal
 *.sqlite-wal
 *.sqlite-shm
 *.db
+
+# Bootstrap token de instalación (ver docs/security/API_ACCESS.md) — secreto de un solo uso, nunca
+# se versiona sin importar en qué dataDir de prueba haya quedado.
+bootstrap.token
 
 # Env (keep .env.example tracked as documentation)
 .env

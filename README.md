@@ -32,8 +32,12 @@ de qué está terminado y qué todavía es un punto de extensión sin implementa
   **Proveedores** y **Inventario** (stock, categorías y movimientos, con precios actuales e
   históricos) también tienen interfaz real — solo **Clientes** sigue siendo un placeholder
   estructural.
-- ⬜ Sin empaquetado de producción (no hay instalador), sin UI de pairing/Device Management, sin
-  exportación de datos (CSV/Excel), sin backups automáticos/programados.
+- ✅ Cliente móvil Android (`apps/mobile` — React Native + Expo + TypeScript, M15): pairing,
+  credential storage seguro (`expo-secure-store`), listado de Productos autenticado, layout
+  adaptativo phone/tablet — ver [`docs/mobile/MOBILE_CLIENT.md`](docs/mobile/MOBILE_CLIENT.md).
+- ⬜ Sin empaquetado de producción de Desktop (no hay instalador), sin exportación de datos
+  (CSV/Excel), sin backups automáticos/programados, sin scanner de cámara en Mobile (preparado
+  arquitectónicamente, ver la documentación de M15).
 
 ## Arquitectura
 
