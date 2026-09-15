@@ -4,7 +4,7 @@ import { TabNav } from "@/components/ui/tab-nav";
 import { useCategories } from "@/features/products/hooks/useCategories";
 import { useProducts } from "@/features/products/hooks/useProducts";
 import { CategoriesTable } from "../components/CategoriesTable";
-import { countProductsByCategory } from "../lib/count-products-by-category";
+import { countProductsByCategory } from "@stocknegozia/shared";
 
 export function InventoryCategoriesPage() {
   const {

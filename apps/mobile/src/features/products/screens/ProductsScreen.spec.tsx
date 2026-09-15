@@ -7,8 +7,14 @@ import { ProductsScreen } from "./ProductsScreen";
 jest.mock("@/api/endpoints/products", () => ({
   fetchProducts: jest.fn(),
 }));
+jest.mock("@/api/endpoints/categories", () => ({
+  fetchCategories: jest.fn().mockResolvedValue([]),
+}));
 jest.mock("@/auth/AuthContext", () => ({
   useAuth: () => ({ signOut: jest.fn() }),
+}));
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),
 }));
 
 import { fetchProducts } from "@/api/endpoints/products";

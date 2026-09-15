@@ -1,34 +1,136 @@
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { Package } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import type { ProductQueryInput } from "@stocknegozia/validation";
 import { useProducts } from "@/features/products/hooks/useProducts";
+import { useCategories } from "@/features/products/hooks/useCategories";
 import { ProductListItem } from "@/features/products/components/ProductListItem";
+import { Button } from "@/components/Button";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { LoadingState } from "@/components/LoadingState";
 import { ErrorState } from "@/components/ErrorState";
 import { EmptyState } from "@/components/EmptyState";
+import { Select } from "@/components/Select";
+import { TextField } from "@/components/TextField";
 import { useAuthErrorRedirect } from "@/auth/useAuthErrorRedirect";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useDeviceSize } from "@/hooks/useDeviceSize";
 import { useTheme } from "@/theme/useTheme";
 import { spacing, typography } from "@/theme/tokens";
 
+interface ProductFiltersState {
+  search: string;
+  categoryId: string;
+  status: ProductQueryInput["status"];
+  stockStatus: ProductQueryInput["stockStatus"];
+}
+
+const DEFAULT_FILTERS: ProductFiltersState = {
+  search: "",
+  categoryId: "",
+  status: "active",
+  stockStatus: "all",
+};
+
 export function ProductsScreen() {
-  const query = useProducts();
-  const { isTablet } = useDeviceSize();
+  const router = useRouter();
   const { colors } = useTheme();
+  const { isTablet } = useDeviceSize();
+  const [filters, setFilters] = useState<ProductFiltersState>(DEFAULT_FILTERS);
+  const [showFilters, setShowFilters] = useState(false);
+  const debouncedSearch = useDebouncedValue(filters.search);
+  const { data: categories = [] } = useCategories();
+
+  const query = useProducts({
+    search: debouncedSearch || undefined,
+    categoryId: filters.categoryId ? Number(filters.categoryId) : undefined,
+    status: filters.status,
+    stockStatus: filters.stockStatus,
+  });
   useAuthErrorRedirect(query.error);
+
+  const hasActiveFilters =
+    filters.search !== "" ||
+    filters.categoryId !== "" ||
+    filters.status !== DEFAULT_FILTERS.status ||
+    filters.stockStatus !== DEFAULT_FILTERS.stockStatus;
 
   return (
     <ScreenContainer>
-      <Text style={[styles.title, { color: colors.foreground }]}>Productos</Text>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: colors.foreground }]}>Productos</Text>
+        <Button label="+ Nuevo" onPress={() => router.push("/products/new")} testID="new-product" />
+      </View>
+
+      <TextField
+        label="Buscar"
+        placeholder="Nombre, SKU o código de barras…"
+        value={filters.search}
+        onChangeText={(v) => setFilters((prev) => ({ ...prev, search: v }))}
+      />
+
+      <Pressable onPress={() => setShowFilters((prev) => !prev)} style={styles.filtersToggle}>
+        <Text style={{ color: colors.primary }}>{showFilters ? "Ocultar filtros" : "Más filtros"}</Text>
+      </Pressable>
+
+      {showFilters && (
+        <View style={styles.filters}>
+          <Select
+            label="Categoría"
+            value={filters.categoryId}
+            options={[
+              { value: "", label: "Todas las categorías" },
+              ...categories.map((c) => ({ value: String(c.id), label: c.name })),
+            ]}
+            onChange={(v) => setFilters((prev) => ({ ...prev, categoryId: v }))}
+          />
+          <Select
+            label="Estado"
+            value={filters.status}
+            options={[
+              { value: "active", label: "Activos" },
+              { value: "inactive", label: "Inactivos" },
+              { value: "all", label: "Todos los estados" },
+            ]}
+            onChange={(v) =>
+              setFilters((prev) => ({ ...prev, status: v as ProductFiltersState["status"] }))
+            }
+          />
+          <Select
+            label="Stock"
+            value={filters.stockStatus}
+            options={[
+              { value: "all", label: "Cualquier stock" },
+              { value: "normal", label: "Stock normal" },
+              { value: "low", label: "Stock bajo" },
+              { value: "out", label: "Sin stock" },
+            ]}
+            onChange={(v) =>
+              setFilters((prev) => ({ ...prev, stockStatus: v as ProductFiltersState["stockStatus"] }))
+            }
+          />
+        </View>
+      )}
 
       {query.isPending ? (
         <LoadingState message="Cargando productos…" />
       ) : query.isError ? (
         <ErrorState message="No se pudieron cargar los productos." onRetry={query.refetch} />
       ) : query.data.length === 0 ? (
-        <EmptyState
-          title="Todavía no hay productos"
-          message="Los productos que cargues desde StockNegozia van a aparecer acá."
-        />
+        hasActiveFilters ? (
+          <EmptyState
+            title="Sin resultados"
+            message="No se encontraron productos con esos filtros."
+            icon={Package}
+          />
+        ) : (
+          <EmptyState
+            title="Todavía no hay productos"
+            message="Los productos que cargues desde StockNegozia van a aparecer acá."
+            icon={Package}
+          />
+        )
       ) : (
         <FlatList
           key={isTablet ? "grid" : "list"}
@@ -37,15 +139,14 @@ export function ProductsScreen() {
           numColumns={isTablet ? 2 : 1}
           columnWrapperStyle={isTablet ? styles.row : undefined}
           contentContainerStyle={styles.listContent}
-          renderItem={({ item }) =>
-            isTablet ? (
-              <View style={styles.gridItem}>
-                <ProductListItem product={item} />
-              </View>
-            ) : (
+          renderItem={({ item }) => (
+            <Pressable
+              style={isTablet ? styles.gridItem : undefined}
+              onPress={() => router.push(`/products/${item.id}`)}
+            >
               <ProductListItem product={item} />
-            )
-          }
+            </Pressable>
+          )}
           refreshing={query.isRefetching}
           onRefresh={query.refetch}
         />
@@ -55,8 +156,11 @@ export function ProductsScreen() {
 }
 
 const styles = StyleSheet.create({
-  title: { ...typography.title, marginBottom: spacing.md },
-  listContent: { gap: spacing.md, paddingBottom: spacing.xxl },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm },
+  title: { ...typography.title },
+  filtersToggle: { paddingVertical: spacing.xs },
+  filters: { gap: spacing.md, marginBottom: spacing.sm },
+  listContent: { gap: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.xxl },
   row: { gap: spacing.md },
   gridItem: { flex: 1 },
 });

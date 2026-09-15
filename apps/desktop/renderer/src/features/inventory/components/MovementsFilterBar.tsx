@@ -2,7 +2,7 @@ import type { ProductDto } from "@stocknegozia/api-contracts";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
-import { MOVEMENT_TYPE_LABELS } from "../lib/movement-labels";
+import { MOVEMENT_TYPE_LABELS } from "@stocknegozia/shared";
 
 export interface MovementsFiltersState {
   type: string;

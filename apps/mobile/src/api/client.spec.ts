@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from "./client";
+import { apiGet, apiPatch, apiPost } from "./client";
 import { AuthRequiredError, BackendNotConfiguredError, NetworkError } from "./errors";
 
 jest.mock("@/config/backendUrlStore", () => ({
@@ -79,6 +79,18 @@ describe("api client", () => {
     const [, init] = (globalThis.fetch as jest.Mock).mock.calls[0];
     expect(init.method).toBe("POST");
     expect(init.body).toBe(JSON.stringify({ pairingId: "abc" }));
+    const headers = new Headers(init.headers);
+    expect(headers.get("Content-Type")).toBe("application/json");
+  });
+
+  it("PATCH serializa el body como JSON y agrega Content-Type", async () => {
+    mockFetchOnce({ ok: true, status: 200, json: async () => ({ id: 1, active: false }) });
+
+    await apiPatch("/products/1/active", { active: false });
+
+    const [, init] = (globalThis.fetch as jest.Mock).mock.calls[0];
+    expect(init.method).toBe("PATCH");
+    expect(init.body).toBe(JSON.stringify({ active: false }));
     const headers = new Headers(init.headers);
     expect(headers.get("Content-Type")).toBe("application/json");
   });

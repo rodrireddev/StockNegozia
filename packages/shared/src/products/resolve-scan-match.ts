@@ -1,15 +1,15 @@
 import type { ProductDto } from "@stocknegozia/api-contracts";
 
 /**
- * Decide qué producto agregar cuando el usuario presiona Enter en un buscador de productos
- * (Ventas o Compras) — ya sea porque tipeó manualmente o porque un lector de código de barras
- * "tipeó" el código y mandó Enter (los lectores funcionan como un teclado, no requieren
- * integración de hardware).
+ * Decide qué producto agregar cuando el usuario confirma un buscador de productos (Ventas o
+ * Compras) — ya sea porque tipeó manualmente o porque un lector de código de barras "tipeó" el
+ * código y confirmó (los lectores funcionan como un teclado, no requieren integración de
+ * hardware).
  *
  * Solo actúa cuando no hay ambigüedad: el texto coincide exactamente con el SKU o el código de
  * barras de algún resultado, o hay un único resultado visible. Con una búsqueda de texto libre
  * que devuelve varias coincidencias parciales (ej. "coca" con dos gaseosas distintas), no agrega
- * nada — evita sumar el producto equivocado por una pulsación de Enter apurada.
+ * nada — evita sumar el producto equivocado por una confirmación apurada.
  */
 export function resolveScanMatch(
   products: ProductDto[],

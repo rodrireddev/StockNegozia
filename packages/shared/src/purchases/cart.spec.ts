@@ -4,7 +4,7 @@ import {
   purchaseCartReducer,
   selectPurchaseCartTotal,
   type PurchaseCartState,
-} from "./usePurchaseCart";
+} from "./cart";
 
 const cocaCola = { id: 1, name: "Coca-Cola 2L", sku: "0012", purchasePrice: 900 };
 const jabon = { id: 2, name: "Jabón en polvo", sku: "0045", purchasePrice: 1200 };

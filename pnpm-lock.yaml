@@ -378,6 +378,12 @@ importers:
       '@stocknegozia/api-contracts':
         specifier: workspace:*
         version: link:../../packages/api-contracts
+      '@stocknegozia/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@stocknegozia/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
       '@tanstack/react-query':
         specifier: ^5.62.11
         version: 5.102.8(react@19.2.3)
@@ -542,6 +548,10 @@ importers:
         version: 5.9.3
 
   packages/shared:
+    dependencies:
+      '@stocknegozia/api-contracts':
+        specifier: workspace:*
+        version: link:../api-contracts
     devDependencies:
       '@stocknegozia/config':
         specifier: workspace:*
@@ -552,6 +562,9 @@ importers:
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.2)(jsdom@25.0.1(supports-color@8.1.1))(lightningcss@1.33.0)(supports-color@8.1.1)(terser@5.51.2)
 
   packages/validation:
     dependencies:

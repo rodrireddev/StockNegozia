@@ -1,4 +1,5 @@
 import type { ProductDto } from "@stocknegozia/api-contracts";
+import { resolveScanMatch } from "@stocknegozia/shared";
 import type { KeyboardEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import { fetchProducts } from "@/features/products/api/products.api";
@@ -10,7 +11,6 @@ import { SaleCartPanel } from "../components/SaleCartPanel";
 import { SaleSearchResults } from "../components/SaleSearchResults";
 import { useCart } from "../hooks/useCart";
 import { useCreateSale } from "../hooks/useCreateSale";
-import { resolveScanMatch } from "@/lib/resolve-scan-match";
 
 export function SalesPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);

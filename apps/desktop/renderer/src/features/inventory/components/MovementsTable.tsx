@@ -13,7 +13,7 @@ import {
   formatMovementUnitValue,
   formatSignedQuantity,
   MOVEMENT_TYPE_LABELS,
-} from "../lib/movement-labels";
+} from "@stocknegozia/shared";
 
 const dateFormatter = new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" });
 

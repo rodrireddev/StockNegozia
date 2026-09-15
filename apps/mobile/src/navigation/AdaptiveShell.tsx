@@ -1,7 +1,16 @@
 import type { ComponentType } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Link, Slot, usePathname, type Href } from "expo-router";
-import { Package, Smartphone, type LucideProps } from "lucide-react-native";
+import {
+  Layers,
+  MoreHorizontal,
+  Package,
+  Settings,
+  ShoppingBag,
+  ShoppingCart,
+  Truck,
+  type LucideProps,
+} from "lucide-react-native";
 import { useDeviceSize } from "@/hooks/useDeviceSize";
 import { useTheme } from "@/theme/useTheme";
 import { minTouchTarget, spacing, typography } from "@/theme/tokens";
@@ -12,9 +21,23 @@ interface NavItem {
   icon: ComponentType<LucideProps>;
 }
 
-const NAV_ITEMS: NavItem[] = [
+// Bottom tabs de teléfono: solo lo de mayor uso diario cabe cómodo — el resto vive un toque más
+// adentro, en "Más" (ver `features/more/screens/MoreScreen.tsx`). Nunca incluye "Dispositivos"
+// (administración): eso es exclusivo de Desktop, ver el plan de M15 §3/§4.
+const PHONE_NAV_ITEMS: NavItem[] = [
   { href: "/products", label: "Productos", icon: Package },
-  { href: "/device", label: "Dispositivo", icon: Smartphone },
+  { href: "/sales", label: "Ventas", icon: ShoppingCart },
+  { href: "/more", label: "Más", icon: MoreHorizontal },
+];
+
+// Riel de tablet: hay lugar para todas las secciones operativas directamente, sin el hub "Más".
+const TABLET_NAV_ITEMS: NavItem[] = [
+  { href: "/products", label: "Productos", icon: Package },
+  { href: "/sales", label: "Ventas", icon: ShoppingCart },
+  { href: "/purchases", label: "Compras", icon: ShoppingBag },
+  { href: "/inventory", label: "Inventario", icon: Layers },
+  { href: "/purchases/suppliers", label: "Proveedores", icon: Truck },
+  { href: "/settings", label: "Ajustes", icon: Settings },
 ];
 
 /**
@@ -27,7 +50,7 @@ export function AdaptiveShell() {
   const pathname = usePathname();
   const { colors } = useTheme();
 
-  const items = NAV_ITEMS.map((item) => ({
+  const items = (isTablet ? TABLET_NAV_ITEMS : PHONE_NAV_ITEMS).map((item) => ({
     ...item,
     active: pathname === item.href || pathname.startsWith(`${item.href}/`),
   }));

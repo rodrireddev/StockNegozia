@@ -20,7 +20,13 @@ const DEVICE_TYPE_LABEL: Record<string, string> = {
   other: "Otro",
 };
 
-export function DeviceScreen() {
+/**
+ * Renombrado de "Dispositivo" a "Ajustes" — esto NUNCA fue administración de dispositivos (no
+ * lista otros dispositivos, no revoca, no genera pairing): solo muestra el estado del propio
+ * dispositivo y permite desvincularlo localmente. La administración real sigue siendo exclusiva
+ * de Desktop (`AdminDeviceGuard` en el backend, ver el plan de M15).
+ */
+export function SettingsScreen() {
   const query = useDeviceInfo();
   const auth = useAuth();
   const { colors } = useTheme();
@@ -28,8 +34,9 @@ export function DeviceScreen() {
 
   return (
     <ScreenContainer>
-      <Text style={[styles.title, { color: colors.foreground }]}>Este dispositivo</Text>
+      <Text style={[styles.title, { color: colors.foreground }]}>Ajustes</Text>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <Text style={[typography.subtitle, { color: colors.foreground }]}>Este dispositivo</Text>
         {query.isPending ? (
           <LoadingState message="Consultando estado del dispositivo…" />
         ) : query.isError ? (

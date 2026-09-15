@@ -1,9 +1,10 @@
+import type { ProductQueryInput } from "@stocknegozia/validation";
 import { useQuery } from "@tanstack/react-query";
 import { fetchProducts } from "@/api/endpoints/products";
 
-export function useProducts() {
+export function useProducts(query: Partial<ProductQueryInput> = {}) {
   return useQuery({
-    queryKey: ["products"],
-    queryFn: fetchProducts,
+    queryKey: ["products", query],
+    queryFn: () => fetchProducts(query),
   });
 }

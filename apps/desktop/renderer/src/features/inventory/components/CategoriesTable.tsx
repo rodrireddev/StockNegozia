@@ -1,5 +1,5 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { CategoryCount } from "../lib/count-products-by-category";
+import type { CategoryCount } from "@stocknegozia/shared";
 
 export function CategoriesTable({ categories }: { categories: CategoryCount[] }) {
   return (

@@ -49,7 +49,7 @@ describe("formatMovementUnitValue", () => {
   it("formatea un valor histórico como moneda", () => {
     // Comparación normalizando espacios: `Intl.NumberFormat` puede usar un espacio no separable
     // (U+00A0) entre "$" y el monto según el entorno — el texto renderizado (ver
-    // InventoryMovementsPage.spec.tsx) es lo que importa, no el carácter exacto acá.
+    // InventoryMovementsPage.spec.tsx en Desktop) es lo que importa, no el carácter exacto acá.
     expect(formatMovementUnitValue(850).replace(/\s/g, " ")).toBe("$ 850,00");
   });
 });

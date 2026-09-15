@@ -1,4 +1,5 @@
 import type { ProductDto } from "@stocknegozia/api-contracts";
+import { resolveScanMatch } from "@stocknegozia/shared";
 import { createPurchaseSchema } from "@stocknegozia/validation";
 import type { KeyboardEvent } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -10,7 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { TabNav } from "@/components/ui/tab-nav";
 import { getUserFriendlyError } from "@/lib/errors";
-import { resolveScanMatch } from "@/lib/resolve-scan-match";
 import { useSuppliers } from "@/features/suppliers/hooks/useSuppliers";
 import { PurchaseCartPanel } from "../components/PurchaseCartPanel";
 import { PurchaseSearchResults } from "../components/PurchaseSearchResults";

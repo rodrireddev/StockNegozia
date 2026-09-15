@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cartReducer, initialCartState, selectCartTotal, type CartState } from "./useCart";
+import { cartReducer, initialCartState, selectCartTotal, type CartState } from "./cart";
 
 const cocaCola = { id: 1, name: "Coca-Cola 2L", sku: "0012", salePrice: 1200, stock: 10 };
 const jabon = { id: 2, name: "Jabón en polvo", sku: "0045", salePrice: 1800, stock: 3 };

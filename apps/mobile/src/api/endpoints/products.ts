@@ -1,11 +1,43 @@
 import type { ProductDto } from "@stocknegozia/api-contracts";
-import { apiGet } from "@/api/client";
+import type {
+  ActiveUpdateInput,
+  CreateProductInput,
+  ProductQueryInput,
+  StockAdjustmentInput,
+  UpdateProductInput,
+} from "@stocknegozia/validation";
+import { apiGet, apiPatch, apiPost } from "@/api/client";
 
-/**
- * `GET /products` sin filtros — M15 solo necesita demostrar la cadena completa (auth → API →
- * backend → productos reales), no el CRUD completo de inventario (eso ya existe en Desktop y
- * queda fuera de alcance acá, ver docs/mobile/MOBILE_CLIENT.md §Products).
- */
-export function fetchProducts(): Promise<ProductDto[]> {
-  return apiGet<ProductDto[]>("/products");
+function toQueryString(query: Partial<ProductQueryInput>): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== "") params.set(key, String(value));
+  }
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
+}
+
+/** `GET /products` con filtros opcionales — mismo contrato que Desktop (`products.api.ts`). */
+export function fetchProducts(query: Partial<ProductQueryInput> = {}): Promise<ProductDto[]> {
+  return apiGet<ProductDto[]>(`/products${toQueryString(query)}`);
+}
+
+export function fetchProduct(id: number): Promise<ProductDto> {
+  return apiGet<ProductDto>(`/products/${id}`);
+}
+
+export function createProduct(input: CreateProductInput): Promise<ProductDto> {
+  return apiPost<ProductDto>("/products", input);
+}
+
+export function updateProduct(id: number, input: UpdateProductInput): Promise<ProductDto> {
+  return apiPatch<ProductDto>(`/products/${id}`, input);
+}
+
+export function adjustProductStock(id: number, input: StockAdjustmentInput): Promise<ProductDto> {
+  return apiPost<ProductDto>(`/products/${id}/stock-adjustments`, input);
+}
+
+export function updateProductActive(id: number, input: ActiveUpdateInput): Promise<ProductDto> {
+  return apiPatch<ProductDto>(`/products/${id}/active`, input);
 }
