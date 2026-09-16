@@ -22,6 +22,14 @@ import { ProductsRepository } from "./products.repository";
 
 type ProductRow = ReturnType<ProductsRepository["findById"]>;
 
+/**
+ * Prefijo reservado para QR que StockNegozia genere en el futuro (no implementado en este
+ * milestone — ver docs/inventory/PRODUCT_SCANNER.md §QR). Si un código escaneado llega con este
+ * prefijo, se desenvuelve y se usa el resto como identificador exacto — así un QR propio futuro
+ * funciona con este mismo lookup sin cambios adicionales.
+ */
+const QR_PRODUCT_PREFIX = "STOCKNEGOZIA:PRODUCT:";
+
 /** Mismo `roundMoney` que ya usan `PurchasesService`/`SalesService` (duplicado deliberadamente,
  *  no se introdujo una utilidad monetaria compartida nueva — mismo criterio que esos dos). */
 function roundMoney(value: number): number {
@@ -96,6 +104,21 @@ export class ProductsService {
   }
 
   /**
+   * Lookup exacto para el scanner de productos (QR/barcode) de Mobile — a diferencia de
+   * `findMany({ search })`, que hace `LIKE` parcial, acá una coincidencia parcial nunca es
+   * suficiente: o hay un producto con ese `sku`/`barcode` exacto, o no se encontró nada. Ver
+   * docs/inventory/PRODUCT_SCANNER.md.
+   */
+  findByCode(code: string): ProductDto {
+    const effectiveCode = code.startsWith(QR_PRODUCT_PREFIX)
+      ? code.slice(QR_PRODUCT_PREFIX.length)
+      : code;
+    const row = this.repository.findByCode(effectiveCode);
+    if (!row) throw new NotFoundException("Producto no encontrado");
+    return toDto(row);
+  }
+
+  /**
    * El producto siempre nace con `stock: 0` en `products.repository.insert()` — el stock inicial
    * pedido por el cliente (`input.stock`) nunca se escribe directamente ahí. En cambio, si es
    * mayor a cero, se aplica en la misma transacción vía `adjustStock()` (el único punto de
@@ -137,12 +160,11 @@ export class ProductsService {
    */
   create(input: CreateProductInput): ProductDto {
     this.assertSkuAvailable(input.sku);
+    this.assertBarcodeAvailable(input.barcode);
     const categoryId = this.resolveCategoryId(input.categoryId, input.categoryName);
 
     if (input.stock > 0 && input.supplierId === undefined && !input.supplierName) {
-      throw new BadRequestException(
-        "El proveedor es obligatorio para registrar el stock inicial",
-      );
+      throw new BadRequestException("El proveedor es obligatorio para registrar el stock inicial");
     }
 
     const createdId = this.db.transaction((tx) => {
@@ -170,7 +192,12 @@ export class ProductsService {
         const subtotal = roundMoney(input.purchasePrice * input.stock);
 
         const purchase = this.purchasesRepository.insertPurchase(
-          { supplierId: supplier.id, supplierName: supplier.name, total: subtotal, createdAt: new Date() },
+          {
+            supplierId: supplier.id,
+            supplierName: supplier.name,
+            total: subtotal,
+            createdAt: new Date(),
+          },
           tx,
         );
         this.purchasesRepository.insertPurchaseItems(
@@ -186,7 +213,10 @@ export class ProductsService {
           tx,
         );
 
-        this.adjustStock(created.id, input.stock, tx, { type: "PURCHASE", purchaseId: purchase.id });
+        this.adjustStock(created.id, input.stock, tx, {
+          type: "PURCHASE",
+          purchaseId: purchase.id,
+        });
       }
 
       return created.id;
@@ -198,6 +228,7 @@ export class ProductsService {
   update(id: number, input: UpdateProductInput): ProductDto {
     this.findById(id); // 404 si no existe
     if (input.sku) this.assertSkuAvailable(input.sku, id);
+    if (input.barcode) this.assertBarcodeAvailable(input.barcode, id);
     const categoryId = this.resolveCategoryId(input.categoryId, input.categoryName);
 
     this.repository.update(id, {
@@ -366,6 +397,18 @@ export class ProductsService {
     const existing = this.repository.findBySku(sku);
     if (existing && existing.id !== excludeId) {
       throw new ConflictException("El SKU ya está en uso por otro producto");
+    }
+  }
+
+  /** Mismo patrón que `assertSkuAvailable` — `barcode` es opcional, así que solo se valida cuando
+   *  viene un valor (ver `products.ts`: índice único que sí permite múltiples `NULL`). */
+  private assertBarcodeAvailable(barcode: string | undefined, excludeId?: number): void {
+    if (!barcode) return;
+    const existing = this.repository.findByBarcode(barcode);
+    if (existing && existing.id !== excludeId) {
+      throw new ConflictException(
+        `El código de barras ya está en uso por el producto "${existing.name}"`,
+      );
     }
   }
 }

@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from "react";
-import { Modal as RNModal, Pressable, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Animated, Modal as RNModal, Pressable, StyleSheet, Text, View } from "react-native";
 import {
   CameraView,
   useCameraPermissions,
@@ -11,6 +11,27 @@ import { TextField } from "@/components/TextField";
 import { useTheme } from "@/theme/useTheme";
 import { radius, spacing, typography } from "@/theme/tokens";
 import type { ScanResult } from "./types";
+
+export interface ScanFeedback {
+  type: "success" | "error";
+  text1: string;
+  text2?: string;
+}
+
+const FEEDBACK_FADE_MS = 180;
+const FEEDBACK_HOLD_MS = 2200;
+
+/**
+ * Cooldown tras cada lectura antes de volver a aceptar otra — evita que el mismo frame se procese
+ * dos veces mientras la cámara sigue enfocando el código. Antes de este ajuste, el "lock" solo se
+ * liberaba cuando el consumidor cerraba y volvía a abrir el modal, lo que forzaba a `CameraView` a
+ * desmontarse y reinicializar la sesión nativa de cámara (varios cientos de ms) — si se escaneaba
+ * un segundo código antes de que esa reinicialización terminara, se perdía. Con el cooldown, la
+ * cámara nunca se desmonta entre lecturas (el consumidor puede dejar el modal abierto para escanear
+ * varios productos seguidos, ver Sales/PurchasesScreen) y el lock se libera solo, sin depender de
+ * un remount.
+ */
+const RESCAN_COOLDOWN_MS = 1200;
 
 const PRODUCT_BARCODE_TYPES: BarcodeType[] = [
   "qr",
@@ -28,6 +49,15 @@ export interface ProductScannerProps {
   visible: boolean;
   onDetected: (result: ScanResult) => void;
   onCancel: () => void;
+  /**
+   * Aviso opcional a mostrar tras resolver un escaneo (ej. "Producto agregado" o un error de
+   * lookup) — pensado para el modo continuo de Ventas/Compras, donde el scanner se queda abierto
+   * entre lecturas (ver esas pantallas). Cada objeto nuevo (aunque tenga el mismo texto que el
+   * anterior) dispara la animación desde cero: no depende de comparar contenido, solo de que el
+   * consumidor pase una referencia nueva en cada resultado — lo que ya hace naturalmente al armar
+   * el objeto en cada `catch`/`then`.
+   */
+  feedback?: ScanFeedback | null;
 }
 
 /**
@@ -38,25 +68,72 @@ export interface ProductScannerProps {
  * (mismo manejo de permisos y de lecturas repetidas), con el agregado de entrada manual, que ese
  * paso de pairing no necesita porque ahí el QR es obligatorio.
  */
-export function ProductScanner({ visible, onDetected, onCancel }: ProductScannerProps) {
+export function ProductScanner({ visible, onDetected, onCancel, feedback }: ProductScannerProps) {
   const { colors } = useTheme();
   const [permission, requestPermission] = useCameraPermissions();
   const [manualMode, setManualMode] = useState(false);
   const [manualValue, setManualValue] = useState("");
-  // Evita procesar la misma lectura varias veces mientras la cámara sigue enfocando el código —
-  // se resetea al cerrar/reabrir el modal (ver `handleClose`).
   const lockedRef = useRef(false);
+  const cooldownRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [displayedFeedback, setDisplayedFeedback] = useState<ScanFeedback | null>(null);
+  const feedbackOpacity = useRef(new Animated.Value(0)).current;
+  const feedbackAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (cooldownRef.current) clearTimeout(cooldownRef.current);
+    };
+  }, []);
+
+  /**
+   * Reproduce SIEMPRE la animación completa (fade in → hold → fade out) ante cada `feedback`
+   * nuevo, sin importar si el texto es igual al anterior — a diferencia de
+   * `react-native-toast-message` (usado antes acá), que solo anima la entrada cuando pasa de
+   * oculto a visible: si ya había un toast visible, uno nuevo solo actualizaba el texto sin
+   * animación, lo que en escaneo rápido y seguido se sentía como "el aviso pasa muy rápido o ni se
+   * nota". Acá cada llamada corta cualquier animación anterior (`.stop()`) y arranca una nueva
+   * desde cero, así que el tiempo visible es siempre el mismo, escaneo tras escaneo.
+   */
+  useEffect(() => {
+    feedbackAnimationRef.current?.stop();
+    if (!feedback) return;
+
+    setDisplayedFeedback(feedback);
+    feedbackOpacity.setValue(0);
+    const animation = Animated.sequence([
+      Animated.timing(feedbackOpacity, {
+        toValue: 1,
+        duration: FEEDBACK_FADE_MS,
+        useNativeDriver: true,
+      }),
+      Animated.delay(FEEDBACK_HOLD_MS),
+      Animated.timing(feedbackOpacity, {
+        toValue: 0,
+        duration: FEEDBACK_FADE_MS,
+        useNativeDriver: true,
+      }),
+    ]);
+    feedbackAnimationRef.current = animation;
+    animation.start(({ finished }) => {
+      if (finished) setDisplayedFeedback(null);
+    });
+  }, [feedback, feedbackOpacity]);
 
   const handleBarcodeScanned = useCallback(
     ({ data, type }: BarcodeScanningResult) => {
       if (lockedRef.current) return;
       lockedRef.current = true;
       onDetected({ code: data, format: type });
+      cooldownRef.current = setTimeout(() => {
+        lockedRef.current = false;
+      }, RESCAN_COOLDOWN_MS);
     },
     [onDetected],
   );
 
   function handleClose() {
+    if (cooldownRef.current) clearTimeout(cooldownRef.current);
     lockedRef.current = false;
     setManualMode(false);
     setManualValue("");
@@ -80,6 +157,33 @@ export function ProductScanner({ visible, onDetected, onCancel }: ProductScanner
             <Text style={{ color: colors.primary }}>Cerrar</Text>
           </Pressable>
         </View>
+
+        {displayedFeedback && (
+          <Animated.View
+            testID="scanner-feedback"
+            pointerEvents="none"
+            style={[
+              styles.feedbackBanner,
+              {
+                opacity: feedbackOpacity,
+                borderLeftColor:
+                  displayedFeedback.type === "success" ? colors.success : colors.danger,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.feedbackText1,
+                { color: displayedFeedback.type === "success" ? colors.success : colors.danger },
+              ]}
+            >
+              {displayedFeedback.text1}
+            </Text>
+            {displayedFeedback.text2 && (
+              <Text style={styles.feedbackText2}>{displayedFeedback.text2}</Text>
+            )}
+          </Animated.View>
+        )}
 
         {manualMode ? (
           <View style={styles.manualForm}>
@@ -162,4 +266,23 @@ const styles = StyleSheet.create({
   camera: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
   frame: { width: "70%", aspectRatio: 1, borderWidth: 3, borderRadius: radius.lg },
   hint: { textAlign: "center" },
+  feedbackBanner: {
+    position: "absolute",
+    top: 70,
+    left: spacing.lg,
+    right: spacing.lg,
+    zIndex: 10,
+    backgroundColor: "#FFFFFF",
+    borderLeftWidth: 4,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  feedbackText1: { ...typography.bodyStrong },
+  feedbackText2: { ...typography.caption, color: "#111827" },
 });

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { ProductDto } from "@stocknegozia/api-contracts";
 import { createProductSchema, updateProductSchema } from "@stocknegozia/validation";
 import { useRouter } from "expo-router";
@@ -7,10 +7,11 @@ import { Button } from "@/components/Button";
 import { Checkbox } from "@/components/Checkbox";
 import { Select } from "@/components/Select";
 import { TextField } from "@/components/TextField";
+import { ProductPhotoCapture } from "@/features/products/components/ProductPhotoCapture";
 import { ProductScanner } from "@/features/scanner/ProductScanner";
 import type { ScanResult } from "@/features/scanner/types";
 import { useTheme } from "@/theme/useTheme";
-import { spacing } from "@/theme/tokens";
+import { radius, spacing, typography } from "@/theme/tokens";
 import { useSuppliers } from "@/features/suppliers/hooks/useSuppliers";
 import { useCategories } from "../hooks/useCategories";
 import { useCreateProduct } from "../hooks/useCreateProduct";
@@ -75,6 +76,7 @@ export function ProductForm({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [photoCaptureOpen, setPhotoCaptureOpen] = useState(false);
 
   const isPending = createProduct.isPending || updateProduct.isPending;
 
@@ -261,11 +263,34 @@ export function ProductForm({
         <Text style={{ color: colors.danger }}>{fieldErrors.minimumStock[0]}</Text>
       )}
 
-      <TextField
-        label="Imagen (URL)"
-        value={form.image}
-        onChangeText={(v) => update("image", v)}
-        autoCapitalize="none"
+      <View style={styles.imageSection}>
+        <Text style={[typography.label, { color: colors.mutedForeground }]}>Imagen</Text>
+        {form.image ? (
+          <View style={styles.imageRow}>
+            <Image source={{ uri: form.image }} style={styles.imagePreview} resizeMode="cover" />
+            <Button
+              label="Quitar foto"
+              variant="ghost"
+              onPress={() => update("image", "")}
+              testID="remove-product-photo"
+            />
+          </View>
+        ) : (
+          <Button
+            label="📷 Tomar foto"
+            variant="secondary"
+            onPress={() => setPhotoCaptureOpen(true)}
+            testID="take-product-photo"
+          />
+        )}
+      </View>
+      <ProductPhotoCapture
+        visible={photoCaptureOpen}
+        onCaptured={(dataUri) => {
+          setPhotoCaptureOpen(false);
+          update("image", dataUri);
+        }}
+        onCancel={() => setPhotoCaptureOpen(false)}
       />
 
       {isEdit && (
@@ -297,4 +322,7 @@ const styles = StyleSheet.create({
   content: { gap: spacing.md, paddingBottom: spacing.xxl },
   errorBanner: { borderRadius: 8, padding: spacing.md },
   actions: { gap: spacing.sm, marginTop: spacing.md },
+  imageSection: { gap: spacing.xs },
+  imageRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  imagePreview: { width: 64, height: 64, borderRadius: radius.md },
 });

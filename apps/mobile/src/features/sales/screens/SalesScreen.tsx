@@ -14,8 +14,10 @@ import { useAuthErrorRedirect } from "@/auth/useAuthErrorRedirect";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useProducts } from "@/features/products/hooks/useProducts";
 import { ProductListItem } from "@/features/products/components/ProductListItem";
-import { ProductScanner } from "@/features/scanner/ProductScanner";
+import { ProductScanner, type ScanFeedback } from "@/features/scanner/ProductScanner";
+import { productAddedFeedback, scanErrorFeedback } from "@/features/scanner/scanFeedback";
 import type { ScanResult } from "@/features/scanner/types";
+import { useScanBeep } from "@/features/scanner/useScanBeep";
 import { useTheme } from "@/theme/useTheme";
 import { spacing, typography } from "@/theme/tokens";
 import { SaleCartRow } from "../components/SaleCartRow";
@@ -30,6 +32,7 @@ export function SalesScreen() {
   const [scanError, setScanError] = useState<string | null>(null);
   const [isResolvingScan, setIsResolvingScan] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [scanFeedback, setScanFeedback] = useState<ScanFeedback | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -41,6 +44,7 @@ export function SalesScreen() {
 
   const cart = useCart();
   const createSale = useCreateSale();
+  const playScanBeep = useScanBeep();
 
   function handleAdd(product: ProductDto) {
     cart.addItem(product);
@@ -76,17 +80,26 @@ export function SalesScreen() {
     }
   }
 
+  /**
+   * A diferencia de `handleSubmitSearch`, acá el scanner se queda abierto: la persona puede
+   * escanear varios productos seguidos sin volver a tocar "Escanear" cada vez. El resultado
+   * (agregado o error) se avisa con un beep + el banner animado de `ProductScanner` — el mensaje
+   * inline (`scanError`) queda tapado por el modal de la cámara mientras está abierto, así que no
+   * sirve acá. Cada llamada crea un objeto `ScanFeedback` nuevo (aunque el texto se repita), que es
+   * justamente lo que `ProductScanner` necesita para re-animar el aviso en cada escaneo.
+   */
   async function handleScanDetected(result: ScanResult) {
-    setScannerOpen(false);
-    setScanError(null);
-    setIsResolvingScan(true);
     try {
       const product = await fetchProductByCode(result.code);
-      handleAdd(product);
+      cart.addItem(product);
+      playScanBeep();
+      setScanFeedback(productAddedFeedback(product.name));
     } catch (error) {
-      setScanError(error instanceof Error ? error.message : "No se pudo buscar el producto.");
-    } finally {
-      setIsResolvingScan(false);
+      setScanFeedback(
+        scanErrorFeedback(
+          error instanceof Error ? error.message : "No se pudo buscar el producto.",
+        ),
+      );
     }
   }
 
@@ -136,6 +149,7 @@ export function SalesScreen() {
         visible={scannerOpen}
         onDetected={handleScanDetected}
         onCancel={() => setScannerOpen(false)}
+        feedback={scanFeedback}
       />
 
       <ScrollView

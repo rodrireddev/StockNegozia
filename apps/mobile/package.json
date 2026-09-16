@@ -26,6 +26,7 @@
     "@stocknegozia/validation": "workspace:*",
     "@tanstack/react-query": "^5.62.11",
     "expo": "~57.0.23",
+    "expo-audio": "~57.0.5",
     "expo-camera": "~57.0.5",
     "expo-constants": "~57.0.18",
     "expo-device": "~57.0.2",

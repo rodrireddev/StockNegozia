@@ -60,8 +60,8 @@ apps/mobile/
 │   ├── devices/             # datos del dispositivo propio (GET /auth/devices/me)
 │   ├── features/
 │   │   ├── pairing/         # wizard de 5 pasos (components/steps/), parseo del QR, mutación
-│   │   ├── products/        # hook de listado, item de lista, pantalla
-│   │   └── scanner/         # contrato ScanResult para el FUTURO scanner de productos — ver §Scanner
+│   │   ├── products/        # hooks, formulario, pantallas — scanner integrado (M16)
+│   │   └── scanner/         # ProductScanner (cámara reutilizable) + contrato ScanResult — ver §Scanner
 │   ├── components/          # primitivos de UI (Button, Card, Checkbox, EmptyState, ...)
 │   ├── navigation/          # AdaptiveShell (bottom bar / side rail)
 │   ├── config/              # env.ts, backendUrlStore.ts, termsStore.ts
@@ -201,12 +201,9 @@ terceros — es el módulo oficial de Expo y ya cubre detección de QR nativamen
   se graba audio ni video, solo se lee el QR en vivo.
 - Un QR inválido (JSON mal formado, `version` distinta, o sin `host`/`port`/`protocol`) muestra un
   mensaje y permite reintentar sin salir de la pantalla — nunca crashea ni bloquea el flujo.
-- El contrato genérico de escaneo preparado a futuro (`src/features/scanner/types.ts`,
-  `ScanResult { code, format }`) sigue existiendo para cuando se implemente el escaneo de
-  productos/barcodes (EAN, Code128, etc.) — eso **todavía no está implementado**; lo que se agregó
-  acá es específicamente el escaneo del QR de pairing, con `expo-camera` directamente en
-  `ScanStep`, no a través de ese contrato genérico (son necesidades distintas: pairing necesita el
-  JSON completo del QR, no un código/formato simple).
+- El contrato genérico de escaneo (`src/features/scanner/types.ts`, `ScanResult { code, format }`)
+  ya se usa en el scanner de productos (M16, ver §Scanner de cámara) — `ScanStep` sigue sin
+  pasar por él porque pairing necesita el JSON completo del QR, no un código/formato simple.
 
 ### Términos de uso (simulados)
 
@@ -309,31 +306,26 @@ de esa investigación.
 
 ## Scanner de cámara
 
-**El escaneo del QR de pairing SÍ está implementado** (ver §Pairing → Escaneo de QR) —
-`expo-camera`, permiso `CAMERA` real declarado vía el plugin de `expo-camera` en `app.json`. Esto
-reemplaza al "pegar el JSON" que usaba M15 originalmente (documentado ahí como decisión deliberada
-para no implementar cámara en ese momento — se revirtió en un fix posterior a pedido explícito,
-ver el historial de commits).
+**Tres usos de `expo-camera` en la app — sigue siendo la única dependencia de cámara del proyecto:**
 
-**Lo que sigue sin implementarse**: el escaneo de códigos de producto (barcode/EAN/UPC/Code128)
-para altas rápidas de inventario — un feature distinto, de otro milestone. `Products` no depende
-de ninguna librería de cámara.
+1. **QR de pairing** (`ScanStep.tsx`, ver §Pairing → Escaneo de QR) — necesita el JSON completo
+   del QR (`PairingQrPayload`), así que usa `CameraView` directamente, sin pasar por `ScanResult`.
+2. **Scanner de productos** (M16, `src/features/scanner/ProductScanner.tsx`) — componente
+   reutilizable que sí produce el contrato genérico `ScanResult { code, format }`
+   (`src/features/scanner/types.ts`) y se lo entrega a quien lo invoque, sin saber nada de
+   productos/ventas/compras. En Ventas/Compras se deja abierto entre lecturas (modo continuo, con
+   beep + un banner animado propio como confirmación — sin librería de toast, ver
+   `docs/inventory/PRODUCT_SCANNER.md` §Escaneo continuo).
+3. **Foto de producto** (M16, `src/features/products/components/ProductPhotoCapture.tsx`) —
+   `CameraView.takePictureAsync()` para reemplazar el campo "Imagen (URL)" del formulario por una
+   foto real, entregada como el mismo data URI base64 que ya produce Desktop.
 
-`src/features/scanner/types.ts` define el contrato preparado para ESE caso futuro:
+Ver `docs/inventory/PRODUCT_SCANNER.md` para el detalle completo de los dos usos de M16 (modelo de
+identificador, endpoint de lookup, escaneo continuo, foto de producto).
 
-```ts
-interface ScanResult {
-  code: string;
-  format: string;
-}
-```
-
-`features/pairing` no usa este contrato — el escaneo de pairing necesita el JSON completo del QR
-(`PairingQrPayload`), no un `{code, format}` simple, así que `ScanStep.tsx` usa `expo-camera`
-directamente. Cuando se implemente el escaneo de productos, va a producir un `ScanResult` y
-entregárselo a `features/products` sin que ese feature necesite saber qué librería de cámara se
-usó — la misma separación que ya existía, ahora con un precedente real (`ScanStep`) de cómo se ve
-un feature de cámara integrado en esta arquitectura.
+Los tres comparten el mismo permiso `CAMERA` (declarado una sola vez vía el plugin de `expo-camera`
+en `app.json`) y el mismo patrón de manejo de permisos (`useCameraPermissions`) — `ProductScanner`
+y `ProductPhotoCapture` están modelados directamente sobre `ScanStep.tsx`.
 
 ## Products
 
@@ -446,6 +438,6 @@ emulator -avd <nombre> -gpu swiftshader_indirect
   los requieran transitivamente.
 - **Términos y condiciones simulados** (`TermsStep.tsx`): reemplazar por el texto legal real antes
   de publicar en Google Play — ver §Pairing → Términos de uso.
-- **Escaneo de códigos de producto** (barcode/EAN/UPC para altas rápidas de inventario) sigue sin
-  implementarse — es un feature distinto del escaneo de pairing (ver §Scanner de cámara), candidato
-  natural para el próximo milestone, junto con la "Mobile UX/UI Optimization" ya mencionada.
+- **Escaneo de códigos de producto**: implementado en M16 — ver §Scanner de cámara y
+  `docs/inventory/PRODUCT_SCANNER.md`. Pendiente de validar en Android real (build/instalación no
+  ejecutados desde este entorno, ver ese doc §Limitaciones).

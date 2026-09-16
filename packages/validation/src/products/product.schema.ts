@@ -38,10 +38,13 @@ export const createProductSchema = productBaseSchema
     supplierId: z.coerce.number().int().positive("El proveedor es inválido").optional(),
     supplierName: optionalTrimmedString(),
   })
-  .refine((data) => data.stock === 0 || data.supplierId !== undefined || data.supplierName !== undefined, {
-    message: "El proveedor es obligatorio para registrar el stock inicial",
-    path: ["supplierId"],
-  });
+  .refine(
+    (data) => data.stock === 0 || data.supplierId !== undefined || data.supplierName !== undefined,
+    {
+      message: "El proveedor es obligatorio para registrar el stock inicial",
+      path: ["supplierId"],
+    },
+  );
 
 export const updateProductSchema = productBaseSchema.partial();
 
@@ -58,7 +61,20 @@ export const productQuerySchema = z.object({
   sortDir: z.enum(["asc", "desc"]).default("asc"),
 });
 
+/**
+ * Lookup exacto de un producto por identificador escaneado (QR o barcode) o tipeado — a diferencia
+ * de `productQuerySchema.search`, que hace `LIKE` parcial sobre varios campos, este devuelve un
+ * único producto por coincidencia exacta de `sku` o `barcode` (ver `ProductsService.findByCode`).
+ */
+export const lookupProductQuerySchema = z.object({
+  code: z
+    .string({ required_error: "El código es obligatorio" })
+    .trim()
+    .min(1, "El código es obligatorio"),
+});
+
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 export type ActiveUpdateInput = z.infer<typeof activeUpdateSchema>;
 export type ProductQueryInput = z.infer<typeof productQuerySchema>;
+export type LookupProductQueryInput = z.infer<typeof lookupProductQuerySchema>;

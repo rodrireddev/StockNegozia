@@ -95,6 +95,18 @@ export class ProductsRepository {
     return this.db.select().from(products).where(eq(products.sku, sku)).get();
   }
 
+  /** Match exacto (no `LIKE`) contra `sku` o `barcode` — usado por el lookup de scanner y por la
+   *  validación de unicidad de `barcode` (ver `ProductsService.findByCode`/`assertBarcodeAvailable`). */
+  findByCode(code: string) {
+    return this.selectWithCategory()
+      .where(or(eq(products.sku, code), eq(products.barcode, code)))
+      .get();
+  }
+
+  findByBarcode(barcode: string) {
+    return this.db.select().from(products).where(eq(products.barcode, barcode)).get();
+  }
+
   insert(data: NewProductRecord, executor: DrizzleExecutor = this.db) {
     const now = new Date();
     return executor

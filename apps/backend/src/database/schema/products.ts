@@ -5,7 +5,7 @@ export const products = sqliteTable("products", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   sku: text("sku").notNull().unique(),
-  barcode: text("barcode"),
+  barcode: text("barcode").unique(),
   description: text("description"),
   categoryId: integer("category_id").references(() => categories.id, { onDelete: "set null" }),
   purchasePrice: real("purchase_price").notNull().default(0),

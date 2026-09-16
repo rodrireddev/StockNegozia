@@ -1,13 +1,25 @@
-import { Body, Controller, Get, Inject, Param, ParseIntPipe, Patch, Post, Query } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+} from "@nestjs/common";
 import type { ProductDto } from "@stocknegozia/api-contracts";
 import {
   activeUpdateSchema,
   createProductSchema,
+  lookupProductQuerySchema,
   productQuerySchema,
   stockAdjustmentSchema,
   updateProductSchema,
   type ActiveUpdateInput,
   type CreateProductInput,
+  type LookupProductQueryInput,
   type ProductQueryInput,
   type StockAdjustmentInput,
   type UpdateProductInput,
@@ -26,6 +38,17 @@ export class ProductsController {
     @Query(new ZodValidationPipe(productQuerySchema)) query: ProductQueryInput,
   ): ProductDto[] {
     return this.productsService.findMany(query);
+  }
+
+  /**
+   * Lookup exacto para el scanner de productos (Mobile) — declarado ANTES de `:id`: si no,
+   * NestJS matchea "lookup" contra `:id` (`ParseIntPipe` lo rechaza con 400 antes de llegar acá).
+   */
+  @Get("lookup")
+  findByCode(
+    @Query(new ZodValidationPipe(lookupProductQuerySchema)) query: LookupProductQueryInput,
+  ): ProductDto {
+    return this.productsService.findByCode(query.code);
   }
 
   @Get(":id")
