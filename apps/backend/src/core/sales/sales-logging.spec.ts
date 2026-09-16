@@ -11,8 +11,11 @@ import { CategoriesRepository } from "../categories/categories.repository";
 import { CategoriesService } from "../categories/categories.service";
 import { ProductsRepository } from "../products/products.repository";
 import { ProductsService } from "../products/products.service";
+import { PurchasesRepository } from "../purchases/purchases.repository";
 import { StockMovementsRepository } from "../stock-movements/stock-movements.repository";
 import { StockMovementsService } from "../stock-movements/stock-movements.service";
+import { SuppliersRepository } from "../suppliers/suppliers.repository";
+import { SuppliersService } from "../suppliers/suppliers.service";
 import { SalesRepository } from "./sales.repository";
 import { SalesService } from "./sales.service";
 
@@ -23,6 +26,7 @@ describe("Sales — secuencia de eventos de logging", () => {
   let db: Database;
   let productsService: ProductsService;
   let salesService: SalesService;
+  let defaultSupplierId: number;
 
   beforeEach(() => {
     dir = mkdtempSync(path.join(tmpdir(), "stocknegozia-sales-logging-"));
@@ -34,9 +38,21 @@ describe("Sales — secuencia de eventos de logging", () => {
     const categoriesService = new CategoriesService(categoriesRepository);
     const productsRepository = new ProductsRepository(db);
     const stockMovementsService = new StockMovementsService(new StockMovementsRepository(db), logger);
-    productsService = new ProductsService(db, productsRepository, categoriesService, stockMovementsService, logger);
+    const suppliersService = new SuppliersService(new SuppliersRepository(db));
+    productsService = new ProductsService(
+      db,
+      productsRepository,
+      categoriesService,
+      stockMovementsService,
+      suppliersService,
+      new PurchasesRepository(db),
+      logger,
+    );
     const salesRepository = new SalesRepository(db);
     salesService = new SalesService(db, salesRepository, productsService, logger);
+    // El proveedor es obligatorio para crear un producto con stock inicial > 0 (ver
+    // ProductsService.create()).
+    defaultSupplierId = suppliersService.create({ name: "Proveedor de prueba" }).id;
   });
 
   afterEach(() => {
@@ -50,6 +66,7 @@ describe("Sales — secuencia de eventos de logging", () => {
       purchasePrice: 100,
       salePrice: 200,
       stock,
+      supplierId: stock > 0 ? defaultSupplierId : undefined,
       minimumStock: 0,
       active: true,
     });

@@ -9,7 +9,6 @@ import { useProducts } from "@/features/products/hooks/useProducts";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { TabNav } from "@/components/ui/tab-nav";
 import { getUserFriendlyError } from "@/lib/errors";
 import { useSuppliers } from "@/features/suppliers/hooks/useSuppliers";
 import { PurchaseCartPanel } from "../components/PurchaseCartPanel";
@@ -128,12 +127,6 @@ export function NewPurchasePage() {
   return (
     <div className="flex h-full flex-col gap-4">
       <h1 className="text-xl font-semibold">Compras</h1>
-      <TabNav
-        items={[
-          { to: "/purchases", label: "Nueva compra", end: true },
-          { to: "/purchases/suppliers", label: "Proveedores" },
-        ]}
-      />
 
       <div className="max-w-xs space-y-1.5">
         <Label htmlFor="purchase-supplier">Proveedor</Label>

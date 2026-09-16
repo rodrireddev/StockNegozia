@@ -130,6 +130,34 @@ describe("DevicesService", () => {
       expect(found?.status).toBe("active");
     });
 
+    it("un device nuevo no tiene vendedor configurado", () => {
+      const { deviceId } = service.register("Desktop", "desktop", { isAdmin: true });
+      expect(service.getById(deviceId).sellerName).toBeNull();
+    });
+
+    it("updateSellerName fija el vendedor actual y lo persiste", () => {
+      const { deviceId } = service.register("Desktop", "desktop", { isAdmin: true });
+
+      const updated = service.updateSellerName(deviceId, "Rodrigo");
+      expect(updated.sellerName).toBe("Rodrigo");
+      expect(service.getById(deviceId).sellerName).toBe("Rodrigo");
+    });
+
+    it("updateSellerName permite reemplazar el vendedor sin afectar el nombre del dispositivo", () => {
+      const { deviceId } = service.register("Desktop", "desktop", { isAdmin: true });
+      service.updateSellerName(deviceId, "Rodrigo");
+
+      const updated = service.updateSellerName(deviceId, "Ana");
+      expect(updated.sellerName).toBe("Ana");
+      expect(updated.name).toBe("Desktop");
+    });
+
+    it("updateSellerName de un device inexistente lanza NotFoundException", () => {
+      expect(() =>
+        service.updateSellerName("00000000-0000-0000-0000-000000000000", "Rodrigo"),
+      ).toThrow(NotFoundException);
+    });
+
     it("revoke invalida la credential permanentemente y genera auditoría", () => {
       const admin = service.register("Desktop", "desktop", { isAdmin: true });
       const client = service.register("Mobile", "mobile");

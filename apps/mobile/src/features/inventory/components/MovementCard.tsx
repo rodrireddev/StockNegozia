@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import type { ProductDto, StockMovementDto } from "@stocknegozia/api-contracts";
 import {
+  describeMovementActor,
   describeMovementReference,
   formatMovementUnitValue,
   formatSignedQuantity,
@@ -21,6 +22,7 @@ export function MovementCard({
 }) {
   const { colors } = useTheme();
   const reference = describeMovementReference(movement);
+  const actor = describeMovementActor(movement);
 
   return (
     <Card style={styles.card}>
@@ -53,6 +55,11 @@ export function MovementCard({
           Stock: {movement.stockAfter}
         </Text>
       </View>
+      {actor ? (
+        <Text style={[typography.caption, { color: colors.mutedForeground }]}>
+          Vendedor: {actor}
+        </Text>
+      ) : null}
     </Card>
   );
 }

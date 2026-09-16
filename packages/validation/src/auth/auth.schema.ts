@@ -57,3 +57,22 @@ export const updateDeviceSchema = z.object({
 });
 
 export type UpdateDeviceInput = z.infer<typeof updateDeviceSchema>;
+
+/**
+ * Body de `PATCH /auth/devices/me/seller-name` — el "vendedor actual" que opera este dispositivo
+ * (ver docs/inventory/STOCK_MOVEMENTS.md §Trazabilidad). No admite vaciarse: siempre hace falta un
+ * nombre, porque Desktop bloquea el registro de ventas mientras no esté configurado.
+ */
+export const updateSellerNameSchema = z.object({
+  sellerName: z
+    .string({ required_error: "El nombre del vendedor es obligatorio" })
+    .trim()
+    .min(1, "El nombre del vendedor es obligatorio")
+    .max(100, "El nombre no puede superar los 100 caracteres")
+    .refine(
+      (value) => ![...value].some((char) => char.charCodeAt(0) < 0x20 || char.charCodeAt(0) === 0x7f),
+      "El nombre contiene caracteres no permitidos",
+    ),
+});
+
+export type UpdateSellerNameInput = z.infer<typeof updateSellerNameSchema>;

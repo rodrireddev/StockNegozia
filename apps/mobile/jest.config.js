@@ -19,6 +19,12 @@ module.exports = {
   moduleNameMapper: {
     ...jestExpoPreset.moduleNameMapper,
     "^@/(.*)$": "<rootDir>/src/$1",
+    // El preset no mockea `@react-native-async-storage/async-storage` por su cuenta — sin esto,
+    // cualquier test que ejercite un store respaldado por AsyncStorage (`themeStore.ts`,
+    // `backendUrlStore.ts`) intenta llamar al módulo nativo real y falla. El mock in-memory que
+    // el propio paquete distribuye alcanza — no hace falta uno artesanal.
+    "^@react-native-async-storage/async-storage$":
+      "@react-native-async-storage/async-storage/jest/async-storage-mock",
   },
   transform: {
     ...jestExpoPreset.transform,

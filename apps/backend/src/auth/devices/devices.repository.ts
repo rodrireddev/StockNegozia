@@ -62,4 +62,8 @@ export class DevicesRepository {
   updateName(id: string, name: string) {
     this.db.update(devices).set({ name }).where(eq(devices.id, id)).run();
   }
+
+  updateSellerName(id: string, sellerName: string) {
+    this.db.update(devices).set({ sellerName }).where(eq(devices.id, id)).run();
+  }
 }

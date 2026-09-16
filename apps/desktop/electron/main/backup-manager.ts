@@ -180,7 +180,10 @@ export class BackupManager {
       copyDatabaseFiles(candidatePath, liveDbPath);
 
       this.backendManager.start();
-      await this.backendManager.waitUntilHealthy();
+      // Timeout acotado (a diferencia del arranque normal, ver `BackendManager.waitUntilHealthy`):
+      // acá sí es una señal real de que la base restaurada está corrupta/incompatible, y debe
+      // disparar el rollback de abajo en vez de esperar para siempre.
+      await this.backendManager.waitUntilHealthy(30_000);
 
       // Éxito confirmado por /health — el backup de seguridad (paso 2) ya quedó en `backups/`;
       // los archivos de swap temporales ya no hacen falta.
@@ -199,7 +202,7 @@ export class BackupManager {
       deleteDatabaseFiles(liveDbPath);
       moveDatabaseFiles(swapAsidePath, liveDbPath);
       this.backendManager.start();
-      await this.backendManager.waitUntilHealthy();
+      await this.backendManager.waitUntilHealthy(30_000);
     } catch {
       // Si ni el rollback puede levantar el backend, no hay nada más seguro que intentar acá de
       // forma automática — ver docs/backup/BACKUP_RESTORE.md §Qué NO protege este sistema todavía.

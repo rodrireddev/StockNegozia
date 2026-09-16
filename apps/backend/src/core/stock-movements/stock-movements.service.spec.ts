@@ -4,10 +4,16 @@ import { RequestContext } from "../../common/logger/request-context";
 import { createSilentTestLogger } from "../../test/create-test-logger";
 import { createTestDb } from "../../test/create-test-db";
 import type { Database } from "../../database/database.types";
+import { CredentialService } from "../../auth/credential/credential.service";
+import { DevicesRepository } from "../../auth/devices/devices.repository";
+import { DevicesService } from "../../auth/devices/devices.service";
 import { CategoriesRepository } from "../categories/categories.repository";
 import { CategoriesService } from "../categories/categories.service";
 import { ProductsRepository } from "../products/products.repository";
 import { ProductsService } from "../products/products.service";
+import { PurchasesRepository } from "../purchases/purchases.repository";
+import { SuppliersRepository } from "../suppliers/suppliers.repository";
+import { SuppliersService } from "../suppliers/suppliers.service";
 import { StockMovementsRepository } from "./stock-movements.repository";
 import { StockMovementsService } from "./stock-movements.service";
 
@@ -15,19 +21,34 @@ describe("StockMovementsService", () => {
   let db: Database;
   let service: StockMovementsService;
   let productsService: ProductsService;
+  let devicesService: DevicesService;
 
   beforeEach(() => {
     db = createTestDb();
     const logger = createSilentTestLogger();
     service = new StockMovementsService(new StockMovementsRepository(db), logger);
+    devicesService = new DevicesService(new DevicesRepository(db), new CredentialService(), logger);
 
     const categoriesService = new CategoriesService(new CategoriesRepository(db));
+    const suppliersService = new SuppliersService(new SuppliersRepository(db));
     // ProductsService requiere un StockMovementsService — se usa la misma instancia para poder
     // consultar, en los tests, los movimientos que `adjustStock()` genera indirectamente.
-    productsService = new ProductsService(db, new ProductsRepository(db), categoriesService, service, logger);
+    productsService = new ProductsService(
+      db,
+      new ProductsRepository(db),
+      categoriesService,
+      service,
+      suppliersService,
+      new PurchasesRepository(db),
+      logger,
+    );
   });
 
-  function createProduct(stock = 20) {
+  // stock 0: estos tests ejercitan `record()`/`findMany()`/`findByProduct()` directamente — un
+  // stock inicial > 0 dejaría además un movimiento PURCHASE propio (ver
+  // products-initial-stock.spec.ts) que interferiría con los conteos/filtros exactos que se
+  // verifican acá.
+  function createProduct(stock = 0) {
     return productsService.create({
       name: "Producto de prueba",
       sku: `SKU-${Math.random().toString(36).slice(2)}`,
@@ -141,6 +162,60 @@ describe("StockMovementsService", () => {
         stockAfter: 18,
       });
       expect(withoutSale.saleId).toBeNull();
+    });
+  });
+
+  describe("vendedor actual (deviceName override en dispositivos desktop)", () => {
+    function recordMovement() {
+      const product = createProduct();
+      return service.record({
+        productId: product.id,
+        type: "ADJUSTMENT",
+        direction: "OUT",
+        quantity: 1,
+        stockBefore: 20,
+        stockAfter: 19,
+      });
+    }
+
+    it("un desktop con vendedor configurado snapshotea el nombre del vendedor, no el del equipo", () => {
+      const { deviceId } = devicesService.register("Electron Desktop", "desktop", { isAdmin: true });
+      devicesService.updateSellerName(deviceId, "Rodrigo");
+
+      const movement = RequestContext.run({ requestId: "req-1" }, () => {
+        RequestContext.setDevice({ id: deviceId, name: "Electron Desktop", type: "desktop", sellerName: "Rodrigo" });
+        return recordMovement();
+      });
+
+      expect(movement.deviceName).toBe("Rodrigo");
+      expect(movement.deviceType).toBe("desktop");
+    });
+
+    it("un desktop sin vendedor configurado sigue snapshoteando el nombre del equipo", () => {
+      const { deviceId } = devicesService.register("Electron Desktop", "desktop", { isAdmin: true });
+
+      const movement = RequestContext.run({ requestId: "req-2" }, () => {
+        RequestContext.setDevice({ id: deviceId, name: "Electron Desktop", type: "desktop", sellerName: null });
+        return recordMovement();
+      });
+
+      expect(movement.deviceName).toBe("Electron Desktop");
+    });
+
+    it("mobile ignora sellerName — siempre snapshotea el nombre del dispositivo (mismo comportamiento de siempre)", () => {
+      const { deviceId } = devicesService.register("Juan Android", "mobile");
+
+      const movement = RequestContext.run({ requestId: "req-3" }, () => {
+        RequestContext.setDevice({
+          id: deviceId,
+          name: "Juan Android",
+          type: "mobile",
+          sellerName: "Esto nunca debería usarse",
+        });
+        return recordMovement();
+      });
+
+      expect(movement.deviceName).toBe("Juan Android");
     });
   });
 

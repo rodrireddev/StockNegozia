@@ -47,6 +47,7 @@ const cocaCola = makeProduct({ id: 1, name: "Coca-Cola 2L", sku: "0012" });
 const distribuidoraSur: SupplierDto = {
   id: 5,
   name: "Distribuidora Sur",
+  phone: null,
   createdAt: "2026-01-01T00:00:00.000Z",
 };
 

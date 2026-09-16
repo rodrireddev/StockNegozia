@@ -5,17 +5,36 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useThemeStore } from "@/stores/theme-store";
 import { SettingsPage } from "./SettingsPage";
 
-const { createBackupMock, selectAndValidateBackupMock, restoreBackupMock } = vi.hoisted(() => ({
-  createBackupMock: vi.fn(),
-  selectAndValidateBackupMock: vi.fn(),
-  restoreBackupMock: vi.fn(),
-}));
+const { createBackupMock, selectAndValidateBackupMock, restoreBackupMock, fetchMeMock, updateSellerNameMock } =
+  vi.hoisted(() => ({
+    createBackupMock: vi.fn(),
+    selectAndValidateBackupMock: vi.fn(),
+    restoreBackupMock: vi.fn(),
+    fetchMeMock: vi.fn(),
+    updateSellerNameMock: vi.fn(),
+  }));
 
 vi.mock("@/features/backup/api/backup.api", () => ({
   createBackup: createBackupMock,
   selectAndValidateBackup: selectAndValidateBackupMock,
   restoreBackup: restoreBackupMock,
 }));
+
+vi.mock("@/features/devices/api/devices.api", () => ({
+  fetchMe: fetchMeMock,
+  updateSellerName: updateSellerNameMock,
+}));
+
+const deviceFixture = {
+  id: "device-1",
+  name: "Electron Desktop",
+  type: "desktop" as const,
+  active: true,
+  isAdmin: true,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  lastSeenAt: null,
+  sellerName: null as string | null,
+};
 
 function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -30,6 +49,9 @@ beforeEach(() => {
   createBackupMock.mockReset();
   selectAndValidateBackupMock.mockReset();
   restoreBackupMock.mockReset();
+  fetchMeMock.mockReset();
+  updateSellerNameMock.mockReset();
+  fetchMeMock.mockResolvedValue(deviceFixture);
   useThemeStore.setState({ preference: "system", resolvedDark: false });
   window.theme = {
     get: vi.fn().mockResolvedValue({ preference: "system", resolvedDark: false }),
@@ -223,5 +245,48 @@ describe("SettingsPage", () => {
     expect(await screen.findByText(/los datos anteriores se conservaron/i)).toBeInTheDocument();
     // El diálogo sigue abierto — el usuario todavía puede ver la información del backup.
     expect(screen.getByText("backup.db")).toBeInTheDocument();
+  });
+
+  describe("Vendedor actual", () => {
+    it("sin vendedor configurado, muestra el campo vacío", async () => {
+      renderPage();
+      expect(await screen.findByText("Vendedor actual")).toBeInTheDocument();
+      expect(screen.getByLabelText(/coloque el nombre del vendedor actual/i)).toHaveValue("");
+    });
+
+    it("con vendedor ya configurado, precarga el campo con su nombre", async () => {
+      fetchMeMock.mockResolvedValue({ ...deviceFixture, sellerName: "Rodrigo" });
+      renderPage();
+
+      await vi.waitFor(() =>
+        expect(screen.getByLabelText(/coloque el nombre del vendedor actual/i)).toHaveValue(
+          "Rodrigo",
+        ),
+      );
+    });
+
+    it("guardar un nombre llama a la API y muestra confirmación", async () => {
+      const user = userEvent.setup();
+      updateSellerNameMock.mockResolvedValue({ ...deviceFixture, sellerName: "Rodrigo" });
+      renderPage();
+      await screen.findByText("Vendedor actual");
+
+      await user.type(screen.getByLabelText(/coloque el nombre del vendedor actual/i), "Rodrigo");
+      await user.click(screen.getByRole("button", { name: /^guardar$/i }));
+
+      expect(updateSellerNameMock).toHaveBeenCalledWith({ sellerName: "Rodrigo" });
+      expect(await screen.findByText(/vendedor actual actualizado/i)).toBeInTheDocument();
+    });
+
+    it("rechaza guardar un nombre vacío sin llamar a la API", async () => {
+      const user = userEvent.setup();
+      renderPage();
+      await screen.findByText("Vendedor actual");
+
+      await user.click(screen.getByRole("button", { name: /^guardar$/i }));
+
+      expect(await screen.findByText(/ingresá el nombre del vendedor actual/i)).toBeInTheDocument();
+      expect(updateSellerNameMock).not.toHaveBeenCalled();
+    });
   });
 });

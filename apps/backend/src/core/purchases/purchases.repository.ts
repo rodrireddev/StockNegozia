@@ -2,10 +2,14 @@ import { Inject, Injectable } from "@nestjs/common";
 import { desc, eq } from "drizzle-orm";
 import { DRIZZLE_CLIENT } from "../../database/database.constants";
 import type { Database, DrizzleExecutor } from "../../database/database.types";
-import { purchaseItems, purchases, suppliers } from "../../database/schema";
+import { purchaseItems, purchases } from "../../database/schema";
 
 export interface NewPurchaseRecord {
   supplierId: number;
+  /** Snapshot inmutable del nombre del proveedor al momento de la compra — ver
+   *  `database/schema/purchases.ts`. Lo resuelve el llamador (`PurchasesService`/
+   *  `ProductsService`), que ya tiene el `SupplierDto` a mano tras validar el proveedor. */
+  supplierName: string;
   total: number;
   createdAt: Date;
 }
@@ -22,25 +26,12 @@ export interface NewPurchaseItemRecord {
 export class PurchasesRepository {
   constructor(@Inject(DRIZZLE_CLIENT) private readonly db: Database) {}
 
-  private selectWithSupplier(executor: DrizzleExecutor = this.db) {
-    return executor
-      .select({
-        id: purchases.id,
-        supplierId: purchases.supplierId,
-        supplierName: suppliers.name,
-        total: purchases.total,
-        createdAt: purchases.createdAt,
-      })
-      .from(purchases)
-      .leftJoin(suppliers, eq(purchases.supplierId, suppliers.id));
-  }
-
   findMany(executor: DrizzleExecutor = this.db) {
-    return this.selectWithSupplier(executor).orderBy(desc(purchases.createdAt)).all();
+    return executor.select().from(purchases).orderBy(desc(purchases.createdAt)).all();
   }
 
   findById(id: number, executor: DrizzleExecutor = this.db) {
-    return this.selectWithSupplier(executor).where(eq(purchases.id, id)).get();
+    return executor.select().from(purchases).where(eq(purchases.id, id)).get();
   }
 
   insertPurchase(data: NewPurchaseRecord, executor: DrizzleExecutor = this.db) {

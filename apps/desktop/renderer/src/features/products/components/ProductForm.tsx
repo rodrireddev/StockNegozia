@@ -7,11 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useSuppliers } from "@/features/suppliers/hooks/useSuppliers";
 import { useCategories } from "../hooks/useCategories";
 import { useCreateProduct } from "../hooks/useCreateProduct";
 import { useUpdateProduct } from "../hooks/useUpdateProduct";
 
 const NEW_CATEGORY_VALUE = "__new__";
+const NEW_SUPPLIER_VALUE = "__new__";
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
 interface ProductFormState {
@@ -25,6 +27,8 @@ interface ProductFormState {
   salePrice: string;
   stock: string;
   minimumStock: string;
+  supplierSelect: string;
+  supplierName: string;
   image: string;
   active: boolean;
 }
@@ -41,6 +45,8 @@ function toFormState(product?: ProductDto): ProductFormState {
     salePrice: product ? String(product.salePrice) : "",
     stock: product ? String(product.stock) : "0",
     minimumStock: product ? String(product.minimumStock) : "0",
+    supplierSelect: "",
+    supplierName: "",
     image: product?.image ?? "",
     active: product?.active ?? true,
   };
@@ -50,6 +56,7 @@ export function ProductForm({ product }: { product?: ProductDto }) {
   const isEdit = product !== undefined;
   const navigate = useNavigate();
   const { data: categories = [] } = useCategories();
+  const { data: suppliers = [] } = useSuppliers();
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct(product?.id ?? 0);
 
@@ -113,7 +120,15 @@ export function ProductForm({ product }: { product?: ProductDto }) {
       setFieldErrors({});
       updateProduct.mutate(result.data, { onSuccess, onError });
     } else {
-      const result = createProductSchema.safeParse({ ...buildBasePayload(), stock: form.stock });
+      const result = createProductSchema.safeParse({
+        ...buildBasePayload(),
+        stock: form.stock,
+        supplierId:
+          form.supplierSelect && form.supplierSelect !== NEW_SUPPLIER_VALUE
+            ? form.supplierSelect
+            : undefined,
+        supplierName: form.supplierSelect === NEW_SUPPLIER_VALUE ? form.supplierName : undefined,
+      });
       if (!result.success) {
         setFieldErrors(result.error.flatten().fieldErrors as Record<string, string[]>);
         return;
@@ -234,6 +249,39 @@ export function ProductForm({ product }: { product?: ProductDto }) {
               step={1}
               value={form.stock}
               onChange={(e) => update("stock", e.target.value)}
+            />
+          </div>
+        )}
+
+        {!isEdit && form.stock !== "0" && (
+          <div className="space-y-1.5">
+            <Label htmlFor="supplier">Proveedor del stock inicial *</Label>
+            <Select
+              id="supplier"
+              value={form.supplierSelect}
+              onChange={(e) => update("supplierSelect", e.target.value)}
+            >
+              <option value="">Seleccionar proveedor</option>
+              {suppliers.map((supplier) => (
+                <option key={supplier.id} value={supplier.id}>
+                  {supplier.name}
+                </option>
+              ))}
+              <option value={NEW_SUPPLIER_VALUE}>+ Nuevo proveedor…</option>
+            </Select>
+            {fieldErrors.supplierId && (
+              <p className="text-sm text-red-600 dark:text-red-400">{fieldErrors.supplierId[0]}</p>
+            )}
+          </div>
+        )}
+
+        {!isEdit && form.stock !== "0" && form.supplierSelect === NEW_SUPPLIER_VALUE && (
+          <div className="space-y-1.5">
+            <Label htmlFor="supplierName">Nombre del nuevo proveedor</Label>
+            <Input
+              id="supplierName"
+              value={form.supplierName}
+              onChange={(e) => update("supplierName", e.target.value)}
             />
           </div>
         )}

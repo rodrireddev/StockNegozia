@@ -3,7 +3,6 @@ import { FlatList, StyleSheet, Text, View } from "react-native";
 import { Truck } from "lucide-react-native";
 import { createSupplierSchema } from "@stocknegozia/validation";
 import { Button } from "@/components/Button";
-import { Card } from "@/components/Card";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
@@ -12,10 +11,9 @@ import { TextField } from "@/components/TextField";
 import { useAuthErrorRedirect } from "@/auth/useAuthErrorRedirect";
 import { useTheme } from "@/theme/useTheme";
 import { spacing, typography } from "@/theme/tokens";
+import { SupplierCard } from "../components/SupplierCard";
 import { useCreateSupplier } from "../hooks/useCreateSupplier";
 import { useSuppliers } from "../hooks/useSuppliers";
-
-const dateFormatter = new Intl.DateTimeFormat("es-AR", { dateStyle: "short" });
 
 export function SuppliersScreen() {
   const { colors } = useTheme();
@@ -24,20 +22,24 @@ export function SuppliersScreen() {
   const createSupplier = useCreateSupplier();
 
   const [name, setName] = useState("");
-  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [phone, setPhone] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [formError, setFormError] = useState<string | null>(null);
 
   function handleSubmit() {
     setFormError(null);
-    const result = createSupplierSchema.safeParse({ name });
+    const result = createSupplierSchema.safeParse({ name, phone });
     if (!result.success) {
-      setFieldError(result.error.flatten().fieldErrors.name?.[0] ?? "Nombre inválido");
+      setFieldErrors(result.error.flatten().fieldErrors as Record<string, string[]>);
       return;
     }
-    setFieldError(null);
+    setFieldErrors({});
 
     createSupplier.mutate(result.data, {
-      onSuccess: () => setName(""),
+      onSuccess: () => {
+        setName("");
+        setPhone("");
+      },
       onError: (error) => setFormError(error.message),
     });
   }
@@ -55,7 +57,15 @@ export function SuppliersScreen() {
           value={name}
           onChangeText={setName}
         />
-        {fieldError && <Text style={{ color: colors.danger }}>{fieldError}</Text>}
+        {fieldErrors.name && <Text style={{ color: colors.danger }}>{fieldErrors.name[0]}</Text>}
+        <TextField
+          label="Teléfono (opcional)"
+          placeholder="Teléfono"
+          value={phone}
+          onChangeText={setPhone}
+          keyboardType="phone-pad"
+        />
+        {fieldErrors.phone && <Text style={{ color: colors.danger }}>{fieldErrors.phone[0]}</Text>}
         {formError && <Text style={{ color: colors.danger }}>{formError}</Text>}
         <Button
           label={createSupplier.isPending ? "Guardando…" : "Agregar"}
@@ -75,14 +85,7 @@ export function SuppliersScreen() {
           data={query.data}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => (
-            <Card style={styles.row}>
-              <Text style={[typography.bodyStrong, { color: colors.foreground }]}>{item.name}</Text>
-              <Text style={[typography.caption, { color: colors.mutedForeground }]}>
-                {dateFormatter.format(new Date(item.createdAt))}
-              </Text>
-            </Card>
-          )}
+          renderItem={({ item }) => <SupplierCard supplier={item} />}
           refreshing={query.isRefetching}
           onRefresh={query.refetch}
         />
@@ -94,5 +97,4 @@ export function SuppliersScreen() {
 const styles = StyleSheet.create({
   form: { gap: spacing.sm, marginBottom: spacing.lg },
   listContent: { gap: spacing.sm, paddingBottom: spacing.xxl },
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
 });

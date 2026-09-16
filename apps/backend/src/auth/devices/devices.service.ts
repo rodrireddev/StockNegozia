@@ -23,6 +23,7 @@ function toDto(row: NonNullable<DeviceRow>): DeviceDto {
     isAdmin: row.isAdmin,
     createdAt: row.createdAt.toISOString(),
     lastSeenAt: row.lastSeenAt ? row.lastSeenAt.toISOString() : null,
+    sellerName: row.sellerName,
   };
 }
 
@@ -80,9 +81,11 @@ export class DevicesService {
     return {
       id: row.id,
       name: row.name,
+      type: row.type,
       status: row.status,
       lastSeenAt: row.lastSeenAt,
       isAdmin: row.isAdmin,
+      sellerName: row.sellerName,
     };
   }
 
@@ -131,6 +134,26 @@ export class DevicesService {
       event: "device.updated",
       message: "Device updated",
       metadata: { deviceId: id, requestedBy: requestedByDeviceId },
+    });
+    return toDto(this.repository.findById(id)!);
+  }
+
+  /**
+   * `PATCH /auth/devices/me/seller-name` — a diferencia de `updateName`, es siempre
+   * auto-servicio: un dispositivo solo puede fijar SU PROPIO vendedor actual (ver
+   * docs/inventory/STOCK_MOVEMENTS.md §Trazabilidad), nunca el de otro dispositivo.
+   */
+  updateSellerName(id: string, sellerName: string): DeviceDto {
+    const row = this.repository.findById(id);
+    if (!row) throw new NotFoundException("Dispositivo no encontrado");
+
+    this.repository.updateSellerName(id, sellerName);
+    this.logger.info({
+      context: "DevicesService",
+      operation: "updateSellerName",
+      event: "device.seller_name.updated",
+      message: "Device seller name updated",
+      metadata: { deviceId: id },
     });
     return toDto(this.repository.findById(id)!);
   }

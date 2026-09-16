@@ -95,9 +95,9 @@ export class ProductsRepository {
     return this.db.select().from(products).where(eq(products.sku, sku)).get();
   }
 
-  insert(data: NewProductRecord) {
+  insert(data: NewProductRecord, executor: DrizzleExecutor = this.db) {
     const now = new Date();
-    return this.db
+    return executor
       .insert(products)
       .values({ ...data, createdAt: now, updatedAt: now })
       .returning({ id: products.id })

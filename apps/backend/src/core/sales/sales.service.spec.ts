@@ -7,8 +7,11 @@ import { CategoriesRepository } from "../categories/categories.repository";
 import { CategoriesService } from "../categories/categories.service";
 import { ProductsRepository } from "../products/products.repository";
 import { ProductsService } from "../products/products.service";
+import { PurchasesRepository } from "../purchases/purchases.repository";
 import { StockMovementsRepository } from "../stock-movements/stock-movements.repository";
 import { StockMovementsService } from "../stock-movements/stock-movements.service";
+import { SuppliersRepository } from "../suppliers/suppliers.repository";
+import { SuppliersService } from "../suppliers/suppliers.service";
 import { SalesRepository } from "./sales.repository";
 import { SalesService } from "./sales.service";
 
@@ -17,6 +20,7 @@ describe("SalesService", () => {
   let productsService: ProductsService;
   let salesService: SalesService;
   let stockMovementsService: StockMovementsService;
+  let defaultSupplierId: number;
 
   beforeEach(() => {
     db = createTestDb();
@@ -25,18 +29,32 @@ describe("SalesService", () => {
     const categoriesService = new CategoriesService(categoriesRepository);
     const productsRepository = new ProductsRepository(db);
     stockMovementsService = new StockMovementsService(new StockMovementsRepository(db), logger);
-    productsService = new ProductsService(db, productsRepository, categoriesService, stockMovementsService, logger);
+    const suppliersService = new SuppliersService(new SuppliersRepository(db));
+    productsService = new ProductsService(
+      db,
+      productsRepository,
+      categoriesService,
+      stockMovementsService,
+      suppliersService,
+      new PurchasesRepository(db),
+      logger,
+    );
     const salesRepository = new SalesRepository(db);
     salesService = new SalesService(db, salesRepository, productsService, logger);
+    // El proveedor es obligatorio para crear un producto con stock inicial > 0 (ver
+    // ProductsService.create()).
+    defaultSupplierId = suppliersService.create({ name: "Proveedor de prueba" }).id;
   });
 
   function createProduct(overrides: Partial<CreateProductInput> = {}) {
+    const stock = overrides.stock ?? 10;
     return productsService.create({
       name: "Producto de prueba",
       sku: `SKU-${Math.random().toString(36).slice(2)}`,
       purchasePrice: 5000,
       salePrice: 10000,
-      stock: 10,
+      stock,
+      supplierId: stock > 0 ? defaultSupplierId : undefined,
       minimumStock: 0,
       active: true,
       ...overrides,

@@ -6,8 +6,11 @@ import { createTestDb } from "../../test/create-test-db";
 import type { Database } from "../../database/database.types";
 import { CategoriesRepository } from "../categories/categories.repository";
 import { CategoriesService } from "../categories/categories.service";
+import { PurchasesRepository } from "../purchases/purchases.repository";
 import { StockMovementsRepository } from "../stock-movements/stock-movements.repository";
 import { StockMovementsService } from "../stock-movements/stock-movements.service";
+import { SuppliersRepository } from "../suppliers/suppliers.repository";
+import { SuppliersService } from "../suppliers/suppliers.service";
 import { ProductsRepository } from "./products.repository";
 import { ProductsService } from "./products.service";
 
@@ -23,6 +26,7 @@ describe("ProductsService.applyStockAdjustment", () => {
   let productsService: ProductsService;
   let stockMovementsService: StockMovementsService;
   let stockMovementsRepository: StockMovementsRepository;
+  let defaultSupplierId: number;
 
   beforeEach(() => {
     db = createTestDb();
@@ -30,13 +34,20 @@ describe("ProductsService.applyStockAdjustment", () => {
     const categoriesService = new CategoriesService(new CategoriesRepository(db));
     stockMovementsRepository = new StockMovementsRepository(db);
     stockMovementsService = new StockMovementsService(stockMovementsRepository, logger);
+    const suppliersService = new SuppliersService(new SuppliersRepository(db));
     productsService = new ProductsService(
       db,
       new ProductsRepository(db),
       categoriesService,
       stockMovementsService,
+      suppliersService,
+      new PurchasesRepository(db),
       logger,
     );
+    // El proveedor es obligatorio para crear un producto con stock inicial > 0 (ver
+    // ProductsService.create()) — estos tests no ejercitan proveedores en sí, solo necesitan uno
+    // válido para poder fijar el stock inicial de sus productos de prueba.
+    defaultSupplierId = suppliersService.create({ name: "Proveedor de prueba" }).id;
   });
 
   function createProduct(stock = 10) {
@@ -46,6 +57,7 @@ describe("ProductsService.applyStockAdjustment", () => {
       purchasePrice: 100,
       salePrice: 200,
       stock,
+      supplierId: stock > 0 ? defaultSupplierId : undefined,
       minimumStock: 0,
       active: true,
     });
@@ -57,8 +69,11 @@ describe("ProductsService.applyStockAdjustment", () => {
     const updated = productsService.applyStockAdjustment(product.id, 15, "Conteo físico");
     expect(updated.stock).toBe(15);
 
+    // 2 movimientos: el PURCHASE del stock inicial (creado al crear el producto, ver
+    // products-stock-adjustment.spec.ts §creación) + el ADJUSTMENT de este test. El más reciente
+    // (índice 0) es siempre el que cada test verifica.
     const movements = stockMovementsService.findByProduct(product.id);
-    expect(movements).toHaveLength(1);
+    expect(movements).toHaveLength(2);
     expect(movements[0]).toMatchObject({
       type: "ADJUSTMENT",
       direction: "IN",
@@ -77,7 +92,7 @@ describe("ProductsService.applyStockAdjustment", () => {
     expect(updated.stock).toBe(7);
 
     const movements = stockMovementsService.findByProduct(product.id);
-    expect(movements).toHaveLength(1);
+    expect(movements).toHaveLength(2); // PURCHASE del stock inicial + este ADJUSTMENT
     expect(movements[0]).toMatchObject({
       type: "ADJUSTMENT",
       direction: "OUT",
@@ -94,7 +109,8 @@ describe("ProductsService.applyStockAdjustment", () => {
     const updated = productsService.applyStockAdjustment(product.id, 10, "Conteo físico");
     expect(updated.stock).toBe(10);
 
-    expect(stockMovementsService.findByProduct(product.id)).toHaveLength(0);
+    // Solo el PURCHASE del stock inicial — el "ajuste sin cambios" en sí no agrega ninguno.
+    expect(stockMovementsService.findByProduct(product.id)).toHaveLength(1);
   });
 
   it("el motivo es obligatorio: falla si está vacío o compuesto solo por espacios", () => {
@@ -107,9 +123,10 @@ describe("ProductsService.applyStockAdjustment", () => {
       BadRequestException,
     );
 
-    // Ningún intento fallido debe haber modificado el stock ni creado un movimiento.
+    // Ningún intento fallido debe haber modificado el stock ni creado un movimiento nuevo — solo
+    // sigue estando el PURCHASE del stock inicial.
     expect(productsService.findById(product.id).stock).toBe(10);
-    expect(stockMovementsService.findByProduct(product.id)).toHaveLength(0);
+    expect(stockMovementsService.findByProduct(product.id)).toHaveLength(1);
   });
 
   it("rechaza un stock objetivo negativo", () => {
@@ -138,7 +155,9 @@ describe("ProductsService.applyStockAdjustment", () => {
     expect(() => productsService.applyStockAdjustment(product.id, 15, "Conteo físico")).toThrow();
 
     expect(productsService.findById(product.id).stock).toBe(10);
-    expect(stockMovementsService.findByProduct(product.id)).toHaveLength(0);
+    // Solo el PURCHASE del stock inicial (creado antes de instalar el spy) — el ADJUSTMENT que
+    // falló no dejó ningún movimiento ni cambio de stock a medias.
+    expect(stockMovementsService.findByProduct(product.id)).toHaveLength(1);
   });
 
   it("el movement generado por un ajuste queda asociado al requestId del contexto ambiente", () => {

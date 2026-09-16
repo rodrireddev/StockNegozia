@@ -57,6 +57,7 @@ describe("AuthProvider", () => {
       isAdmin: false,
       createdAt: "2026-01-01T00:00:00.000Z",
       lastSeenAt: null,
+      sellerName: null,
     });
 
     const { getByText } = await render(
@@ -92,6 +93,7 @@ describe("AuthProvider", () => {
         isAdmin: false,
         createdAt: "2026-01-01T00:00:00.000Z",
         lastSeenAt: null,
+        sellerName: null,
       });
 
     const { getByText, queryByText } = await render(

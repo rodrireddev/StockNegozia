@@ -5,9 +5,11 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SalesPage } from "./SalesPage";
 
-const { fetchProductsMock, createSaleMock } = vi.hoisted(() => ({
+const { fetchProductsMock, createSaleMock, fetchMeMock, updateSellerNameMock } = vi.hoisted(() => ({
   fetchProductsMock: vi.fn(),
   createSaleMock: vi.fn(),
+  fetchMeMock: vi.fn(),
+  updateSellerNameMock: vi.fn(),
 }));
 
 vi.mock("@/features/products/api/products.api", () => ({
@@ -16,6 +18,11 @@ vi.mock("@/features/products/api/products.api", () => ({
 
 vi.mock("@/features/sales/api/sales.api", () => ({
   createSale: createSaleMock,
+}));
+
+vi.mock("@/features/devices/api/devices.api", () => ({
+  fetchMe: fetchMeMock,
+  updateSellerName: updateSellerNameMock,
 }));
 
 function makeProduct(overrides: Partial<ProductDto> & { id: number }): ProductDto {
@@ -49,6 +56,17 @@ const jabon = makeProduct({
   stockStatus: "low",
 });
 
+const deviceWithSeller = {
+  id: "device-1",
+  name: "Electron Desktop",
+  type: "desktop" as const,
+  active: true,
+  isAdmin: true,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  lastSeenAt: null,
+  sellerName: "Rodrigo",
+};
+
 function renderSalesPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -61,7 +79,12 @@ function renderSalesPage() {
 beforeEach(() => {
   fetchProductsMock.mockReset();
   createSaleMock.mockReset();
+  fetchMeMock.mockReset();
+  updateSellerNameMock.mockReset();
   fetchProductsMock.mockResolvedValue([cocaCola, jabon]);
+  // Vendedor actual ya configurado por defecto — así las ventas se registran sin fricción en
+  // todos los tests que no ejercitan específicamente el bloqueo (ver describe más abajo).
+  fetchMeMock.mockResolvedValue(deviceWithSeller);
 });
 
 describe("SalesPage", () => {
@@ -203,5 +226,48 @@ describe("SalesPage", () => {
       items: [],
     });
     await screen.findByText(/venta registrada correctamente/i);
+  });
+
+  describe("vendedor actual", () => {
+    beforeEach(() => {
+      fetchMeMock.mockResolvedValue({ ...deviceWithSeller, sellerName: null });
+    });
+
+    it("sin vendedor actual configurado, confirmar la venta abre el modal en vez de llamar a la API", async () => {
+      const user = userEvent.setup();
+      renderSalesPage();
+      await user.click(await screen.findByText("Coca-Cola 2L"));
+
+      await user.click(screen.getByRole("button", { name: /confirmar venta/i }));
+
+      expect(
+        await screen.findByRole("heading", { name: /falta indicar el vendedor actual/i }),
+      ).toBeInTheDocument();
+      expect(createSaleMock).not.toHaveBeenCalled();
+    });
+
+    it("guardar el nombre desde el modal lo persiste y cierra el modal, sin reintentar la venta sola", async () => {
+      const user = userEvent.setup();
+      updateSellerNameMock.mockResolvedValue({ ...deviceWithSeller, sellerName: "Rodrigo" });
+      renderSalesPage();
+      await user.click(await screen.findByText("Coca-Cola 2L"));
+      await user.click(screen.getByRole("button", { name: /confirmar venta/i }));
+      await screen.findByRole("heading", { name: /falta indicar el vendedor actual/i });
+
+      await user.type(
+        screen.getByLabelText(/coloque el nombre del vendedor actual/i),
+        "Rodrigo",
+      );
+      await user.click(screen.getByRole("button", { name: /^guardar$/i }));
+
+      expect(updateSellerNameMock).toHaveBeenCalledWith({ sellerName: "Rodrigo" });
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("heading", { name: /falta indicar el vendedor actual/i }),
+        ).not.toBeInTheDocument(),
+      );
+      // No reintenta la venta automáticamente — la persona confirma de nuevo por su cuenta.
+      expect(createSaleMock).not.toHaveBeenCalled();
+    });
   });
 });

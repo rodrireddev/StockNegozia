@@ -1,10 +1,14 @@
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import type { BackupValidationResult, ThemePreference } from "@/types/global";
 import { getUserFriendlyError } from "@/lib/errors";
 import { setThemePreference, useThemeStore } from "@/stores/theme-store";
+import { useMe } from "@/features/devices/hooks/useMe";
+import { useUpdateSellerName } from "@/features/devices/hooks/useUpdateSellerName";
 import { RestoreConfirmDialog } from "../components/RestoreConfirmDialog";
 import { useCreateBackup } from "../hooks/useCreateBackup";
 import { useRestoreBackup } from "../hooks/useRestoreBackup";
@@ -41,6 +45,71 @@ function AppearanceCard() {
             {option.label}
           </Button>
         ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * "Vendedor actual" — la persona que opera este equipo, no el equipo en sí (ver
+ * docs/inventory/STOCK_MOVEMENTS.md §Trazabilidad). Reemplaza al nombre del dispositivo en la
+ * columna "Vendedor" del historial de movimientos para ventas/compras/ajustes hechos desde acá.
+ * Solo existe en Desktop — Mobile no tiene este concepto.
+ */
+function SellerNameCard() {
+  const me = useMe();
+  const updateSellerName = useUpdateSellerName();
+  const [value, setValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (me.data) setValue(me.data.sellerName ?? "");
+  }, [me.data]);
+
+  function handleSave() {
+    setError(null);
+    setSuccessMessage(null);
+    const trimmed = value.trim();
+    if (!trimmed) {
+      setError("Ingresá el nombre del vendedor actual");
+      return;
+    }
+    updateSellerName.mutate(
+      { sellerName: trimmed },
+      {
+        onSuccess: () => setSuccessMessage("Vendedor actual actualizado."),
+        onError: (err) => setError(getUserFriendlyError(err)),
+      },
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Vendedor actual</CardTitle>
+        <CardDescription>
+          Identificá quién está operando este equipo. Este nombre reemplaza al del dispositivo en
+          el historial de movimientos, y es obligatorio para poder registrar ventas.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="space-y-2">
+          <Label htmlFor="seller-name">Coloque el nombre del vendedor actual</Label>
+          <Input
+            id="seller-name"
+            placeholder="Ej: Rodrigo"
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+          />
+        </div>
+        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+        {successMessage && (
+          <p className="text-sm text-emerald-700 dark:text-emerald-400">{successMessage}</p>
+        )}
+        <Button onClick={handleSave} disabled={updateSellerName.isPending}>
+          {updateSellerName.isPending ? "Guardando…" : "Guardar"}
+        </Button>
       </CardContent>
     </Card>
   );
@@ -123,6 +192,7 @@ export function SettingsPage() {
         <h1 className="text-xl font-semibold">Configuración</h1>
       </div>
 
+      <SellerNameCard />
       <AppearanceCard />
 
       <Card>

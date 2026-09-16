@@ -25,9 +25,23 @@ export const productBaseSchema = z.object({
   active: z.boolean().default(true),
 });
 
-export const createProductSchema = productBaseSchema.extend({
-  stock: z.coerce.number().int().min(0, "El stock no puede ser negativo").default(0),
-});
+export const createProductSchema = productBaseSchema
+  .extend({
+    stock: z.coerce.number().int().min(0, "El stock no puede ser negativo").default(0),
+    /**
+     * Proveedor del stock inicial — igual que en una compra (`createPurchaseSchema` también exige
+     * `supplierId`), nunca un valor inventado por el backend. `supplierId` para elegir uno
+     * existente, `supplierName` para crear uno nuevo desde el propio formulario (mismo patrón que
+     * `categoryId`/`categoryName`). Obligatorio uno de los dos cuando `stock > 0` — ver el
+     * `.refine()` más abajo: un stock inicial sin proveedor no es un caso de negocio válido.
+     */
+    supplierId: z.coerce.number().int().positive("El proveedor es inválido").optional(),
+    supplierName: optionalTrimmedString(),
+  })
+  .refine((data) => data.stock === 0 || data.supplierId !== undefined || data.supplierName !== undefined, {
+    message: "El proveedor es obligatorio para registrar el stock inicial",
+    path: ["supplierId"],
+  });
 
 export const updateProductSchema = productBaseSchema.partial();
 

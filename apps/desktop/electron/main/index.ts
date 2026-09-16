@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, session } from "electron";
+import { app, BrowserWindow, ipcMain, session } from "electron";
 import { join } from "node:path";
 import { BackendManager } from "./backend-manager";
 import { BackupManager } from "./backup-manager";
@@ -64,8 +64,10 @@ themeController.registerIpcHandlers();
  *    ventana, para que el splash nazca ya con el fondo correcto (sin flash blanco→oscuro ni splash
  *    con el tema equivocado).
  * 2. Mostrar el splash de inmediato (no depende del backend ni del renderer).
- * 3. Arrancar el backend y esperar su health check real — el splash cubre exactamente ese tiempo,
- *    sea cual sea; no hay ningún `setTimeout` fijo que lo reemplace.
+ * 3. Arrancar el backend y esperar su health check real — sin límite de tiempo: es un proceso
+ *    hijo local, no una red externa, así que tarde lo que tarde siempre termina respondiendo (ver
+ *    `BackendManager.waitUntilHealthy`). El splash cubre exactamente ese tiempo, sea cual sea — no
+ *    hay ningún cartel de "no se pudo conectar" ni cierre automático de la app en este paso.
  * 4. Crear la ventana principal (oculta) y, recién cuando emite `ready-to-show`, esperar el piso
  *    de `MIN_SPLASH_VISIBLE_MS` desde que el splash se mostró (`ensureMinimumVisible`) y cerrar el
  *    splash + mostrarla en el mismo paso, para que no haya un frame intermedio sin ninguna ventana.
@@ -79,18 +81,7 @@ async function bootstrap(): Promise<void> {
   const splashShownAt = Date.now();
 
   backendManager.start();
-
-  try {
-    await backendManager.waitUntilHealthy();
-  } catch (error) {
-    splash.close();
-    dialog.showErrorBox(
-      "StockNegozia",
-      `No se pudo conectar con el backend: ${(error as Error).message}`,
-    );
-    app.quit();
-    return;
-  }
+  await backendManager.waitUntilHealthy();
 
   try {
     const deviceCredential = await ensureDeviceCredential(

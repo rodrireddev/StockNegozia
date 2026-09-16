@@ -54,7 +54,12 @@ describe("PurchasesRepository", () => {
   });
 
   it("crea una compra y sus items, y los recupera por id con el nombre del proveedor", () => {
-    const purchase = repository.insertPurchase({ supplierId, total: 700, createdAt: new Date() });
+    const purchase = repository.insertPurchase({
+      supplierId,
+      supplierName: "ACME",
+      total: 700,
+      createdAt: new Date(),
+    });
     repository.insertPurchaseItems([
       { purchaseId: purchase.id, productId: productAId, quantity: 2, unitCost: 200, subtotal: 400 },
       { purchaseId: purchase.id, productId: productBId, quantity: 1, unitCost: 300, subtotal: 300 },
@@ -73,11 +78,13 @@ describe("PurchasesRepository", () => {
   it("lista compras de la más reciente a la más antigua", () => {
     const first = repository.insertPurchase({
       supplierId,
+      supplierName: "ACME",
       total: 10,
       createdAt: new Date("2025-01-01T00:00:00Z"),
     });
     const second = repository.insertPurchase({
       supplierId,
+      supplierName: "ACME",
       total: 20,
       createdAt: new Date("2025-06-01T00:00:00Z"),
     });
@@ -87,7 +94,12 @@ describe("PurchasesRepository", () => {
   });
 
   it("respeta la foreign key: no permite un purchase_item con un producto inexistente", () => {
-    const purchase = repository.insertPurchase({ supplierId, total: 100, createdAt: new Date() });
+    const purchase = repository.insertPurchase({
+      supplierId,
+      supplierName: "ACME",
+      total: 100,
+      createdAt: new Date(),
+    });
 
     expect(() =>
       repository.insertPurchaseItems([
@@ -98,7 +110,12 @@ describe("PurchasesRepository", () => {
 
   it("respeta la foreign key: no permite una purchase con un proveedor inexistente", () => {
     expect(() =>
-      repository.insertPurchase({ supplierId: 999_999, total: 100, createdAt: new Date() }),
+      repository.insertPurchase({
+        supplierId: 999_999,
+        supplierName: "ACME",
+        total: 100,
+        createdAt: new Date(),
+      }),
     ).toThrow();
   });
 });

@@ -1,6 +1,6 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
 import type { SupplierDto } from "@stocknegozia/api-contracts";
-import type { CreateSupplierInput } from "@stocknegozia/validation";
+import type { CreateSupplierInput, UpdateSupplierInput } from "@stocknegozia/validation";
 import type { DrizzleExecutor } from "../../database/database.types";
 import { SuppliersRepository } from "./suppliers.repository";
 
@@ -10,6 +10,7 @@ function toDto(row: NonNullable<SupplierRow>): SupplierDto {
   return {
     id: row.id,
     name: row.name,
+    phone: row.phone,
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -37,7 +38,36 @@ export class SuppliersService {
   }
 
   create(input: CreateSupplierInput): SupplierDto {
-    const created = this.repository.insert({ name: input.name });
+    const created = this.repository.insert({ name: input.name, phone: input.phone });
+    return toDto(created);
+  }
+
+  /**
+   * Edita nombre y/o teléfono de un proveedor existente — nunca afecta compras ya creadas, que
+   * conservan su propio snapshot (`purchases.supplierName`, ver
+   * database/schema/purchases.ts §Snapshot inmutable). `input` refleja siempre el estado completo
+   * deseado de ambos campos (ver `updateSupplierSchema`).
+   */
+  update(id: number, input: UpdateSupplierInput): SupplierDto {
+    this.findById(id); // 404 si no existe
+    // `?? null` explícito — no `undefined`: un UPDATE con `undefined` dejaría el teléfono anterior
+    // sin tocar, pero acá "sin teléfono" en el formulario debe sobrescribirlo (ver
+    // `UpdateSupplierRecord`).
+    const updated = this.repository.update(id, { name: input.name, phone: input.phone ?? null });
+    return toDto(updated);
+  }
+
+  /**
+   * Punto único usado por Products para resolver un proveedor escrito a mano en el propio
+   * formulario de creación (`input.supplierName`) — mismo patrón que
+   * `CategoriesService.findOrCreateByName()`, que ese mismo formulario ya usa para categorías.
+   * Nunca inventa un nombre: el nombre viene siempre de lo que la persona tipeó. `executor`
+   * permite participar en la transacción de `ProductsService.create()`.
+   */
+  findOrCreateByName(name: string, executor?: DrizzleExecutor): SupplierDto {
+    const existing = this.repository.findByName(name, executor);
+    if (existing) return toDto(existing);
+    const created = this.repository.insert({ name }, executor);
     return toDto(created);
   }
 }

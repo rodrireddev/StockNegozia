@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import {
+  describeMovementActor,
   describeMovementReference,
   formatMovementUnitValue,
   formatSignedQuantity,
@@ -37,12 +38,14 @@ export function MovementsTable({ movements, productsById }: MovementsTableProps)
           <TableHead className="text-right">Precio</TableHead>
           <TableHead className="text-right">Stock</TableHead>
           <TableHead>Referencia / motivo</TableHead>
+          <TableHead>Vendedor</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {movements.map((movement) => {
           const product = productsById.get(movement.productId);
           const reference = describeMovementReference(movement);
+          const actor = describeMovementActor(movement);
           return (
             <TableRow key={movement.id}>
               <TableCell className="whitespace-nowrap text-muted-foreground">
@@ -67,6 +70,7 @@ export function MovementsTable({ movements, productsById }: MovementsTableProps)
               </TableCell>
               <TableCell className="text-right tabular-nums">{movement.stockAfter}</TableCell>
               <TableCell className="text-muted-foreground">{reference ?? "—"}</TableCell>
+              <TableCell className="text-muted-foreground">{actor ?? "—"}</TableCell>
             </TableRow>
           );
         })}

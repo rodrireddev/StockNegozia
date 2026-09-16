@@ -51,6 +51,9 @@ function makeMovement(overrides: Partial<StockMovementDto> & { id: number }): St
     purchaseId: null,
     requestId: null,
     reason: null,
+    deviceId: null,
+    deviceName: null,
+    deviceType: null,
     unitValue: null,
     createdAt: "2026-01-01T12:00:00.000Z",
     ...overrides,
@@ -144,6 +147,10 @@ describe("InventoryMovementsPage", () => {
         quantity: 1,
         unitValue: null,
         reason: "Conteo físico", // fija la columna "Referencia / motivo" para no ambigüar con "—"
+        // fija la columna "Vendedor" para no ambigüar con la columna "Precio", que es la que este
+        // test verifica específicamente.
+        deviceName: "Electron Desktop",
+        deviceType: "desktop",
       }),
     ]);
     renderPage();
@@ -151,6 +158,7 @@ describe("InventoryMovementsPage", () => {
     expect(await screen.findByRole("cell", { name: "Ajuste" })).toBeInTheDocument();
     expect(await screen.findByRole("cell", { name: "—" })).toBeInTheDocument();
     expect(screen.getByRole("cell", { name: "Conteo físico" })).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: "Electron Desktop (Escritorio)" })).toBeInTheDocument();
   });
 
   it("filtrar por tipo vuelve a consultar el historial con ese filtro", async () => {

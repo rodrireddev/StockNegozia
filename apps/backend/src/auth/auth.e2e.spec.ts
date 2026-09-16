@@ -1,4 +1,4 @@
-import { Controller, Get, INestApplication } from "@nestjs/common";
+import { Controller, Get, INestApplication, Req } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { APP_FILTER, APP_GUARD, Reflector } from "@nestjs/core";
 import { Test } from "@nestjs/testing";
@@ -19,13 +19,16 @@ import { CredentialService } from "./credential/credential.service";
 import { Public } from "./decorators/public.decorator";
 import { DevicesRepository } from "./devices/devices.repository";
 import { DevicesService } from "./devices/devices.service";
+import type { RequestWithDevice } from "./guards/api-access.guard";
 import { ApiAccessGuard } from "./guards/api-access.guard";
 
 @Controller("test")
 class TestController {
   @Get("protected")
-  protectedRoute() {
-    return { ok: true };
+  protectedRoute(@Req() req: RequestWithDevice) {
+    // Expone `req.device` (poblado por `ApiAccessGuard`) para poder verificar, a nivel HTTP real,
+    // qué dispositivo quedó identificado — usado por el test de trazabilidad en `development`.
+    return { ok: true, device: req.device ?? null };
   }
 
   @Public()
@@ -79,6 +82,31 @@ describe("Auth: control de acceso", () => {
   it("development: permite acceder a un endpoint protegido sin credential", async () => {
     const res = await request(app.getHttpServer()).get("/test/protected");
     expect(res.status).toBe(200);
+    expect(res.body.device).toBeNull();
+  });
+
+  it("development: si igual viene una credential válida, identifica el dispositivo para trazabilidad — sin exigirla", async () => {
+    // Registra un dispositivo directamente (no requiere `production`/bootstrap): esto reproduce
+    // el caso real de Desktop, que adjunta su credential en toda request sin importar el modo.
+    const { credential, deviceId } = app
+      .get(DevicesService)
+      .register("Electron Desktop", "desktop", { isAdmin: true });
+
+    const res = await request(app.getHttpServer())
+      .get("/test/protected")
+      .set("Authorization", `Bearer ${credential}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.device).toMatchObject({ id: deviceId, name: "Electron Desktop", type: "desktop" });
+  });
+
+  it("development: una credential inválida no rompe el acceso — sigue permitiendo la request, solo sin device", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/test/protected")
+      .set("Authorization", "Bearer sn_esto-no-existe");
+
+    expect(res.status).toBe(200);
+    expect(res.body.device).toBeNull();
   });
 
   describe("production", () => {

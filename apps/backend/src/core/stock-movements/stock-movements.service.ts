@@ -29,6 +29,9 @@ function toDto(row: StockMovementRow | InsertedStockMovementRow): StockMovementD
     purchaseId: row.purchaseId,
     requestId: row.requestId,
     reason: row.reason,
+    deviceId: row.deviceId,
+    deviceName: row.deviceName,
+    deviceType: row.deviceType,
     createdAt: row.createdAt.toISOString(),
     // Uno de los dos siempre es null (un movimiento nunca tiene sale_id y purchase_id a la vez —
     // ver stock-movements.ts) y ambos son null para ADJUSTMENT. Nunca se sustituye por el precio
@@ -37,7 +40,10 @@ function toDto(row: StockMovementRow | InsertedStockMovementRow): StockMovementD
   };
 }
 
-export type RecordStockMovementInput = Omit<NewStockMovementRecord, "requestId">;
+export type RecordStockMovementInput = Omit<
+  NewStockMovementRecord,
+  "requestId" | "deviceId" | "deviceName" | "deviceType"
+>;
 
 /**
  * Historial de movimientos de stock — ver docs/inventory/STOCK_MOVEMENTS.md. Responsabilidad
@@ -69,8 +75,23 @@ export class StockMovementsService {
       throw new BadRequestException("La cantidad de un movimiento de stock debe ser positiva");
     }
 
+    // El actor (dispositivo) se resuelve del contexto ambiente, igual que `requestId` — nunca se
+    // recibe como parámetro explícito (ver docs/inventory/STOCK_MOVEMENTS.md §Trazabilidad):
+    // así ningún llamador puede hacer pasar un `deviceId` arbitrario como si fuera el autor real.
+    const device = RequestContext.getDevice();
+    // En dispositivos `desktop` con un "vendedor actual" configurado, el snapshot identifica al
+    // vendedor (la persona) en vez del equipo — reemplaza `device.name`, no lo acompaña (ver
+    // docs/inventory/STOCK_MOVEMENTS.md §Trazabilidad). Mobile no tiene este concepto: siempre
+    // snapshotea el nombre del dispositivo, sin importar si `sellerName` viniera cargado.
+    const deviceName = device?.type === "desktop" && device.sellerName ? device.sellerName : device?.name;
     const row = this.repository.insert(
-      { ...input, requestId: RequestContext.getRequestId() },
+      {
+        ...input,
+        requestId: RequestContext.getRequestId(),
+        deviceId: device?.id,
+        deviceName,
+        deviceType: device?.type,
+      },
       executor,
     );
 
@@ -90,6 +111,7 @@ export class StockMovementsService {
         saleId: input.saleId,
         purchaseId: input.purchaseId,
         reason: input.reason,
+        deviceId: device?.id,
       },
     });
 

@@ -242,6 +242,54 @@ describe("Device Management", () => {
     });
   });
 
+  describe("PATCH /auth/devices/me/seller-name", () => {
+    it("cualquier dispositivo autenticado puede fijar su propio vendedor actual, sin admin", async () => {
+      const client = await pairNewDevice(app, adminCredential, "Celular Vendedor");
+
+      const res = await request(app.getHttpServer())
+        .patch("/auth/devices/me/seller-name")
+        .set("Authorization", `Bearer ${client.credential}`)
+        .send({ sellerName: "Rodrigo" });
+
+      expect(res.status).toBe(200);
+      expect(res.body.sellerName).toBe("Rodrigo");
+      expect(res.body.id).toBe(client.deviceId);
+    });
+
+    it("rechaza un nombre vacío — no se puede 'vaciar' el vendedor actual, solo reemplazarlo", async () => {
+      const client = await pairNewDevice(app, adminCredential, "Celular Sin Vendedor");
+
+      const res = await request(app.getHttpServer())
+        .patch("/auth/devices/me/seller-name")
+        .set("Authorization", `Bearer ${client.credential}`)
+        .send({ sellerName: "" });
+
+      expect(res.status).toBe(400);
+    });
+
+    it("sin credential devuelve 401", async () => {
+      const res = await request(app.getHttpServer())
+        .patch("/auth/devices/me/seller-name")
+        .send({ sellerName: "Rodrigo" });
+      expect(res.status).toBe(401);
+    });
+
+    it("un dispositivo no puede fijar el vendedor de otro — siempre actúa sobre sí mismo", async () => {
+      const deviceA = await pairNewDevice(app, adminCredential, "Device A Vendedor");
+      const deviceB = await pairNewDevice(app, adminCredential, "Device B Vendedor");
+
+      await request(app.getHttpServer())
+        .patch("/auth/devices/me/seller-name")
+        .set("Authorization", `Bearer ${deviceA.credential}`)
+        .send({ sellerName: "Vendedor A" });
+
+      const meB = await request(app.getHttpServer())
+        .get("/auth/devices/me")
+        .set("Authorization", `Bearer ${deviceB.credential}`);
+      expect(meB.body.sellerName).toBeNull();
+    });
+  });
+
   describe("Flujo crítico de seguridad: revocación permanente + nuevo pairing", () => {
     it("Device A revocado → 401 permanente; nuevo pairing crea Device B con credential independiente que sí funciona", async () => {
       // Device A: se empareja y confirma que su credential funciona.

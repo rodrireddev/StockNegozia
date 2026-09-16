@@ -33,6 +33,7 @@ const activeDevice: DeviceDto = {
   isAdmin: true,
   createdAt: "2026-09-01T00:00:00.000Z",
   lastSeenAt: "2026-09-15T00:00:00.000Z",
+  sellerName: null,
 };
 
 const revokedDevice: DeviceDto = {
@@ -43,6 +44,7 @@ const revokedDevice: DeviceDto = {
   isAdmin: false,
   createdAt: "2026-08-01T00:00:00.000Z",
   lastSeenAt: null,
+  sellerName: null,
 };
 
 function renderPage() {

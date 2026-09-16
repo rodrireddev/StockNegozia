@@ -22,7 +22,7 @@ function toSummaryDto(row: NonNullable<PurchaseRow>): PurchaseSummaryDto {
   return {
     id: row.id,
     supplierId: row.supplierId,
-    supplierName: row.supplierName ?? "",
+    supplierName: row.supplierName,
     total: row.total,
     createdAt: row.createdAt.toISOString(),
   };
@@ -134,7 +134,7 @@ export class PurchasesService {
       });
 
       const purchaseId = this.db.transaction((tx) => {
-        this.suppliersService.findById(input.supplierId, tx); // 404 si no existe
+        const supplier = this.suppliersService.findById(input.supplierId, tx); // 404 si no existe
 
         const lines = input.items.map((item) => {
           this.productsService.findById(item.productId, tx); // 404 si no existe
@@ -150,7 +150,7 @@ export class PurchasesService {
         const total = roundMoney(lines.reduce((sum, line) => sum + line.subtotal, 0));
 
         const purchase = this.repository.insertPurchase(
-          { supplierId: input.supplierId, total, createdAt: new Date() },
+          { supplierId: input.supplierId, supplierName: supplier.name, total, createdAt: new Date() },
           tx,
         );
         this.repository.insertPurchaseItems(

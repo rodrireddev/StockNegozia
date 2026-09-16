@@ -51,7 +51,12 @@ const cocaCola: ProductDto = {
   updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
-const supplier: SupplierDto = { id: 5, name: "Distribuidora Sur", createdAt: "2026-01-01T00:00:00.000Z" };
+const supplier: SupplierDto = {
+  id: 5,
+  name: "Distribuidora Sur",
+  phone: null,
+  createdAt: "2026-01-01T00:00:00.000Z",
+};
 
 async function renderWithClient(ui: ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });

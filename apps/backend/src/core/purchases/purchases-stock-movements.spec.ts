@@ -26,6 +26,7 @@ describe("Purchases — integración con Stock Movements", () => {
   let suppliersService: SuppliersService;
   let purchasesService: PurchasesService;
   let stockMovementsService: StockMovementsService;
+  let defaultSupplierId: number;
 
   beforeEach(() => {
     db = createTestDb();
@@ -34,9 +35,17 @@ describe("Purchases — integración con Stock Movements", () => {
     const categoriesService = new CategoriesService(categoriesRepository);
     const productsRepository = new ProductsRepository(db);
     stockMovementsService = new StockMovementsService(new StockMovementsRepository(db), logger);
-    productsService = new ProductsService(db, productsRepository, categoriesService, stockMovementsService, logger);
     suppliersService = new SuppliersService(new SuppliersRepository(db));
     const purchasesRepository = new PurchasesRepository(db);
+    productsService = new ProductsService(
+      db,
+      productsRepository,
+      categoriesService,
+      stockMovementsService,
+      suppliersService,
+      purchasesRepository,
+      logger,
+    );
     purchasesService = new PurchasesService(
       db,
       purchasesRepository,
@@ -44,15 +53,21 @@ describe("Purchases — integración con Stock Movements", () => {
       productsService,
       logger,
     );
+    // El proveedor es obligatorio para crear un producto con stock inicial > 0 (ver
+    // ProductsService.create()) — distinto del proveedor de `createSupplier()`, que cada test usa
+    // para su propia compra real.
+    defaultSupplierId = suppliersService.create({ name: "Proveedor de stock inicial" }).id;
   });
 
   function createProduct(overrides: Partial<CreateProductInput> = {}) {
+    const stock = overrides.stock ?? 10;
     return productsService.create({
       name: "Producto de prueba",
       sku: `SKU-${Math.random().toString(36).slice(2)}`,
       purchasePrice: 500,
       salePrice: 1000,
-      stock: 10,
+      stock,
+      supplierId: stock > 0 ? defaultSupplierId : undefined,
       minimumStock: 0,
       active: true,
       ...overrides,
@@ -73,8 +88,11 @@ describe("Purchases — integración con Stock Movements", () => {
         items: [{ productId: product.id, quantity: 5, unitCost: 500 }],
       });
 
+      // 2 movimientos: el PURCHASE del stock inicial (creado al crear el producto con stock: 10,
+      // ver products-initial-stock.spec.ts) + esta compra real. El más reciente (índice 0) es
+      // siempre esta compra — se distingue del stock inicial por tener `purchaseId` seteado.
       const movements = stockMovementsService.findByProduct(product.id);
-      expect(movements).toHaveLength(1);
+      expect(movements).toHaveLength(2);
       expect(movements[0]).toMatchObject({
         type: "PURCHASE",
         direction: "IN",
@@ -99,10 +117,11 @@ describe("Purchases — integración con Stock Movements", () => {
         ],
       });
 
+      // +1 cada uno por el PURCHASE del stock inicial de su propia creación.
       const movementsA = stockMovementsService.findByProduct(productA.id);
       const movementsB = stockMovementsService.findByProduct(productB.id);
 
-      expect(movementsA).toHaveLength(1);
+      expect(movementsA).toHaveLength(2);
       expect(movementsA[0]).toMatchObject({
         type: "PURCHASE",
         stockBefore: 10,
@@ -110,7 +129,7 @@ describe("Purchases — integración con Stock Movements", () => {
         purchaseId: purchase.id,
       });
 
-      expect(movementsB).toHaveLength(1);
+      expect(movementsB).toHaveLength(2);
       expect(movementsB[0]).toMatchObject({
         type: "PURCHASE",
         stockBefore: 5,
@@ -134,7 +153,8 @@ describe("Purchases — integración con Stock Movements", () => {
       ).toThrow();
 
       expect(productsService.findById(product.id).stock).toBe(10);
-      expect(stockMovementsService.findByProduct(product.id)).toHaveLength(0);
+      // Solo el PURCHASE del stock inicial — la compra que falló no dejó ningún movimiento nuevo.
+      expect(stockMovementsService.findByProduct(product.id)).toHaveLength(1);
     });
   });
 
@@ -151,8 +171,10 @@ describe("Purchases — integración con Stock Movements", () => {
         items: [{ productId: product.id, quantity: 12, unitCost: 500 }],
       });
 
+      // 3 movimientos: PURCHASE del stock inicial (más antiguo) + ADJUSTMENT + PURCHASE real (más
+      // reciente). Los índices 0/1 no cambian — el nuevo movimiento queda al final (índice 2).
       const movements = stockMovementsService.findByProduct(product.id);
-      expect(movements).toHaveLength(2);
+      expect(movements).toHaveLength(3);
       expect(movements[0]).toMatchObject({ type: "PURCHASE", stockBefore: 8, stockAfter: 20, purchaseId: purchase.id });
       expect(movements[1]).toMatchObject({ type: "ADJUSTMENT", stockBefore: 10, stockAfter: 8 });
       expect(productsService.findById(product.id).stock).toBe(20);
@@ -171,7 +193,8 @@ describe("Purchases — integración con Stock Movements", () => {
 
       expect(productsService.findById(product.id).stock).toBe(15);
       expect(purchasesService.findById(purchase.id)).toBeTruthy();
-      expect(stockMovementsService.findByProduct(product.id)).toHaveLength(1);
+      // PURCHASE del stock inicial + esta compra.
+      expect(stockMovementsService.findByProduct(product.id)).toHaveLength(2);
     });
 
     it("caso rollback: un error antes del commit no deja stock, purchase, items ni movement — nada se crea fuera de la transacción", () => {
@@ -192,11 +215,11 @@ describe("Purchases — integración con Stock Movements", () => {
       // que el segundo item fallara.
       expect(productsService.findById(productA.id).stock).toBe(10);
 
-      // Ninguna compra quedó persistida.
-      expect(purchasesService.findMany()).toHaveLength(0);
+      // Ninguna compra NUEVA quedó persistida — solo sigue existiendo la del stock inicial de A.
+      expect(purchasesService.findMany()).toHaveLength(1);
 
-      // Ningún movimiento quedó huérfano.
-      expect(stockMovementsService.findByProduct(productA.id)).toHaveLength(0);
+      // Ningún movimiento quedó huérfano — solo sigue estando el PURCHASE del stock inicial.
+      expect(stockMovementsService.findByProduct(productA.id)).toHaveLength(1);
     });
   });
 
@@ -212,8 +235,9 @@ describe("Purchases — integración con Stock Movements", () => {
         });
       });
 
+      // PURCHASE del stock inicial (fuera de este RequestContext, requestId null) + esta compra.
       const movements = stockMovementsService.findByProduct(product.id);
-      expect(movements).toHaveLength(1);
+      expect(movements).toHaveLength(2);
       expect(movements[0]!.requestId).toBe("req-purchase-simulated");
     });
 

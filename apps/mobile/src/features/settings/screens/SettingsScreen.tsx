@@ -1,5 +1,5 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { Smartphone } from "lucide-react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Check, Smartphone } from "lucide-react-native";
 import { useDeviceInfo } from "@/devices/useDeviceInfo";
 import { useAuth } from "@/auth/AuthContext";
 import { useAuthErrorRedirect } from "@/auth/useAuthErrorRedirect";
@@ -9,8 +9,8 @@ import { Button } from "@/components/Button";
 import { LoadingState } from "@/components/LoadingState";
 import { ErrorState } from "@/components/ErrorState";
 import { StatusPill } from "@/components/StatusPill";
-import { useTheme } from "@/theme/useTheme";
-import { spacing, typography } from "@/theme/tokens";
+import { useThemeMode, type ThemeMode } from "@/theme/ThemeContext";
+import { minTouchTarget, radius, spacing, typography } from "@/theme/tokens";
 
 const DEVICE_TYPE_LABEL: Record<string, string> = {
   desktop: "Escritorio",
@@ -19,6 +19,12 @@ const DEVICE_TYPE_LABEL: Record<string, string> = {
   web: "Web",
   other: "Otro",
 };
+
+const THEME_MODE_OPTIONS: { mode: ThemeMode; label: string }[] = [
+  { mode: "system", label: "Sistema" },
+  { mode: "light", label: "Claro" },
+  { mode: "dark", label: "Oscuro" },
+];
 
 /**
  * Renombrado de "Dispositivo" a "Ajustes" — esto NUNCA fue administración de dispositivos (no
@@ -29,7 +35,7 @@ const DEVICE_TYPE_LABEL: Record<string, string> = {
 export function SettingsScreen() {
   const query = useDeviceInfo();
   const auth = useAuth();
-  const { colors } = useTheme();
+  const { colors, mode, setMode } = useThemeMode();
   useAuthErrorRedirect(query.error);
 
   return (
@@ -64,6 +70,36 @@ export function SettingsScreen() {
           </Card>
         )}
 
+        <Text style={[typography.subtitle, { color: colors.foreground }]}>Apariencia</Text>
+        <Card style={styles.themeCard}>
+          {THEME_MODE_OPTIONS.map((option) => {
+            const selected = mode === option.mode;
+            return (
+              <Pressable
+                key={option.mode}
+                style={styles.themeRow}
+                onPress={() => setMode(option.mode)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected }}
+                accessibilityLabel={option.label}
+              >
+                <Text style={[typography.body, { color: colors.foreground }]}>{option.label}</Text>
+                <View
+                  style={[
+                    styles.themeRadio,
+                    {
+                      borderColor: selected ? colors.primary : colors.border,
+                      backgroundColor: selected ? colors.primary : "transparent",
+                    },
+                  ]}
+                >
+                  {selected && <Check color={colors.primaryForeground} size={14} />}
+                </View>
+              </Pressable>
+            );
+          })}
+        </Card>
+
         <Button label="Olvidar este dispositivo" variant="danger" onPress={auth.signOut} />
         <Text style={[styles.signOutHint, { color: colors.mutedForeground }]}>
           Esto borra la credential guardada en este teléfono. El dispositivo sigue existiendo en
@@ -82,5 +118,21 @@ const styles = StyleSheet.create({
   deviceHeaderText: { gap: 2 },
   deviceName: { ...typography.subtitle },
   deviceMeta: { ...typography.caption },
+  themeCard: { padding: 0, overflow: "hidden" },
+  themeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    minHeight: minTouchTarget,
+    paddingHorizontal: spacing.lg,
+  },
+  themeRadio: {
+    width: 22,
+    height: 22,
+    borderRadius: radius.full,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   signOutHint: { ...typography.caption, textAlign: "center" },
 });

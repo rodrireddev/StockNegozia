@@ -7,6 +7,8 @@ import { useDebouncedValue } from "@/features/products/hooks/useDebouncedValue";
 import { useProducts } from "@/features/products/hooks/useProducts";
 import { Input } from "@/components/ui/input";
 import { getUserFriendlyError } from "@/lib/errors";
+import { useMe } from "@/features/devices/hooks/useMe";
+import { MissingSellerNameModal } from "../components/MissingSellerNameModal";
 import { SaleCartPanel } from "../components/SaleCartPanel";
 import { SaleSearchResults } from "../components/SaleSearchResults";
 import { useCart } from "../hooks/useCart";
@@ -19,6 +21,7 @@ export function SalesPage() {
   const [isResolvingScan, setIsResolvingScan] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [showMissingSellerModal, setShowMissingSellerModal] = useState(false);
 
   const debouncedSearch = useDebouncedValue(searchTerm);
   const trimmedDebouncedSearch = debouncedSearch.trim();
@@ -32,6 +35,7 @@ export function SalesPage() {
 
   const cart = useCart();
   const createSale = useCreateSale();
+  const me = useMe();
 
   // El buscador siempre debe estar listo para recibir un escaneo — sin que el usuario tenga que
   // clickearlo primero (ver M10 §8, lectores de código de barras).
@@ -89,6 +93,14 @@ export function SalesPage() {
     setConfirmError(null);
     setSuccessMessage(null);
 
+    // No se puede registrar una venta sin vendedor actual configurado (ver
+    // docs/inventory/STOCK_MOVEMENTS.md §Trazabilidad) — se corta acá, antes de llamar a la API,
+    // y se resuelve con el mismo modal en vez de un simple mensaje de error.
+    if (!me.data?.sellerName) {
+      setShowMissingSellerModal(true);
+      return;
+    }
+
     try {
       await createSale.mutateAsync({
         items: cart.items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
@@ -142,6 +154,8 @@ export function SalesPage() {
           successMessage={successMessage}
         />
       </div>
+
+      <MissingSellerNameModal open={showMissingSellerModal} onOpenChange={setShowMissingSellerModal} />
     </div>
   );
 }

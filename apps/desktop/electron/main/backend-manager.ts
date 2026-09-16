@@ -101,8 +101,21 @@ export class BackendManager {
     });
   }
 
-  async waitUntilHealthy(timeoutMs = 30_000, intervalMs = 300): Promise<void> {
-    const deadline = Date.now() + timeoutMs;
+  /**
+   * Sin `timeoutMs`, espera indefinidamente — usado en el arranque normal de la app: el backend
+   * es un proceso hijo local (nunca una red externa que pueda quedar inalcanzable de verdad), así
+   * que tarde lo que tarde (máquina lenta, primer arranque con instalación de dependencias, etc.)
+   * siempre termina respondiendo. No tiene sentido rendirse y cerrar la app con un error genérico
+   * cuando lo único que hace falta es esperar un poco más — el splash ya cubre exactamente ese
+   * tiempo (ver `index.ts` §Orden del arranque).
+   *
+   * Con `timeoutMs` explícito, mantiene el comportamiento acotado — usado por `BackupManager`
+   * durante un Restore, donde un backend que no vuelve a levantar tras restaurar un archivo SÍ es
+   * una señal real de que algo salió mal (base restaurada incompatible/corrupta) y debe disparar
+   * el rollback automático, no quedar esperando para siempre.
+   */
+  async waitUntilHealthy(timeoutMs?: number, intervalMs = 300): Promise<void> {
+    const deadline = timeoutMs !== undefined ? Date.now() + timeoutMs : Infinity;
 
     while (Date.now() < deadline) {
       try {

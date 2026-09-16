@@ -29,37 +29,47 @@ describe("Stock movements — precio histórico", () => {
   let purchasesService: PurchasesService;
   let salesService: SalesService;
   let stockMovementsService: StockMovementsService;
+  let defaultSupplierId: number;
 
   beforeEach(() => {
     db = createTestDb();
     const logger = createSilentTestLogger();
     const categoriesService = new CategoriesService(new CategoriesRepository(db));
     stockMovementsService = new StockMovementsService(new StockMovementsRepository(db), logger);
+    suppliersService = new SuppliersService(new SuppliersRepository(db));
+    const purchasesRepository = new PurchasesRepository(db);
     productsService = new ProductsService(
       db,
       new ProductsRepository(db),
       categoriesService,
       stockMovementsService,
+      suppliersService,
+      purchasesRepository,
       logger,
     );
-    suppliersService = new SuppliersService(new SuppliersRepository(db));
     purchasesService = new PurchasesService(
       db,
-      new PurchasesRepository(db),
+      purchasesRepository,
       suppliersService,
       productsService,
       logger,
     );
     salesService = new SalesService(db, new SalesRepository(db), productsService, logger);
+    // El proveedor es obligatorio para crear un producto con stock inicial > 0 (ver
+    // ProductsService.create()) — distinto del proveedor de `createSupplier()`, que los tests de
+    // Purchases usan para sus propias compras.
+    defaultSupplierId = suppliersService.create({ name: "Proveedor de stock inicial" }).id;
   });
 
   function createProduct(overrides: Partial<CreateProductInput> = {}) {
+    const stock = overrides.stock ?? 0;
     return productsService.create({
       name: "Coca-Cola 500ml",
       sku: `SKU-${Math.random().toString(36).slice(2)}`,
       purchasePrice: 850,
       salePrice: 1200,
-      stock: 0,
+      stock,
+      supplierId: stock > 0 ? defaultSupplierId : undefined,
       minimumStock: 0,
       active: true,
       ...overrides,
@@ -149,7 +159,11 @@ describe("Stock movements — precio histórico", () => {
     productsService.update(product.id, { salePrice: 1000 });
     salesService.create({ items: [{ productId: product.id, quantity: 1 }] }); // precio actual: 1000
 
-    const movements = movementsFor(product.id); // más reciente primero
+    // Se filtra a solo los movimientos SALE: `createProduct({ stock: 100 })` también deja su
+    // propio movimiento PURCHASE (stock inicial), que rompería la comparación posicional de este
+    // test si no se excluyera.
+    const movements = movementsFor(product.id) // más reciente primero
+      .filter((m) => m.type === "SALE");
     expect(movements.map((m) => m.unitValue)).toEqual([1000, 1100, 1200]);
   });
 

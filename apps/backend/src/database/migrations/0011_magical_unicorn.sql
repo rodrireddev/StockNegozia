@@ -1,0 +1,2 @@
+ALTER TABLE `purchases` ADD `supplier_name` text;--> statement-breakpoint
+UPDATE `purchases` SET `supplier_name` = (SELECT `name` FROM `suppliers` WHERE `suppliers`.`id` = `purchases`.`supplier_id`) WHERE `supplier_name` IS NULL;

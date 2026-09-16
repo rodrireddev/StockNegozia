@@ -1,4 +1,4 @@
-import type { StockMovementDto, StockMovementType } from "@stocknegozia/api-contracts";
+import type { DeviceType, StockMovementDto, StockMovementType } from "@stocknegozia/api-contracts";
 
 export const MOVEMENT_TYPE_LABELS: Record<StockMovementType, string> = {
   PURCHASE: "Compra",
@@ -6,6 +6,30 @@ export const MOVEMENT_TYPE_LABELS: Record<StockMovementType, string> = {
   SALE_CANCELLATION: "Cancelación de venta",
   ADJUSTMENT: "Ajuste",
 };
+
+/** Mismas etiquetas que `DeviceCard` (Desktop) usa para `DeviceDto["type"]` — centralizado acá
+ *  para que Desktop, Mobile y Web Client muestren el mismo texto sin duplicar el mapa. */
+export const DEVICE_TYPE_LABELS: Record<DeviceType, string> = {
+  desktop: "Escritorio",
+  web: "Web",
+  mobile: "Celular",
+  tablet: "Tablet",
+  other: "Otro",
+};
+
+/**
+ * Cliente/dispositivo que originó el movimiento, listo para mostrar — `null` cuando el movimiento
+ * no tiene dispositivo asociado (sin autenticación, fuera de un contexto HTTP, o histórico
+ * anterior a este campo, ver docs/inventory/STOCK_MOVEMENTS.md §Trazabilidad). Nunca inventa un
+ * actor: la ausencia de dato se representa como `null`, no como un texto tipo "Desconocido".
+ */
+export function describeMovementActor(
+  movement: Pick<StockMovementDto, "deviceName" | "deviceType">,
+): string | null {
+  if (!movement.deviceName) return null;
+  const typeLabel = movement.deviceType ? DEVICE_TYPE_LABELS[movement.deviceType] : null;
+  return typeLabel ? `${movement.deviceName} (${typeLabel})` : movement.deviceName;
+}
 
 const currencyFormatter = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 

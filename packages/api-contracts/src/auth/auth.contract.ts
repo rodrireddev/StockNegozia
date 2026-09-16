@@ -24,6 +24,12 @@ export interface DeviceDto {
   isAdmin: boolean;
   createdAt: string;
   lastSeenAt: string | null;
+  /**
+   * "Vendedor actual" que opera este dispositivo — solo tiene efecto en dispositivos `desktop`
+   * (ver docs/inventory/STOCK_MOVEMENTS.md §Trazabilidad). `null` hasta que se configura desde
+   * `PATCH /auth/devices/me/seller-name`.
+   */
+  sellerName: string | null;
 }
 
 export type PairingStatus = "pending" | "confirmed" | "expired" | "cancelled";

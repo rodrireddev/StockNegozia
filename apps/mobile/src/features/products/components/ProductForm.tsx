@@ -9,12 +9,14 @@ import { Select } from "@/components/Select";
 import { TextField } from "@/components/TextField";
 import { useTheme } from "@/theme/useTheme";
 import { spacing } from "@/theme/tokens";
+import { useSuppliers } from "@/features/suppliers/hooks/useSuppliers";
 import { useCategories } from "../hooks/useCategories";
 import { useCreateProduct } from "../hooks/useCreateProduct";
 import { useUpdateProduct } from "../hooks/useUpdateProduct";
 
 const NEW_CATEGORY_VALUE = "__new__";
 const NO_CATEGORY_VALUE = "";
+const NEW_SUPPLIER_VALUE = "__new__";
 
 interface ProductFormState {
   name: string;
@@ -27,6 +29,8 @@ interface ProductFormState {
   salePrice: string;
   stock: string;
   minimumStock: string;
+  supplierSelect: string;
+  supplierName: string;
   image: string;
   active: boolean;
 }
@@ -43,6 +47,8 @@ function toFormState(product?: ProductDto): ProductFormState {
     salePrice: product ? String(product.salePrice) : "",
     stock: product ? String(product.stock) : "0",
     minimumStock: product ? String(product.minimumStock) : "0",
+    supplierSelect: "",
+    supplierName: "",
     image: product?.image ?? "",
     active: product?.active ?? true,
   };
@@ -53,6 +59,7 @@ export function ProductForm({ product }: { product?: ProductDto }) {
   const router = useRouter();
   const { colors } = useTheme();
   const { data: categories = [] } = useCategories();
+  const { data: suppliers = [] } = useSuppliers();
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct(product?.id ?? 0);
 
@@ -100,7 +107,15 @@ export function ProductForm({ product }: { product?: ProductDto }) {
       setFieldErrors({});
       updateProduct.mutate(result.data, { onSuccess, onError });
     } else {
-      const result = createProductSchema.safeParse({ ...buildBasePayload(), stock: form.stock });
+      const result = createProductSchema.safeParse({
+        ...buildBasePayload(),
+        stock: form.stock,
+        supplierId:
+          form.supplierSelect && form.supplierSelect !== NEW_SUPPLIER_VALUE
+            ? form.supplierSelect
+            : undefined,
+        supplierName: form.supplierSelect === NEW_SUPPLIER_VALUE ? form.supplierName : undefined,
+      });
       if (!result.success) {
         setFieldErrors(result.error.flatten().fieldErrors as Record<string, string[]>);
         return;
@@ -114,6 +129,11 @@ export function ProductForm({ product }: { product?: ProductDto }) {
     { value: NO_CATEGORY_VALUE, label: "Sin categoría" },
     ...categories.map((category) => ({ value: String(category.id), label: category.name })),
     { value: NEW_CATEGORY_VALUE, label: "+ Nueva categoría…" },
+  ];
+
+  const supplierOptions = [
+    ...suppliers.map((supplier) => ({ value: String(supplier.id), label: supplier.name })),
+    { value: NEW_SUPPLIER_VALUE, label: "+ Nuevo proveedor…" },
   ];
 
   return (
@@ -184,6 +204,27 @@ export function ProductForm({ product }: { product?: ProductDto }) {
           value={form.stock}
           onChangeText={(v) => update("stock", v)}
           keyboardType="number-pad"
+        />
+      )}
+
+      {!isEdit && form.stock !== "0" && (
+        <Select
+          label="Proveedor del stock inicial *"
+          value={form.supplierSelect}
+          options={supplierOptions}
+          placeholder="Seleccionar proveedor"
+          onChange={(v) => update("supplierSelect", v)}
+        />
+      )}
+      {!isEdit && form.stock !== "0" && fieldErrors.supplierId && (
+        <Text style={{ color: colors.danger }}>{fieldErrors.supplierId[0]}</Text>
+      )}
+
+      {!isEdit && form.stock !== "0" && form.supplierSelect === NEW_SUPPLIER_VALUE && (
+        <TextField
+          label="Nombre del nuevo proveedor"
+          value={form.supplierName}
+          onChangeText={(v) => update("supplierName", v)}
         />
       )}
 

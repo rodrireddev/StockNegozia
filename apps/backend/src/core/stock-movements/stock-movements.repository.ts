@@ -1,5 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { StockMovementDirection, StockMovementType } from "@stocknegozia/api-contracts";
+import type { DeviceType, StockMovementDirection, StockMovementType } from "@stocknegozia/api-contracts";
 import { and, desc, eq, gte, lte, type SQL } from "drizzle-orm";
 import { DRIZZLE_CLIENT } from "../../database/database.constants";
 import type { Database, DrizzleExecutor } from "../../database/database.types";
@@ -16,6 +16,9 @@ export interface NewStockMovementRecord {
   purchaseId?: number;
   requestId?: string;
   reason?: string;
+  deviceId?: string;
+  deviceName?: string;
+  deviceType?: DeviceType;
 }
 
 export interface StockMovementFilters {
@@ -62,6 +65,9 @@ export class StockMovementsRepository {
         purchaseId: stockMovements.purchaseId,
         requestId: stockMovements.requestId,
         reason: stockMovements.reason,
+        deviceId: stockMovements.deviceId,
+        deviceName: stockMovements.deviceName,
+        deviceType: stockMovements.deviceType,
         createdAt: stockMovements.createdAt,
         // Precio histórico de la operación — nunca el precio ACTUAL del producto (ver
         // docs/inventory/STOCK_MOVEMENTS.md §Precio histórico). `sale_items`/`purchase_items` son

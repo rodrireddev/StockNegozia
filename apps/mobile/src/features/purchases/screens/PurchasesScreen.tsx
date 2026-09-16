@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { ShoppingCart } from "lucide-react-native";
-import { useRouter } from "expo-router";
 import type { ProductDto } from "@stocknegozia/api-contracts";
 import { resolveScanMatch } from "@stocknegozia/shared";
 import { fetchProducts } from "@/api/endpoints/products";
@@ -28,7 +27,6 @@ const SUPPLIER_REQUIRED_MESSAGE = "Seleccioná un proveedor antes de confirmar l
 
 export function PurchasesScreen() {
   const { colors } = useTheme();
-  const router = useRouter();
   const [supplierId, setSupplierId] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [scanError, setScanError] = useState<string | null>(null);
@@ -111,14 +109,7 @@ export function PurchasesScreen() {
 
   return (
     <ScreenContainer>
-      <View style={styles.header}>
-        <Text style={[typography.title, { color: colors.foreground }]}>Compras</Text>
-        <Button
-          label="Proveedores"
-          variant="secondary"
-          onPress={() => router.push("/purchases/suppliers")}
-        />
-      </View>
+      <Text style={[typography.title, styles.title, { color: colors.foreground }]}>Compras</Text>
 
       <Select
         label="Proveedor"
@@ -214,7 +205,7 @@ export function PurchasesScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm, marginBottom: spacing.sm },
+  title: { marginBottom: spacing.sm },
   scroll: { flex: 1 },
   content: { gap: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.md },
   results: { gap: spacing.sm },

@@ -1,3 +1,5 @@
+import type { DeviceType } from "../auth/auth.contract";
+
 export type StockMovementType = "SALE" | "SALE_CANCELLATION" | "ADJUSTMENT" | "PURCHASE";
 export type StockMovementDirection = "IN" | "OUT";
 
@@ -23,6 +25,21 @@ export interface StockMovementDto {
   requestId: string | null;
   /** Obligatorio para `ADJUSTMENT` (validado al crear); `null` en `SALE`/`SALE_CANCELLATION` y en movimientos históricos anteriores a este campo. */
   reason: string | null;
+  /**
+   * Dispositivo que originó el movimiento — resuelto SIEMPRE desde el contexto autenticado del
+   * request (`RequestContext`/`ApiAccessGuard`), nunca de un valor enviado por el cliente. `null`
+   * cuando no hay dispositivo autenticado (`API_ACCESS_MODE=development`, fuera de un contexto
+   * HTTP) o en movimientos anteriores a este campo — nunca se infiere ni se inventa.
+   */
+  deviceId: string | null;
+  /**
+   * Snapshot del nombre del dispositivo en el momento del movimiento — no se resuelve por JOIN
+   * contra `devices` en cada lectura (a diferencia de `unitValue`), porque el nombre de un
+   * dispositivo puede cambiar después (`PATCH /auth/devices/:id`) y un movimiento histórico no
+   * debe reflejar ese cambio retroactivamente.
+   */
+  deviceName: string | null;
+  deviceType: DeviceType | null;
   /**
    * Valor unitario de la operación en el momento en que ocurrió — nunca el precio ACTUAL del
    * producto (ver docs/inventory/STOCK_MOVEMENTS.md §Precio histórico). Semántica según `type`:

@@ -11,8 +11,11 @@ import { CategoriesRepository } from "../core/categories/categories.repository";
 import { CategoriesService } from "../core/categories/categories.service";
 import { ProductsRepository } from "../core/products/products.repository";
 import { ProductsService } from "../core/products/products.service";
+import { PurchasesRepository } from "../core/purchases/purchases.repository";
 import { StockMovementsRepository } from "../core/stock-movements/stock-movements.repository";
 import { StockMovementsService } from "../core/stock-movements/stock-movements.service";
+import { SuppliersRepository } from "../core/suppliers/suppliers.repository";
+import { SuppliersService } from "../core/suppliers/suppliers.service";
 import { BackupService } from "./backup.service";
 
 /**
@@ -24,6 +27,7 @@ describe("BackupService", () => {
   let db: Database;
   let productsService: ProductsService;
   let service: BackupService;
+  let defaultSupplierId: number;
 
   beforeEach(() => {
     tmpDir = mkdtempSync(path.join(tmpdir(), "stocknegozia-backup-test-"));
@@ -31,8 +35,20 @@ describe("BackupService", () => {
     const logger = createSilentTestLogger();
     const categoriesService = new CategoriesService(new CategoriesRepository(db));
     const stockMovementsService = new StockMovementsService(new StockMovementsRepository(db), logger);
-    productsService = new ProductsService(db, new ProductsRepository(db), categoriesService, stockMovementsService, logger);
+    const suppliersService = new SuppliersService(new SuppliersRepository(db));
+    productsService = new ProductsService(
+      db,
+      new ProductsRepository(db),
+      categoriesService,
+      stockMovementsService,
+      suppliersService,
+      new PurchasesRepository(db),
+      logger,
+    );
     service = new BackupService(db, logger);
+    // El proveedor es obligatorio para crear un producto con stock inicial > 0 (ver
+    // ProductsService.create()).
+    defaultSupplierId = suppliersService.create({ name: "Proveedor de prueba" }).id;
   });
 
   afterEach(() => {
@@ -69,6 +85,7 @@ describe("BackupService", () => {
         purchasePrice: 850,
         salePrice: 1200,
         stock: 10,
+        supplierId: defaultSupplierId,
         minimumStock: 0,
         active: true,
       });

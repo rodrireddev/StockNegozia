@@ -26,6 +26,7 @@ describe("Purchases — secuencia de eventos de logging", () => {
   let productsService: ProductsService;
   let suppliersService: SuppliersService;
   let purchasesService: PurchasesService;
+  let defaultSupplierId: number;
 
   beforeEach(() => {
     dir = mkdtempSync(path.join(tmpdir(), "stocknegozia-purchases-logging-"));
@@ -37,9 +38,17 @@ describe("Purchases — secuencia de eventos de logging", () => {
     const categoriesService = new CategoriesService(categoriesRepository);
     const productsRepository = new ProductsRepository(db);
     const stockMovementsService = new StockMovementsService(new StockMovementsRepository(db), logger);
-    productsService = new ProductsService(db, productsRepository, categoriesService, stockMovementsService, logger);
     suppliersService = new SuppliersService(new SuppliersRepository(db));
     const purchasesRepository = new PurchasesRepository(db);
+    productsService = new ProductsService(
+      db,
+      productsRepository,
+      categoriesService,
+      stockMovementsService,
+      suppliersService,
+      purchasesRepository,
+      logger,
+    );
     purchasesService = new PurchasesService(
       db,
       purchasesRepository,
@@ -47,6 +56,9 @@ describe("Purchases — secuencia de eventos de logging", () => {
       productsService,
       logger,
     );
+    // El proveedor es obligatorio para crear un producto con stock inicial > 0 (ver
+    // ProductsService.create()).
+    defaultSupplierId = suppliersService.create({ name: "Proveedor de prueba" }).id;
   });
 
   afterEach(() => {
@@ -60,6 +72,7 @@ describe("Purchases — secuencia de eventos de logging", () => {
       purchasePrice: 100,
       salePrice: 200,
       stock,
+      supplierId: stock > 0 ? defaultSupplierId : undefined,
       minimumStock: 0,
       active: true,
     });

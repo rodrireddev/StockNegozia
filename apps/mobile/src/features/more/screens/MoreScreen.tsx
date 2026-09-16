@@ -15,9 +15,9 @@ interface MoreItem {
 }
 
 const ITEMS: MoreItem[] = [
-  { href: "/purchases", label: "Compras", description: "Registrar compras y proveedores", icon: ShoppingBag },
+  { href: "/purchases", label: "Compras", description: "Registrar compras", icon: ShoppingBag },
   { href: "/inventory", label: "Inventario", description: "Categorías y movimientos de stock", icon: Layers },
-  { href: "/purchases/suppliers", label: "Proveedores", description: "Ver y agregar proveedores", icon: Truck },
+  { href: "/suppliers", label: "Proveedores", description: "Ver, agregar y editar proveedores", icon: Truck },
   { href: "/settings", label: "Ajustes", description: "Este dispositivo y cerrar sesión", icon: Settings },
 ];
 

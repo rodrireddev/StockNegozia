@@ -1,6 +1,11 @@
-import { Body, Controller, Get, Inject, Param, ParseIntPipe, Post } from "@nestjs/common";
+import { Body, Controller, Get, Inject, Param, ParseIntPipe, Patch, Post } from "@nestjs/common";
 import type { SupplierDto } from "@stocknegozia/api-contracts";
-import { createSupplierSchema, type CreateSupplierInput } from "@stocknegozia/validation";
+import {
+  createSupplierSchema,
+  updateSupplierSchema,
+  type CreateSupplierInput,
+  type UpdateSupplierInput,
+} from "@stocknegozia/validation";
 import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
 import { SuppliersService } from "./suppliers.service";
 
@@ -25,5 +30,13 @@ export class SuppliersController {
     @Body(new ZodValidationPipe(createSupplierSchema)) body: CreateSupplierInput,
   ): SupplierDto {
     return this.suppliersService.create(body);
+  }
+
+  @Patch(":id")
+  update(
+    @Param("id", ParseIntPipe) id: number,
+    @Body(new ZodValidationPipe(updateSupplierSchema)) body: UpdateSupplierInput,
+  ): SupplierDto {
+    return this.suppliersService.update(id, body);
   }
 }

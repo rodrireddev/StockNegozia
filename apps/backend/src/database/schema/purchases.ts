@@ -1,4 +1,4 @@
-import { sqliteTable, integer, real, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, integer, real, text, index } from "drizzle-orm/sqlite-core";
 import { products } from "./products";
 import { suppliers } from "./suppliers";
 
@@ -16,6 +16,13 @@ export const purchases = sqliteTable(
     supplierId: integer("supplier_id")
       .notNull()
       .references(() => suppliers.id),
+    // Snapshot inmutable del nombre del proveedor al momento de la compra — no se resuelve por
+    // JOIN contra `suppliers.name` en cada lectura porque el proveedor SÍ puede renombrarse
+    // después (`PATCH /suppliers/:id`), y una compra pasada no debe reflejar ese cambio
+    // retroactivamente (mismo criterio que `stock_movements.device_name`, ver
+    // database/schema/stock-movements.ts). `supplierId` sigue existiendo para referenciar al
+    // proveedor actual.
+    supplierName: text("supplier_name").notNull(),
     // Calculado por el backend a partir de purchase_items — nunca confiado del cliente.
     total: real("total").notNull(),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),

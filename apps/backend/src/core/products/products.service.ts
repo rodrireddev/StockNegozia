@@ -15,10 +15,18 @@ import { DRIZZLE_CLIENT } from "../../database/database.constants";
 import type { Database, DrizzleExecutor } from "../../database/database.types";
 import { AppLogger } from "../../common/logger/app-logger.service";
 import { CategoriesService } from "../categories/categories.service";
+import { PurchasesRepository } from "../purchases/purchases.repository";
 import { StockMovementsService } from "../stock-movements/stock-movements.service";
+import { SuppliersService } from "../suppliers/suppliers.service";
 import { ProductsRepository } from "./products.repository";
 
 type ProductRow = ReturnType<ProductsRepository["findById"]>;
+
+/** Mismo `roundMoney` que ya usan `PurchasesService`/`SalesService` (duplicado deliberadamente,
+ *  no se introdujo una utilidad monetaria compartida nueva — mismo criterio que esos dos). */
+function roundMoney(value: number): number {
+  return Math.round(value * 100) / 100;
+}
 
 /**
  * Contexto de negocio opcional para `adjustStock()` — determina qué `type` de stock movement se
@@ -72,6 +80,8 @@ export class ProductsService {
     @Inject(ProductsRepository) private readonly repository: ProductsRepository,
     @Inject(CategoriesService) private readonly categoriesService: CategoriesService,
     @Inject(StockMovementsService) private readonly stockMovementsService: StockMovementsService,
+    @Inject(SuppliersService) private readonly suppliersService: SuppliersService,
+    @Inject(PurchasesRepository) private readonly purchasesRepository: PurchasesRepository,
     @Inject(AppLogger) private readonly logger: AppLogger,
   ) {}
 
@@ -85,25 +95,104 @@ export class ProductsService {
     return toDto(row);
   }
 
+  /**
+   * El producto siempre nace con `stock: 0` en `products.repository.insert()` — el stock inicial
+   * pedido por el cliente (`input.stock`) nunca se escribe directamente ahí. En cambio, si es
+   * mayor a cero, se aplica en la misma transacción vía `adjustStock()` (el único punto de
+   * mutación relativa de stock, ver docs/inventory/STOCK_MOVEMENTS.md). Esto es lo que genera el
+   * `stock_movement` que antes faltaba (bug corregido en M15): un producto creado con stock
+   * inicial > 0 ahora SIEMPRE deja rastro en el historial, en la misma transacción que la
+   * creación — si cualquier paso falla, el producto tampoco se crea.
+   *
+   * Sin stock inicial (`input.stock === 0`, el default del schema) no se llama a `adjustStock()`
+   * en absoluto — ni transacción extra ni movimiento de cantidad cero, mismo criterio que ya usa
+   * `applyStockAdjustment()` para `delta === 0`.
+   *
+   * ### Stock inicial → siempre una compra real con proveedor, nunca inventado
+   *
+   * Si `input.stock > 0`, el proveedor es OBLIGATORIO — no existe un stock inicial "sin origen".
+   * Igual que al cargar una compra desde `PurchasesService.create()` (que también exige
+   * `supplierId`), la persona debe elegir uno existente (`input.supplierId`) o crear uno nuevo
+   * escribiendo su nombre (`input.supplierName`, mismo patrón que `categoryId`/`categoryName`).
+   * El backend NUNCA inventa un proveedor (una versión anterior de este cambio creaba uno
+   * placeholder "Stock inicial" automáticamente — se descartó por representar mal el origen real
+   * de la mercadería) ni permite omitirlo (otra versión lo dejaba opcional — también se descartó:
+   * un stock inicial sin proveedor no es un caso de negocio válido en este dominio).
+   *
+   * Se resuelve/valida vía `resolveSupplier()` y se crea una compra real de un solo ítem
+   * (`purchases`/`purchase_items`, `unitCost: purchasePrice`), igual que cualquier compra creada
+   * desde `PurchasesService`. El `stock_movement` resultante siempre queda con `purchaseId` real
+   * → la UI lo muestra como "Compra #N" con su precio (resuelto vía `purchase_items.unitCost`, ver
+   * docs/inventory/STOCK_MOVEMENTS.md §Precio histórico) — nunca "—", porque siempre hay una
+   * compra real detrás.
+   *
+   * La validación se hace ANTES de abrir la transacción (mismo criterio que `assertSkuAvailable`)
+   * — un stock inicial sin proveedor nunca debe llegar a tocar la base de datos. El schema Zod
+   * (`createProductSchema`, `packages/validation`) ya rechaza esta combinación en el límite HTTP;
+   * esto es la misma regla aplicada también a llamadas que no pasen por HTTP.
+   *
+   * No se usa `PurchasesService.create()` para esto (que exigiría pasar por su propia validación
+   * HTTP-oriented y generaría una dependencia circular ProductsModule↔PurchasesModule) — se llama
+   * directamente a `PurchasesRepository`/`SuppliersService` dentro de la misma transacción.
+   */
   create(input: CreateProductInput): ProductDto {
     this.assertSkuAvailable(input.sku);
     const categoryId = this.resolveCategoryId(input.categoryId, input.categoryName);
 
-    const created = this.repository.insert({
-      name: input.name,
-      sku: input.sku,
-      barcode: input.barcode,
-      description: input.description,
-      categoryId,
-      purchasePrice: input.purchasePrice,
-      salePrice: input.salePrice,
-      stock: input.stock,
-      minimumStock: input.minimumStock,
-      image: input.image,
-      active: input.active,
+    if (input.stock > 0 && input.supplierId === undefined && !input.supplierName) {
+      throw new BadRequestException(
+        "El proveedor es obligatorio para registrar el stock inicial",
+      );
+    }
+
+    const createdId = this.db.transaction((tx) => {
+      const created = this.repository.insert(
+        {
+          name: input.name,
+          sku: input.sku,
+          barcode: input.barcode,
+          description: input.description,
+          categoryId,
+          purchasePrice: input.purchasePrice,
+          salePrice: input.salePrice,
+          stock: 0,
+          minimumStock: input.minimumStock,
+          image: input.image,
+          active: input.active,
+        },
+        tx,
+      );
+
+      if (input.stock > 0) {
+        // Ya validado arriba que hay supplierId o supplierName — `resolveSupplier()` siempre
+        // devuelve un proveedor acá, nunca `undefined`.
+        const supplier = this.resolveSupplier(input.supplierId, input.supplierName, tx)!;
+        const subtotal = roundMoney(input.purchasePrice * input.stock);
+
+        const purchase = this.purchasesRepository.insertPurchase(
+          { supplierId: supplier.id, supplierName: supplier.name, total: subtotal, createdAt: new Date() },
+          tx,
+        );
+        this.purchasesRepository.insertPurchaseItems(
+          [
+            {
+              purchaseId: purchase.id,
+              productId: created.id,
+              quantity: input.stock,
+              unitCost: input.purchasePrice,
+              subtotal,
+            },
+          ],
+          tx,
+        );
+
+        this.adjustStock(created.id, input.stock, tx, { type: "PURCHASE", purchaseId: purchase.id });
+      }
+
+      return created.id;
     });
 
-    return this.findById(created.id);
+    return this.findById(createdId);
   }
 
   update(id: number, input: UpdateProductInput): ProductDto {
@@ -246,6 +335,31 @@ export class ProductsService {
       return this.categoriesService.findOrCreateByName(categoryName).id;
     }
     return categoryId;
+  }
+
+  /**
+   * Mismo criterio que `resolveCategoryId()`, con dos diferencias: acepta un `executor` para poder
+   * resolverse dentro de la transacción de `create()` — a diferencia de la categoría (resuelta
+   * antes de abrir la transacción), el proveedor del stock inicial sí necesita participar de la
+   * misma transacción que la compra/movimiento que genera (ver `create()` §Stock inicial), para
+   * que un rollback también deshaga un proveedor recién creado por nombre — y devuelve también el
+   * `name` resuelto (no solo el id), porque `purchases.supplierName` necesita el snapshot exacto
+   * usado en ese momento (ver database/schema/purchases.ts).
+   */
+  private resolveSupplier(
+    supplierId?: number,
+    supplierName?: string,
+    executor?: DrizzleExecutor,
+  ): { id: number; name: string } | undefined {
+    if (supplierName) {
+      const supplier = this.suppliersService.findOrCreateByName(supplierName, executor);
+      return { id: supplier.id, name: supplier.name };
+    }
+    if (supplierId !== undefined) {
+      const supplier = this.suppliersService.findById(supplierId, executor); // 404 si no existe
+      return { id: supplier.id, name: supplier.name };
+    }
+    return undefined;
   }
 
   private assertSkuAvailable(sku: string, excludeId?: number): void {

@@ -19,6 +19,7 @@ describe("PurchasesService", () => {
   let productsService: ProductsService;
   let suppliersService: SuppliersService;
   let purchasesService: PurchasesService;
+  let defaultSupplierId: number;
 
   beforeEach(() => {
     db = createTestDb();
@@ -27,9 +28,17 @@ describe("PurchasesService", () => {
     const categoriesService = new CategoriesService(categoriesRepository);
     const productsRepository = new ProductsRepository(db);
     const stockMovementsService = new StockMovementsService(new StockMovementsRepository(db), logger);
-    productsService = new ProductsService(db, productsRepository, categoriesService, stockMovementsService, logger);
     suppliersService = new SuppliersService(new SuppliersRepository(db));
     const purchasesRepository = new PurchasesRepository(db);
+    productsService = new ProductsService(
+      db,
+      productsRepository,
+      categoriesService,
+      stockMovementsService,
+      suppliersService,
+      purchasesRepository,
+      logger,
+    );
     purchasesService = new PurchasesService(
       db,
       purchasesRepository,
@@ -37,15 +46,21 @@ describe("PurchasesService", () => {
       productsService,
       logger,
     );
+    // El proveedor es obligatorio para crear un producto con stock inicial > 0 (ver
+    // ProductsService.create()) — distinto del proveedor de `createSupplier()`, que cada test usa
+    // para su propia compra real.
+    defaultSupplierId = suppliersService.create({ name: "Proveedor de stock inicial" }).id;
   });
 
   function createProduct(overrides: Partial<CreateProductInput> = {}) {
+    const stock = overrides.stock ?? 10;
     return productsService.create({
       name: "Producto de prueba",
       sku: `SKU-${Math.random().toString(36).slice(2)}`,
       purchasePrice: 500,
       salePrice: 1000,
-      stock: 10,
+      stock,
+      supplierId: stock > 0 ? defaultSupplierId : undefined,
       minimumStock: 0,
       active: true,
       ...overrides,
@@ -145,7 +160,7 @@ describe("PurchasesService", () => {
     ).toThrow();
 
     expect(productsService.findById(product.id).stock).toBe(10);
-    expect(purchasesService.findMany()).toHaveLength(0);
+    expect(purchasesService.findMany()).toHaveLength(1); // la del stock inicial de `product`
   });
 
   it("falla si un producto no existe, sin efectos parciales", () => {
@@ -173,7 +188,7 @@ describe("PurchasesService", () => {
     ).toThrow();
 
     expect(productsService.findById(product.id).stock).toBe(10);
-    expect(purchasesService.findMany()).toHaveLength(0);
+    expect(purchasesService.findMany()).toHaveLength(1); // la del stock inicial de `product`
   });
 
   it("falla con cantidad negativa, sin crear nada ni modificar stock", () => {
@@ -188,7 +203,7 @@ describe("PurchasesService", () => {
     ).toThrow();
 
     expect(productsService.findById(product.id).stock).toBe(10);
-    expect(purchasesService.findMany()).toHaveLength(0);
+    expect(purchasesService.findMany()).toHaveLength(1); // la del stock inicial de `product`
   });
 
   it("falla con costo unitario negativo, sin crear nada ni modificar stock", () => {
@@ -203,7 +218,7 @@ describe("PurchasesService", () => {
     ).toThrow();
 
     expect(productsService.findById(product.id).stock).toBe(10);
-    expect(purchasesService.findMany()).toHaveLength(0);
+    expect(purchasesService.findMany()).toHaveLength(1); // la del stock inicial de `product`
   });
 
   it("falla si se repite el mismo producto dentro de la misma compra, sin crear nada", () => {
@@ -221,7 +236,7 @@ describe("PurchasesService", () => {
     ).toThrow();
 
     expect(productsService.findById(product.id).stock).toBe(10);
-    expect(purchasesService.findMany()).toHaveLength(0);
+    expect(purchasesService.findMany()).toHaveLength(1); // la del stock inicial de `product`
   });
 
   describe("atomicidad", () => {
@@ -242,20 +257,21 @@ describe("PurchasesService", () => {
       // El stock de A vuelve al original — no queda +10 aplicado aunque se haya procesado antes
       // de que el item de B fallara.
       expect(productsService.findById(productA.id).stock).toBe(10);
-      expect(purchasesService.findMany()).toHaveLength(0);
+      expect(purchasesService.findMany()).toHaveLength(1); // la del stock inicial de A
     });
   });
 
   describe("GET /purchases", () => {
     it("findMany devuelve las compras creadas", () => {
       const supplier = createSupplier();
+      // `createProduct()` también deja su propia compra de stock inicial — de ahí el +1.
       const product = createProduct();
       purchasesService.create({
         supplierId: supplier.id,
         items: [{ productId: product.id, quantity: 1, unitCost: 100 }],
       });
 
-      expect(purchasesService.findMany()).toHaveLength(1);
+      expect(purchasesService.findMany()).toHaveLength(2);
     });
 
     it("findById devuelve la compra con sus items", () => {
@@ -273,6 +289,41 @@ describe("PurchasesService", () => {
 
     it("findById de una compra inexistente lanza 404", () => {
       expect(() => purchasesService.findById(999_999)).toThrow();
+    });
+  });
+
+  describe("snapshot del proveedor — renombrar/editar un proveedor no reescribe compras pasadas", () => {
+    it("una compra ya creada conserva el nombre del proveedor tal como era al momento de la compra", () => {
+      const supplier = createSupplier("Distribuidora Vieja");
+      const product = createProduct();
+      const purchase = purchasesService.create({
+        supplierId: supplier.id,
+        items: [{ productId: product.id, quantity: 1, unitCost: 100 }],
+      });
+      expect(purchase.supplierName).toBe("Distribuidora Vieja");
+
+      suppliersService.update(supplier.id, { name: "Distribuidora Nueva" });
+
+      const found = purchasesService.findById(purchase.id);
+      expect(found.supplierName).toBe("Distribuidora Vieja");
+      expect(found.supplierId).toBe(supplier.id); // sigue referenciando al mismo proveedor real
+
+      // El proveedor en sí SÍ refleja el nuevo nombre — solo el historial queda congelado.
+      expect(suppliersService.findById(supplier.id).name).toBe("Distribuidora Nueva");
+    });
+
+    it("findMany también refleja el nombre histórico, no el actual", () => {
+      const supplier = createSupplier("Nombre Original");
+      const product = createProduct();
+      const purchase = purchasesService.create({
+        supplierId: supplier.id,
+        items: [{ productId: product.id, quantity: 1, unitCost: 100 }],
+      });
+
+      suppliersService.update(supplier.id, { name: "Nombre Cambiado" });
+
+      const found = purchasesService.findMany().find((p) => p.id === purchase.id);
+      expect(found?.supplierName).toBe("Nombre Original");
     });
   });
 });

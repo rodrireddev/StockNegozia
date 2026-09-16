@@ -5,7 +5,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "@/auth/AuthContext";
-import { useTheme } from "@/theme/useTheme";
+import { ThemeProvider, useThemeMode } from "@/theme/ThemeContext";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -21,18 +21,23 @@ const queryClient = new QueryClient({
   },
 });
 
-/** Espera a que `AuthContext` resuelva el estado inicial antes de esconder el splash nativo. */
+/**
+ * Espera a que `AuthContext` Y la preferencia de tema (`ThemeContext.ready`) resuelvan su estado
+ * inicial antes de esconder el splash nativo — así se evita el flash "aparece claro → cambia a
+ * oscuro" que ocurriría si la primera pantalla pintara antes de conocer la preferencia persistida.
+ */
 function RootNavigator() {
   const { status } = useAuth();
-  const { dark } = useTheme();
+  const { dark, ready } = useThemeMode();
+  const bootstrapping = status === "bootstrapping" || !ready;
 
   useEffect(() => {
-    if (status !== "bootstrapping") {
+    if (!bootstrapping) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [status]);
+  }, [bootstrapping]);
 
-  if (status === "bootstrapping") return null;
+  if (bootstrapping) return null;
 
   return (
     <>
@@ -45,11 +50,13 @@ function RootNavigator() {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <RootNavigator />
-        </AuthProvider>
-      </QueryClientProvider>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <RootNavigator />
+          </AuthProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { describeMovementReference, formatMovementUnitValue, formatSignedQuantity } from "./movement-labels";
+import {
+  describeMovementActor,
+  describeMovementReference,
+  formatMovementUnitValue,
+  formatSignedQuantity,
+} from "./movement-labels";
 
 describe("formatSignedQuantity", () => {
   it("antepone + a una entrada (IN)", () => {
@@ -51,5 +56,22 @@ describe("formatMovementUnitValue", () => {
     // (U+00A0) entre "$" y el monto según el entorno — el texto renderizado (ver
     // InventoryMovementsPage.spec.tsx en Desktop) es lo que importa, no el carácter exacto acá.
     expect(formatMovementUnitValue(850).replace(/\s/g, " ")).toBe("$ 850,00");
+  });
+});
+
+describe("describeMovementActor", () => {
+  it("combina nombre y tipo del dispositivo cuando ambos están presentes", () => {
+    const actor = describeMovementActor({ deviceName: "Electron Desktop", deviceType: "desktop" });
+    expect(actor).toBe("Electron Desktop (Escritorio)");
+  });
+
+  it("usa solo el nombre si no hay tipo de dispositivo", () => {
+    const actor = describeMovementActor({ deviceName: "Juan Android", deviceType: null });
+    expect(actor).toBe("Juan Android");
+  });
+
+  it("devuelve null cuando no hay dispositivo asociado (sin inventar un actor)", () => {
+    const actor = describeMovementActor({ deviceName: null, deviceType: null });
+    expect(actor).toBeNull();
   });
 });

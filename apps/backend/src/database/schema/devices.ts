@@ -20,4 +20,13 @@ export const devices = sqliteTable("devices", {
   isAdmin: integer("is_admin", { mode: "boolean" }).notNull().default(false),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   lastSeenAt: integer("last_seen_at", { mode: "timestamp" }),
+  /**
+   * Nombre de la persona que opera este dispositivo (ej. "Rodrigo"), distinto del nombre del
+   * dispositivo en sí (ej. "Electron Desktop") — ver docs/inventory/STOCK_MOVEMENTS.md
+   * §Trazabilidad. Solo tiene efecto en dispositivos `desktop`: reemplaza el nombre del
+   * dispositivo en el snapshot `stock_movements.deviceName` de las ventas/compras/ajustes que
+   * origine, para que el historial identifique al vendedor y no al equipo. Nullable: opcional
+   * hasta que se configura desde `PATCH /auth/devices/me/seller-name`.
+   */
+  sellerName: text("seller_name"),
 });

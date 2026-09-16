@@ -1,24 +1,16 @@
 import { Loader2, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TabNav } from "@/components/ui/tab-nav";
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SupplierForm } from "../components/SupplierForm";
+import { SupplierRow } from "../components/SupplierRow";
 import { useSuppliers } from "../hooks/useSuppliers";
-
-const dateFormatter = new Intl.DateTimeFormat("es-AR", { dateStyle: "short" });
 
 export function SuppliersPage() {
   const { data: suppliers, isLoading, isError, refetch } = useSuppliers();
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Compras</h1>
-      <TabNav
-        items={[
-          { to: "/purchases", label: "Nueva compra", end: true },
-          { to: "/purchases/suppliers", label: "Proveedores" },
-        ]}
-      />
+      <h1 className="text-xl font-semibold">Proveedores</h1>
 
       <SupplierForm />
 
@@ -50,17 +42,14 @@ export function SuppliersPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Nombre</TableHead>
+              <TableHead>Teléfono</TableHead>
               <TableHead>Alta</TableHead>
+              <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
             {suppliers.map((supplier) => (
-              <TableRow key={supplier.id}>
-                <TableCell className="font-medium">{supplier.name}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {dateFormatter.format(new Date(supplier.createdAt))}
-                </TableCell>
-              </TableRow>
+              <SupplierRow key={supplier.id} supplier={supplier} />
             ))}
           </TableBody>
         </Table>

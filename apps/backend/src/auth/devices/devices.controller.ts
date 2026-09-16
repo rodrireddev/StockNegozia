@@ -12,7 +12,12 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import type { DeviceDto } from "@stocknegozia/api-contracts";
-import { updateDeviceSchema, type UpdateDeviceInput } from "@stocknegozia/validation";
+import {
+  updateDeviceSchema,
+  updateSellerNameSchema,
+  type UpdateDeviceInput,
+  type UpdateSellerNameInput,
+} from "@stocknegozia/validation";
 import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
 import { AdminDeviceGuard } from "../guards/admin-device.guard";
 import type { RequestWithDevice } from "../guards/api-access.guard";
@@ -44,6 +49,20 @@ export class DevicesController {
       throw new NotFoundException("No hay un dispositivo autenticado en este request");
     }
     return this.devicesService.getById(request.device.id, request.device.id);
+  }
+
+  // Declarado ANTES de `:id` por el mismo motivo que "me" — y es siempre auto-servicio (sin
+  // AdminDeviceGuard): un dispositivo solo puede fijar SU PROPIO vendedor actual, nunca el de
+  // otro (ver DevicesService.updateSellerName).
+  @Patch("me/seller-name")
+  updateSellerName(
+    @Body(new ZodValidationPipe(updateSellerNameSchema)) body: UpdateSellerNameInput,
+    @Req() request: RequestWithDevice,
+  ): DeviceDto {
+    if (!request.device) {
+      throw new NotFoundException("No hay un dispositivo autenticado en este request");
+    }
+    return this.devicesService.updateSellerName(request.device.id, body.sellerName);
   }
 
   @UseGuards(AdminDeviceGuard)

@@ -2,6 +2,7 @@ import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 import { products } from "./products";
 import { sales } from "./sales";
 import { purchases } from "./purchases";
+import { devices } from "./devices";
 
 /**
  * Historial auditable de modificaciones de stock — ver docs/inventory/STOCK_MOVEMENTS.md.
@@ -36,6 +37,19 @@ export const stockMovements = sqliteTable(
     // históricos anteriores a este campo no lo tienen) — pero obligatorio a nivel de aplicación
     // para ADJUSTMENT (validado en ProductsService.adjustStock(), no acá).
     reason: text("reason"),
+    // Trazabilidad de quién originó el movimiento — ver docs/inventory/STOCK_MOVEMENTS.md
+    // §Trazabilidad de actor/dispositivo. Se resuelve siempre desde `RequestContext` (poblado por
+    // `ApiAccessGuard` al autenticar), NUNCA de un campo enviado por el cliente. Nullable: no hay
+    // dispositivo autenticado en `API_ACCESS_MODE=development`, fuera de un contexto HTTP, o en
+    // movimientos anteriores a este campo.
+    deviceId: text("device_id").references(() => devices.id),
+    // `deviceName`/`deviceType` son un snapshot del dispositivo en el momento del movimiento, no
+    // un valor resuelto por JOIN contra `devices` en cada lectura — a diferencia de `unitValue`
+    // (que sí se resuelve por JOIN porque `sale_items`/`purchase_items` son inmutables), el nombre
+    // de un dispositivo SÍ puede cambiar (`PATCH /auth/devices/:id`), y un movimiento histórico no
+    // debe "reescribirse" si el dispositivo se renombra después.
+    deviceName: text("device_name"),
+    deviceType: text("device_type", { enum: ["desktop", "mobile", "tablet", "web", "other"] }),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   },
   (table) => ({
@@ -43,5 +57,6 @@ export const stockMovements = sqliteTable(
     createdAtIdx: index("stock_movements_created_at_idx").on(table.createdAt),
     saleIdIdx: index("stock_movements_sale_id_idx").on(table.saleId),
     purchaseIdIdx: index("stock_movements_purchase_id_idx").on(table.purchaseId),
+    deviceIdIdx: index("stock_movements_device_id_idx").on(table.deviceId),
   }),
 );

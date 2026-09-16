@@ -13,9 +13,12 @@ import { DRIZZLE_CLIENT } from "../../database/database.constants";
 import { createTestDb } from "../../test/create-test-db";
 import { CategoriesRepository } from "../categories/categories.repository";
 import { CategoriesService } from "../categories/categories.service";
+import { PurchasesRepository } from "../purchases/purchases.repository";
 import { StockMovementsController } from "../stock-movements/stock-movements.controller";
 import { StockMovementsRepository } from "../stock-movements/stock-movements.repository";
 import { StockMovementsService } from "../stock-movements/stock-movements.service";
+import { SuppliersRepository } from "../suppliers/suppliers.repository";
+import { SuppliersService } from "../suppliers/suppliers.service";
 import { ProductsController } from "./products.controller";
 import { ProductsRepository } from "./products.repository";
 import { ProductsService } from "./products.service";
@@ -29,6 +32,7 @@ import { ProductsService } from "./products.service";
 describe("Products: sin bypass de stock por HTTP", () => {
   let app: INestApplication;
   let dir: string;
+  let defaultSupplierId: number;
 
   beforeAll(async () => {
     dir = mkdtempSync(path.join(tmpdir(), "stocknegozia-products-e2e-"));
@@ -46,6 +50,9 @@ describe("Products: sin bypass de stock por HTTP", () => {
         CategoriesService,
         StockMovementsRepository,
         StockMovementsService,
+        SuppliersRepository,
+        SuppliersService,
+        PurchasesRepository,
         ProductsService,
       ],
     }).compile();
@@ -55,6 +62,11 @@ describe("Products: sin bypass de stock por HTTP", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     app.use((req: any, res: any, next: () => void) => middleware.use(req, res, next));
     await app.init();
+
+    // El proveedor es obligatorio para crear un producto con stock inicial > 0 (ver
+    // ProductsService.create()) — no hay `SuppliersController` en este módulo de test (no es lo
+    // que se está probando acá), así que se crea directamente contra el servicio.
+    defaultSupplierId = moduleRef.get(SuppliersService).create({ name: "Proveedor de prueba" }).id;
   });
 
   afterAll(async () => {
@@ -71,6 +83,7 @@ describe("Products: sin bypass de stock por HTTP", () => {
         purchasePrice: 100,
         salePrice: 200,
         stock,
+        supplierId: stock > 0 ? defaultSupplierId : undefined,
         minimumStock: 0,
         active: true,
       });
@@ -102,10 +115,11 @@ describe("Products: sin bypass de stock por HTTP", () => {
     expect(res.status).toBe(201);
     expect(res.body.stock).toBe(15);
 
+    // PURCHASE del stock inicial (creado con el producto) + este ADJUSTMENT.
     const movements = await request(app.getHttpServer()).get(
       `/products/${product.id}/stock-movements`,
     );
-    expect(movements.body).toHaveLength(1);
+    expect(movements.body).toHaveLength(2);
     expect(movements.body[0]).toMatchObject({
       type: "ADJUSTMENT",
       direction: "IN",

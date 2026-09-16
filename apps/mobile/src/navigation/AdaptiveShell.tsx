@@ -36,7 +36,7 @@ const TABLET_NAV_ITEMS: NavItem[] = [
   { href: "/sales", label: "Ventas", icon: ShoppingCart },
   { href: "/purchases", label: "Compras", icon: ShoppingBag },
   { href: "/inventory", label: "Inventario", icon: Layers },
-  { href: "/purchases/suppliers", label: "Proveedores", icon: Truck },
+  { href: "/suppliers", label: "Proveedores", icon: Truck },
   { href: "/settings", label: "Ajustes", icon: Settings },
 ];
 

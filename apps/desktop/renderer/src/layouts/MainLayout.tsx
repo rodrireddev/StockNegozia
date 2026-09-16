@@ -2,6 +2,7 @@ import { NavLink, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
+import { useMe } from "@/features/devices/hooks/useMe";
 
 const navItems = [
   { to: "/", label: "Panel", end: true },
@@ -9,12 +10,14 @@ const navItems = [
   { to: "/sales", label: "Ventas" },
   { to: "/purchases", label: "Compras" },
   { to: "/inventory", label: "Inventario" },
+  { to: "/suppliers", label: "Proveedores" },
   { to: "/devices", label: "Dispositivos" },
   { to: "/settings", label: "Configuración" },
 ];
 
 export function MainLayout() {
   const { sidebarCollapsed, toggleSidebar } = useUiStore();
+  const me = useMe();
 
   return (
     <div className="flex h-screen">
@@ -26,9 +29,16 @@ export function MainLayout() {
       >
         <div className="mb-6 flex items-center justify-between">
           {!sidebarCollapsed && (
-            <div className="flex items-center gap-2">
-              <img src="/branding/logo.png" alt="" className="h-6 w-6" />
-              <h1 className="text-lg font-semibold">StockNegozia</h1>
+            <div>
+              <div className="flex items-center gap-2">
+                <img src="/branding/logo.png" alt="" className="h-6 w-6" />
+                <h1 className="text-lg font-semibold">StockNegozia</h1>
+              </div>
+              {me.data?.sellerName && (
+                <p className="mt-1 truncate text-xs text-muted-foreground">
+                  Vendedor Actual: {me.data.sellerName}
+                </p>
+              )}
             </div>
           )}
           <Button variant="ghost" size="icon" onClick={toggleSidebar}>

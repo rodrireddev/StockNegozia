@@ -34,6 +34,7 @@ import { PurchasesService } from "./purchases.service";
 describe("Purchases: flujo HTTP completo", () => {
   let app: INestApplication;
   let dir: string;
+  let defaultSupplierId: number;
 
   beforeAll(async () => {
     dir = mkdtempSync(path.join(tmpdir(), "stocknegozia-purchases-e2e-"));
@@ -69,6 +70,14 @@ describe("Purchases: flujo HTTP completo", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     app.use((req: any, res: any, next: () => void) => middleware.use(req, res, next));
     await app.init();
+
+    // El proveedor es obligatorio para crear un producto con stock inicial > 0 (ver
+    // ProductsService.create()) — distinto del proveedor que cada test crea con `createSupplier()`
+    // para su propia compra real.
+    const res = await request(app.getHttpServer())
+      .post("/suppliers")
+      .send({ name: "Proveedor de stock inicial" });
+    defaultSupplierId = res.body.id as number;
   });
 
   afterAll(async () => {
@@ -90,6 +99,7 @@ describe("Purchases: flujo HTTP completo", () => {
         purchasePrice: 100,
         salePrice: 200,
         stock,
+        supplierId: stock > 0 ? defaultSupplierId : undefined,
         minimumStock: 0,
         active: true,
       });
@@ -131,10 +141,11 @@ describe("Purchases: flujo HTTP completo", () => {
     expect(getPurchase.status).toBe(200);
     expect(getPurchase.body.items).toHaveLength(1);
 
+    // PURCHASE del stock inicial (creado con el producto) + esta compra real.
     const movements = await request(app.getHttpServer()).get(
       `/products/${product.id}/stock-movements`,
     );
-    expect(movements.body).toHaveLength(1);
+    expect(movements.body).toHaveLength(2);
     expect(movements.body[0]).toMatchObject({
       type: "PURCHASE",
       direction: "IN",
