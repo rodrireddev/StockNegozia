@@ -26,6 +26,15 @@ export function fetchProduct(id: number): Promise<ProductDto> {
   return apiGet<ProductDto>(`/products/${id}`);
 }
 
+/**
+ * Lookup exacto por código escaneado (QR o barcode) o tipeado — `GET /products/lookup`. A
+ * diferencia de `fetchProducts({ search })`, que hace `LIKE` parcial, este endpoint devuelve un
+ * único producto por coincidencia exacta de `sku`/`barcode`, o rechaza con 404 si no existe.
+ */
+export function fetchProductByCode(code: string): Promise<ProductDto> {
+  return apiGet<ProductDto>(`/products/lookup?code=${encodeURIComponent(code)}`);
+}
+
 export function createProduct(input: CreateProductInput): Promise<ProductDto> {
   return apiPost<ProductDto>("/products", input);
 }

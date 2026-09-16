@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { ShoppingCart } from "lucide-react-native";
 import type { ProductDto } from "@stocknegozia/api-contracts";
 import { resolveScanMatch } from "@stocknegozia/shared";
-import { fetchProducts } from "@/api/endpoints/products";
+import { fetchProductByCode, fetchProducts } from "@/api/endpoints/products";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
@@ -15,6 +15,8 @@ import { useAuthErrorRedirect } from "@/auth/useAuthErrorRedirect";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useProducts } from "@/features/products/hooks/useProducts";
 import { ProductListItem } from "@/features/products/components/ProductListItem";
+import { ProductScanner } from "@/features/scanner/ProductScanner";
+import type { ScanResult } from "@/features/scanner/types";
 import { useSuppliers } from "@/features/suppliers/hooks/useSuppliers";
 import { useTheme } from "@/theme/useTheme";
 import { spacing, typography } from "@/theme/tokens";
@@ -31,6 +33,7 @@ export function PurchasesScreen() {
   const [searchTerm, setSearchTerm] = useState("");
   const [scanError, setScanError] = useState<string | null>(null);
   const [isResolvingScan, setIsResolvingScan] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -73,6 +76,20 @@ export function PurchasesScreen() {
       } else {
         setScanError(`No encontramos ningún producto para "${raw}".`);
       }
+    } catch (error) {
+      setScanError(error instanceof Error ? error.message : "No se pudo buscar el producto.");
+    } finally {
+      setIsResolvingScan(false);
+    }
+  }
+
+  async function handleScanDetected(result: ScanResult) {
+    setScannerOpen(false);
+    setScanError(null);
+    setIsResolvingScan(true);
+    try {
+      const product = await fetchProductByCode(result.code);
+      handleAdd(product);
     } catch (error) {
       setScanError(error instanceof Error ? error.message : "No se pudo buscar el producto.");
     } finally {
@@ -130,7 +147,19 @@ export function PurchasesScreen() {
         onSubmitEditing={handleSubmitSearch}
         returnKeyType="done"
       />
+      <Button
+        label="📷 Escanear"
+        variant="secondary"
+        onPress={() => setScannerOpen(true)}
+        testID="scan-product-purchase"
+      />
       {scanError && <Text style={{ color: colors.danger }}>{scanError}</Text>}
+
+      <ProductScanner
+        visible={scannerOpen}
+        onDetected={handleScanDetected}
+        onCancel={() => setScannerOpen(false)}
+      />
 
       <ScrollView
         style={styles.scroll}

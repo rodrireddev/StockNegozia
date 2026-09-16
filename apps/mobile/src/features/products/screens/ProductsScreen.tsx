@@ -3,6 +3,7 @@ import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { Package } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import type { ProductQueryInput } from "@stocknegozia/validation";
+import { fetchProductByCode } from "@/api/endpoints/products";
 import { useProducts } from "@/features/products/hooks/useProducts";
 import { useCategories } from "@/features/products/hooks/useCategories";
 import { ProductListItem } from "@/features/products/components/ProductListItem";
@@ -16,6 +17,8 @@ import { TextField } from "@/components/TextField";
 import { useAuthErrorRedirect } from "@/auth/useAuthErrorRedirect";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useDeviceSize } from "@/hooks/useDeviceSize";
+import { ProductScanner } from "@/features/scanner/ProductScanner";
+import type { ScanResult } from "@/features/scanner/types";
 import { useTheme } from "@/theme/useTheme";
 import { spacing, typography } from "@/theme/tokens";
 
@@ -39,8 +42,33 @@ export function ProductsScreen() {
   const { isTablet } = useDeviceSize();
   const [filters, setFilters] = useState<ProductFiltersState>(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [isResolvingScan, setIsResolvingScan] = useState(false);
+  const [scanNotFound, setScanNotFound] = useState<string | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
   const debouncedSearch = useDebouncedValue(filters.search);
   const { data: categories = [] } = useCategories();
+
+  async function handleScanDetected(result: ScanResult) {
+    setScannerOpen(false);
+    setScanError(null);
+    setScanNotFound(null);
+    setIsResolvingScan(true);
+    try {
+      const product = await fetchProductByCode(result.code);
+      router.push(`/products/${product.id}`);
+    } catch (error) {
+      // "Producto no encontrado" (404 del lookup) ofrece crear el producto con el código
+      // precargado — cualquier otro error (red, backend caído) se muestra como error genérico.
+      if (error instanceof Error && error.message === "Producto no encontrado") {
+        setScanNotFound(result.code);
+      } else {
+        setScanError(error instanceof Error ? error.message : "No se pudo buscar el producto.");
+      }
+    } finally {
+      setIsResolvingScan(false);
+    }
+  }
 
   const query = useProducts({
     search: debouncedSearch || undefined,
@@ -69,9 +97,44 @@ export function ProductsScreen() {
         value={filters.search}
         onChangeText={(v) => setFilters((prev) => ({ ...prev, search: v }))}
       />
+      <Button
+        label="📷 Escanear"
+        variant="secondary"
+        onPress={() => {
+          setScanNotFound(null);
+          setScanError(null);
+          setScannerOpen(true);
+        }}
+        testID="scan-product-search"
+      />
+
+      {isResolvingScan && <LoadingState message="Buscando producto…" />}
+      {scanError && <Text style={{ color: colors.danger }}>{scanError}</Text>}
+      {scanNotFound && (
+        <View style={styles.scanNotFound}>
+          <Text style={{ color: colors.foreground }}>
+            No encontramos ningún producto con el código "{scanNotFound}".
+          </Text>
+          <Button
+            label="Crear producto con este código"
+            onPress={() =>
+              router.push({ pathname: "/products/new", params: { barcode: scanNotFound } })
+            }
+            testID="create-product-from-scan"
+          />
+        </View>
+      )}
+
+      <ProductScanner
+        visible={scannerOpen}
+        onDetected={handleScanDetected}
+        onCancel={() => setScannerOpen(false)}
+      />
 
       <Pressable onPress={() => setShowFilters((prev) => !prev)} style={styles.filtersToggle}>
-        <Text style={{ color: colors.primary }}>{showFilters ? "Ocultar filtros" : "Más filtros"}</Text>
+        <Text style={{ color: colors.primary }}>
+          {showFilters ? "Ocultar filtros" : "Más filtros"}
+        </Text>
       </Pressable>
 
       {showFilters && (
@@ -107,7 +170,10 @@ export function ProductsScreen() {
               { value: "out", label: "Sin stock" },
             ]}
             onChange={(v) =>
-              setFilters((prev) => ({ ...prev, stockStatus: v as ProductFiltersState["stockStatus"] }))
+              setFilters((prev) => ({
+                ...prev,
+                stockStatus: v as ProductFiltersState["stockStatus"],
+              }))
             }
           />
         </View>
@@ -156,9 +222,15 @@ export function ProductsScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
   title: { ...typography.title },
   filtersToggle: { paddingVertical: spacing.xs },
+  scanNotFound: { gap: spacing.sm },
   filters: { gap: spacing.md, marginBottom: spacing.sm },
   listContent: { gap: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.xxl },
   row: { gap: spacing.md },

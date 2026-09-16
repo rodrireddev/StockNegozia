@@ -7,6 +7,8 @@ import { Button } from "@/components/Button";
 import { Checkbox } from "@/components/Checkbox";
 import { Select } from "@/components/Select";
 import { TextField } from "@/components/TextField";
+import { ProductScanner } from "@/features/scanner/ProductScanner";
+import type { ScanResult } from "@/features/scanner/types";
 import { useTheme } from "@/theme/useTheme";
 import { spacing } from "@/theme/tokens";
 import { useSuppliers } from "@/features/suppliers/hooks/useSuppliers";
@@ -35,11 +37,11 @@ interface ProductFormState {
   active: boolean;
 }
 
-function toFormState(product?: ProductDto): ProductFormState {
+function toFormState(product?: ProductDto, initialBarcode?: string): ProductFormState {
   return {
     name: product?.name ?? "",
     sku: product?.sku ?? "",
-    barcode: product?.barcode ?? "",
+    barcode: product?.barcode ?? initialBarcode ?? "",
     description: product?.description ?? "",
     categorySelect: product?.categoryId ? String(product.categoryId) : "",
     categoryName: "",
@@ -54,7 +56,13 @@ function toFormState(product?: ProductDto): ProductFormState {
   };
 }
 
-export function ProductForm({ product }: { product?: ProductDto }) {
+export function ProductForm({
+  product,
+  initialBarcode,
+}: {
+  product?: ProductDto;
+  initialBarcode?: string;
+}) {
   const isEdit = product !== undefined;
   const router = useRouter();
   const { colors } = useTheme();
@@ -63,9 +71,10 @@ export function ProductForm({ product }: { product?: ProductDto }) {
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct(product?.id ?? 0);
 
-  const [form, setForm] = useState<ProductFormState>(() => toFormState(product));
+  const [form, setForm] = useState<ProductFormState>(() => toFormState(product, initialBarcode));
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const isPending = createProduct.isPending || updateProduct.isPending;
 
@@ -154,6 +163,20 @@ export function ProductForm({ product }: { product?: ProductDto }) {
         label="Código de barras"
         value={form.barcode}
         onChangeText={(v) => update("barcode", v)}
+      />
+      <Button
+        label="📷 Escanear"
+        variant="secondary"
+        onPress={() => setScannerOpen(true)}
+        testID="scan-product-barcode"
+      />
+      <ProductScanner
+        visible={scannerOpen}
+        onDetected={(result: ScanResult) => {
+          setScannerOpen(false);
+          update("barcode", result.code);
+        }}
+        onCancel={() => setScannerOpen(false)}
       />
 
       <TextField
@@ -259,7 +282,12 @@ export function ProductForm({ product }: { product?: ProductDto }) {
           onPress={handleSubmit}
           loading={isPending}
         />
-        <Button label="Cancelar" variant="ghost" onPress={() => router.back()} disabled={isPending} />
+        <Button
+          label="Cancelar"
+          variant="ghost"
+          onPress={() => router.back()}
+          disabled={isPending}
+        />
       </View>
     </ScrollView>
   );
