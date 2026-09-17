@@ -12,7 +12,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "branding:generate": "node scripts/generate-branding-assets.mjs"
+    "branding:generate": "node scripts/generate-branding-assets.mjs",
+    "dist:win": "electron-vite build && electron-builder --win --x64"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.4",
@@ -44,6 +45,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "electron": "^33.2.1",
+    "electron-builder": "^26.15.3",
     "electron-vite": "^2.3.0",
     "jsdom": "^25.0.1",
     "postcss": "^8.4.49",

@@ -70,6 +70,15 @@ pnpm --filter @stocknegozia/mobile-mini lint
 pnpm --filter @stocknegozia/mobile-mini test
 ```
 
+## Temas y fixes de UI compartidos con `apps/mobile`
+
+`theme/themes.ts`, la corrección del header nativo sin temar (`navigation/useThemedStackScreenOptions.ts`)
+y la corrección de la vista previa de la cámara a mitad de tamaño en `ProductPhotoCapture.tsx` se
+aplicaron igual en ambas apps (son código prácticamente idéntico) — ver el detalle completo en
+`docs/mobile/MOBILE_CLIENT.md` §Temas y §Scanner de cámara. Acá solo se resume: además de Claro y
+Oscuro, Ajustes ahora ofrece tres paletas alternativas pensadas para descansar la vista (Pastel,
+Solarized, Nord).
+
 ## Estado / pendientes
 
 - Verificado: `typecheck`, `lint`, la suite de Jest existente (theme/hooks copiados) y un

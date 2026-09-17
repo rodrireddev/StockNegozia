@@ -37,9 +37,9 @@ todavía es un punto de extensión sin implementar.
 - ✅ Cliente móvil Android (`apps/mobile` — React Native + Expo + TypeScript, M15): pairing,
   credential storage seguro (`expo-secure-store`), listado de Productos autenticado, layout
   adaptativo phone/tablet — ver [`docs/mobile/MOBILE_CLIENT.md`](docs/mobile/MOBILE_CLIENT.md).
-- ⬜ Sin empaquetado de producción de Desktop (no hay instalador), sin exportación de datos
-  (CSV/Excel), sin backups automáticos/programados, sin scanner de cámara en Mobile (preparado
-  arquitectónicamente, ver la documentación de M15).
+- ✅ Empaquetado de producción de Desktop: instalador Windows (NSIS, vía `electron-builder`) —
+  `pnpm --filter @stocknegozia/desktop dist:win`.
+- ⬜ Sin exportación de datos (CSV/Excel), sin backups automáticos/programados.
 
 ## Arquitectura
 

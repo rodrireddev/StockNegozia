@@ -6,3 +6,4 @@ export * from "./inventory/stock-movement.contract";
 export * from "./suppliers/supplier.contract";
 export * from "./purchases/purchase.contract";
 export * from "./backup/backup.contract";
+export * from "./settings/settings.contract";

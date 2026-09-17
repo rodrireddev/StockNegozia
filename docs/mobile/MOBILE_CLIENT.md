@@ -304,6 +304,31 @@ accesibilidad exhaustiva, comparación con apps similares) es explícitamente un
 ("Mobile UX/UI Optimization"). M15 entrega una base visual coherente y funcional, no el resultado
 de esa investigación.
 
+### Temas — Claro/Oscuro + paletas alternativas
+
+`useThemeMode()`/`ThemeProvider` (`src/theme/ThemeContext.tsx`) resuelven el tema activo contra un
+registro único, `THEMES` (`src/theme/themes.ts`), que mapea cada `ThemeMode` a una paleta completa
+(`ThemeColors`) + su flag `dark` (para el `StatusBar`) — agregar un tema nuevo es agregar una
+entrada ahí + sus colores en `src/theme/colors.ts`, sin tocar `ThemeContext`. Además de **Claro** y
+**Oscuro** (los temas base, se mantienen sin cambios) hay tres paletas alternativas pensadas para
+descansar la vista en sesiones largas, elegidas por ser combinaciones ya documentadas y probadas
+con ese objetivo (no colores inventados al azar):
+
+- **Pastel** — paleta propia de tonos suaves y poco saturados (lavanda/menta/durazno) sobre blanco
+  cálido, sin blancos/negros puros.
+- **Solarized** — la paleta de Ethan Schoonover ([ethanschoonover.com/solarized](https://ethanschoonover.com/solarized/)),
+  calculada a mano en CIELAB específicamente para minimizar el contraste brillante texto/fondo
+  (variante Light: fondo crema, nunca blanco puro).
+- **Nord** — la paleta ártica de [nordtheme.com](https://www.nordtheme.com/docs/colors-and-palettes),
+  tonos azul-grisáceos de bajo contraste; es oscura por diseño.
+
+**Bug corregido — header nativo sin temar**: los `<Stack>` anidados con header propio
+(`(app)/products`, `(app)/purchases`, `(app)/inventory`) no pasaban `headerStyle`/`headerTintColor`,
+así que React Navigation pintaba el header con sus colores nativos por defecto (fondo blanco, texto
+negro) sin importar el tema activo — visible sobre todo en modo oscuro (ej. al crear un producto).
+`src/navigation/useThemedStackScreenOptions.ts` centraliza el `screenOptions` themed que cada uno de
+esos tres `_layout.tsx` ahora pasa a su `<Stack>`.
+
 ## Scanner de cámara
 
 **Tres usos de `expo-camera` en la app — sigue siendo la única dependencia de cámara del proyecto:**
@@ -319,6 +344,15 @@ de esa investigación.
 3. **Foto de producto** (M16, `src/features/products/components/ProductPhotoCapture.tsx`) —
    `CameraView.takePictureAsync()` para reemplazar el campo "Imagen (URL)" del formulario por una
    foto real, entregada como el mismo data URI base64 que ya produce Desktop.
+
+   **Bug corregido — vista previa a la mitad de tamaño**: el `<CameraView>` se dimensionaba con
+   `flex: 1` dentro del `Modal`, confiando en que el motor de layout ya hubiera resuelto la altura
+   real de la ventana al momento de montar — si el teclado seguía abierto (por ejemplo, tras
+   tipear en otro campo del formulario antes de tocar "Tomar foto"), la ventana podía quedar con
+   una altura reducida y la cámara se veía a la mitad. Ahora `ProductPhotoCapture` mide su
+   contenedor con `onLayout` y le pasa esas dimensiones explícitas al `CameraView` (en vez de
+   `flex`), lo remonta con una `key` nueva en cada apertura del modal, y `ProductForm` hace
+   `Keyboard.dismiss()` antes de abrir tanto la foto como el scanner de código de barras.
 
 Ver `docs/inventory/PRODUCT_SCANNER.md` para el detalle completo de los dos usos de M16 (modelo de
 identificador, endpoint de lookup, escaneo continuo, foto de producto).
