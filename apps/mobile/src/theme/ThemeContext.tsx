@@ -8,8 +8,9 @@ import {
   type ReactNode,
 } from "react";
 import { useColorScheme } from "react-native";
-import { darkColors, lightColors, type ThemeColors } from "./colors";
+import type { ThemeColors } from "./colors";
 import { getThemeMode, loadThemeMode, persistThemeMode, type ThemeMode } from "./themeStore";
+import { THEMES } from "./themes";
 
 export type { ThemeMode };
 
@@ -27,9 +28,9 @@ export interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 /**
- * Único punto donde se resuelve el tema — Claro/Oscuro/Sistema (ver
- * docs/mobile/MOBILE_CLIENT.md y el plan de M15). Envuelve toda la app en `_layout.tsx`, antes de
- * `AuthProvider`, para que la preferencia esté disponible desde la primera pantalla.
+ * Único punto donde se resuelve el tema — Sistema/Claro/Oscuro + las paletas alternativas de
+ * `theme/themes.ts` (ver docs/mobile/MOBILE_CLIENT.md). Envuelve toda la app en `_layout.tsx`,
+ * antes de `AuthProvider`, para que la preferencia esté disponible desde la primera pantalla.
  */
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const systemScheme = useColorScheme();
@@ -55,11 +56,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     await persistThemeMode(next);
   }, []);
 
-  const dark = mode === "system" ? systemScheme === "dark" : mode === "dark";
+  // "system" no es un tema en sí — resuelve a "light"/"dark" según el esquema del SO y de ahí en
+  // más se trata igual que cualquier otro modo (ver THEMES en `theme/themes.ts`).
+  const resolvedMode = mode === "system" ? (systemScheme === "dark" ? "dark" : "light") : mode;
+  const theme = THEMES[resolvedMode];
 
   const value = useMemo<ThemeContextValue>(
-    () => ({ mode, dark, colors: dark ? darkColors : lightColors, ready, setMode }),
-    [mode, dark, ready, setMode],
+    () => ({ mode, dark: theme.dark, colors: theme.colors, ready, setMode }),
+    [mode, theme, ready, setMode],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

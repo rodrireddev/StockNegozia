@@ -5,6 +5,7 @@ import type { ProductDto } from "@stocknegozia/api-contracts";
 import { resolveScanMatch } from "@stocknegozia/shared";
 import { fetchProductByCode, fetchProducts } from "@/data/products";
 import { Button } from "@/components/Button";
+import { Checkbox } from "@/components/Checkbox";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
@@ -22,6 +23,7 @@ import { spacing, typography } from "@/theme/tokens";
 import { SaleCartRow } from "../components/SaleCartRow";
 import { useCart } from "../hooks/useCart";
 import { useCreateSale } from "../hooks/useCreateSale";
+import { useGenerateReceipt } from "../hooks/useGenerateReceipt";
 
 const currencyFormatter = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 
@@ -34,6 +36,8 @@ export function SalesScreen() {
   const [scanFeedback, setScanFeedback] = useState<ScanFeedback | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [generateReceipt, setGenerateReceipt] = useState(false);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
 
   const debouncedSearch = useDebouncedValue(searchTerm);
   const trimmedSearch = debouncedSearch.trim();
@@ -42,6 +46,7 @@ export function SalesScreen() {
 
   const cart = useCart();
   const createSale = useCreateSale();
+  const generateReceiptMutation = useGenerateReceipt();
   const playScanBeep = useScanBeep();
 
   function handleAdd(product: ProductDto) {
@@ -105,10 +110,16 @@ export function SalesScreen() {
     if (cart.isEmpty || createSale.isPending) return;
     setConfirmError(null);
     setSuccessMessage(null);
+    setReceiptError(null);
 
+    // Se captura antes de `cart.clear()` — el carrito ya trae name/sku/unitPrice por línea, así
+    // que no hace falta re-consultar productos por id para armar el recibo.
+    const soldItems = cart.items;
+
+    let sale;
     try {
-      await createSale.mutateAsync({
-        items: cart.items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+      sale = await createSale.mutateAsync({
+        items: soldItems.map((item) => ({ productId: item.productId, quantity: item.quantity })),
       });
       // El carrito solo se limpia después de que la venta quedó confirmada en la base local —
       // nunca antes.
@@ -116,6 +127,26 @@ export function SalesScreen() {
       setSuccessMessage("Venta registrada correctamente.");
     } catch (error) {
       setConfirmError(error instanceof Error ? error.message : "No se pudo registrar la venta.");
+      return;
+    }
+
+    // Generar el recibo es una acción aparte y opcional: si falla, la venta ya quedó confirmada —
+    // nunca se muestra como si la venta hubiera fallado.
+    if (generateReceipt) {
+      try {
+        await generateReceiptMutation.mutateAsync({
+          sale,
+          lines: soldItems.map((item) => ({
+            name: item.name,
+            sku: item.sku,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            subtotal: item.unitPrice * item.quantity,
+          })),
+        });
+      } catch (error) {
+        setReceiptError(error instanceof Error ? error.message : "No se pudo generar el recibo.");
+      }
     }
   }
 
@@ -205,18 +236,25 @@ export function SalesScreen() {
       <View style={[styles.footer, { borderTopColor: colors.border }]}>
         {confirmError && <Text style={{ color: colors.danger }}>{confirmError}</Text>}
         {successMessage && <Text style={{ color: colors.success }}>{successMessage}</Text>}
+        {receiptError && <Text style={{ color: colors.danger }}>{receiptError}</Text>}
         <View style={styles.totalRow}>
           <Text style={[typography.bodyStrong, { color: colors.foreground }]}>Total</Text>
           <Text style={[typography.title, { color: colors.foreground }]}>
             {currencyFormatter.format(cart.total)}
           </Text>
         </View>
+        <Checkbox
+          checked={generateReceipt}
+          onChange={setGenerateReceipt}
+          label="Generar recibo PDF"
+          testID="generate-receipt"
+        />
         <Button
           testID="confirm-sale"
           label={createSale.isPending ? "Registrando venta…" : "Confirmar venta"}
           onPress={handleConfirm}
           disabled={cart.isEmpty}
-          loading={createSale.isPending}
+          loading={createSale.isPending || generateReceiptMutation.isPending}
         />
       </View>
     </ScreenContainer>

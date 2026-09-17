@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Keyboard, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { ProductDto } from "@stocknegozia/api-contracts";
 import { createProductSchema, updateProductSchema } from "@stocknegozia/validation";
 import { useRouter } from "expo-router";
@@ -169,7 +169,13 @@ export function ProductForm({
       <Button
         label="📷 Escanear"
         variant="secondary"
-        onPress={() => setScannerOpen(true)}
+        onPress={() => {
+          // Cierra el teclado antes de abrir la cámara — si quedaba abierto (por ejemplo, tras
+          // tipear en un campo de texto), la ventana puede quedar con una altura reducida hasta
+          // que Android termina de reacomodarla (ver el mismo ajuste en ProductPhotoCapture).
+          Keyboard.dismiss();
+          setScannerOpen(true);
+        }}
         testID="scan-product-barcode"
       />
       <ProductScanner
@@ -279,7 +285,10 @@ export function ProductForm({
           <Button
             label="📷 Tomar foto"
             variant="secondary"
-            onPress={() => setPhotoCaptureOpen(true)}
+            onPress={() => {
+              Keyboard.dismiss();
+              setPhotoCaptureOpen(true);
+            }}
             testID="take-product-photo"
           />
         )}

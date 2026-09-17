@@ -5,11 +5,18 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SalesPage } from "./SalesPage";
 
-const { fetchProductsMock, createSaleMock, fetchMeMock, updateSellerNameMock } = vi.hoisted(() => ({
+const {
+  fetchProductsMock,
+  createSaleMock,
+  fetchMeMock,
+  updateSellerNameMock,
+  downloadSaleReceiptMock,
+} = vi.hoisted(() => ({
   fetchProductsMock: vi.fn(),
   createSaleMock: vi.fn(),
   fetchMeMock: vi.fn(),
   updateSellerNameMock: vi.fn(),
+  downloadSaleReceiptMock: vi.fn(),
 }));
 
 vi.mock("@/features/products/api/products.api", () => ({
@@ -18,6 +25,10 @@ vi.mock("@/features/products/api/products.api", () => ({
 
 vi.mock("@/features/sales/api/sales.api", () => ({
   createSale: createSaleMock,
+}));
+
+vi.mock("@/features/sales/api/receipt.api", () => ({
+  downloadSaleReceipt: downloadSaleReceiptMock,
 }));
 
 vi.mock("@/features/devices/api/devices.api", () => ({
@@ -81,6 +92,7 @@ beforeEach(() => {
   createSaleMock.mockReset();
   fetchMeMock.mockReset();
   updateSellerNameMock.mockReset();
+  downloadSaleReceiptMock.mockReset();
   fetchProductsMock.mockResolvedValue([cocaCola, jabon]);
   // Vendedor actual ya configurado por defecto — así las ventas se registran sin fricción en
   // todos los tests que no ejercitan específicamente el bloqueo (ver describe más abajo).
@@ -226,6 +238,58 @@ describe("SalesPage", () => {
       items: [],
     });
     await screen.findByText(/venta registrada correctamente/i);
+  });
+
+  describe("recibo PDF", () => {
+    beforeEach(() => {
+      createSaleMock.mockResolvedValue({
+        id: 10,
+        status: "completed",
+        total: 1200,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        cancelledAt: null,
+        items: [{ id: 1, productId: cocaCola.id, quantity: 1, unitPrice: 1200, subtotal: 1200 }],
+      });
+    });
+
+    it("con el checkbox destildado (default), confirmar la venta no descarga ningún recibo", async () => {
+      const user = userEvent.setup();
+      renderSalesPage();
+      await user.click(await screen.findByText("Coca-Cola 2L"));
+      await user.click(screen.getByRole("button", { name: /confirmar venta/i }));
+
+      await screen.findByText(/venta registrada correctamente/i);
+      expect(downloadSaleReceiptMock).not.toHaveBeenCalled();
+    });
+
+    it("con el checkbox tildado, confirmar la venta descarga el recibo y avisa dónde se guardó", async () => {
+      const user = userEvent.setup();
+      downloadSaleReceiptMock.mockResolvedValue({
+        cancelled: false,
+        filePath: "C:\\Users\\Rodri\\Documents\\recibo-venta-10.pdf",
+      });
+
+      renderSalesPage();
+      await user.click(await screen.findByText("Coca-Cola 2L"));
+      await user.click(screen.getByRole("checkbox", { name: /generar recibo pdf/i }));
+      await user.click(screen.getByRole("button", { name: /confirmar venta/i }));
+
+      expect(await screen.findByText(/recibo guardado en/i)).toBeInTheDocument();
+      expect(downloadSaleReceiptMock).toHaveBeenCalledWith(10, expect.anything());
+    });
+
+    it("si falla la descarga del recibo, la venta sigue mostrando éxito y el error se avisa aparte", async () => {
+      const user = userEvent.setup();
+      downloadSaleReceiptMock.mockResolvedValue({ cancelled: false, error: "Backend no disponible" });
+
+      renderSalesPage();
+      await user.click(await screen.findByText("Coca-Cola 2L"));
+      await user.click(screen.getByRole("checkbox", { name: /generar recibo pdf/i }));
+      await user.click(screen.getByRole("button", { name: /confirmar venta/i }));
+
+      expect(await screen.findByText(/venta registrada correctamente/i)).toBeInTheDocument();
+      expect(await screen.findByText(/no se pudo guardar el recibo/i)).toBeInTheDocument();
+    });
   });
 
   describe("vendedor actual", () => {

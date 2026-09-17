@@ -5,6 +5,7 @@ import { PermissionsModule } from "./permissions/permissions.module";
 import { ProductsModule } from "./products/products.module";
 import { PurchasesModule } from "./purchases/purchases.module";
 import { SalesModule } from "./sales/sales.module";
+import { SettingsModule } from "./settings/settings.module";
 import { StockMovementsModule } from "./stock-movements/stock-movements.module";
 import { SuppliersModule } from "./suppliers/suppliers.module";
 import { UsersModule } from "./users/users.module";
@@ -20,6 +21,7 @@ import { UsersModule } from "./users/users.module";
     ProductsModule,
     InventoryModule,
     SalesModule,
+    SettingsModule,
     StockMovementsModule,
     SuppliersModule,
     PurchasesModule,

@@ -15,6 +15,9 @@ interface SaleCartPanelProps {
   isSubmitting: boolean;
   errorMessage: string | null;
   successMessage: string | null;
+  generateReceipt: boolean;
+  onGenerateReceiptChange: (value: boolean) => void;
+  receiptNotice: string | null;
 }
 
 export function SaleCartPanel({
@@ -27,6 +30,9 @@ export function SaleCartPanel({
   isSubmitting,
   errorMessage,
   successMessage,
+  generateReceipt,
+  onGenerateReceiptChange,
+  receiptNotice,
 }: SaleCartPanelProps) {
   return (
     <div className="flex flex-col rounded-lg border border-border">
@@ -96,11 +102,26 @@ export function SaleCartPanel({
             {successMessage}
           </p>
         )}
+        {receiptNotice && (
+          <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/50 dark:text-amber-400">
+            {receiptNotice}
+          </p>
+        )}
 
         <div className="flex items-center justify-between text-lg font-bold tabular-nums">
           <span>Total</span>
           <span>{currencyFormatter.format(total)}</span>
         </div>
+
+        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+          <input
+            type="checkbox"
+            className="h-4 w-4 rounded border-border"
+            checked={generateReceipt}
+            onChange={(event) => onGenerateReceiptChange(event.target.checked)}
+          />
+          Generar recibo PDF al confirmar
+        </label>
 
         <Button
           type="button"

@@ -12,6 +12,8 @@ import { CategoriesService } from "../categories/categories.service";
 import { ProductsRepository } from "../products/products.repository";
 import { ProductsService } from "../products/products.service";
 import { PurchasesRepository } from "../purchases/purchases.repository";
+import { SettingsRepository } from "../settings/settings.repository";
+import { SettingsService } from "../settings/settings.service";
 import { StockMovementsRepository } from "../stock-movements/stock-movements.repository";
 import { StockMovementsService } from "../stock-movements/stock-movements.service";
 import { SuppliersRepository } from "../suppliers/suppliers.repository";
@@ -49,7 +51,8 @@ describe("Sales — secuencia de eventos de logging", () => {
       logger,
     );
     const salesRepository = new SalesRepository(db);
-    salesService = new SalesService(db, salesRepository, productsService, logger);
+    const settingsService = new SettingsService(new SettingsRepository(db));
+    salesService = new SalesService(db, salesRepository, productsService, settingsService, logger);
     // El proveedor es obligatorio para crear un producto con stock inicial > 0 (ver
     // ProductsService.create()).
     defaultSupplierId = suppliersService.create({ name: "Proveedor de prueba" }).id;

@@ -1,18 +1,27 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useThemeStore } from "@/stores/theme-store";
 import { SettingsPage } from "./SettingsPage";
 
-const { createBackupMock, selectAndValidateBackupMock, restoreBackupMock, fetchMeMock, updateSellerNameMock } =
-  vi.hoisted(() => ({
-    createBackupMock: vi.fn(),
-    selectAndValidateBackupMock: vi.fn(),
-    restoreBackupMock: vi.fn(),
-    fetchMeMock: vi.fn(),
-    updateSellerNameMock: vi.fn(),
-  }));
+const {
+  createBackupMock,
+  selectAndValidateBackupMock,
+  restoreBackupMock,
+  fetchMeMock,
+  updateSellerNameMock,
+  fetchSettingsMock,
+  updateSettingsMock,
+} = vi.hoisted(() => ({
+  createBackupMock: vi.fn(),
+  selectAndValidateBackupMock: vi.fn(),
+  restoreBackupMock: vi.fn(),
+  fetchMeMock: vi.fn(),
+  updateSellerNameMock: vi.fn(),
+  fetchSettingsMock: vi.fn(),
+  updateSettingsMock: vi.fn(),
+}));
 
 vi.mock("@/features/backup/api/backup.api", () => ({
   createBackup: createBackupMock,
@@ -24,6 +33,19 @@ vi.mock("@/features/devices/api/devices.api", () => ({
   fetchMe: fetchMeMock,
   updateSellerName: updateSellerNameMock,
 }));
+
+vi.mock("@/features/settings/api/settings.api", () => ({
+  fetchSettings: fetchSettingsMock,
+  updateSettings: updateSettingsMock,
+}));
+
+/** Helper: encuentra la `Card` que contiene un título dado, para desambiguar entre las varias
+ *  cards de Configuración que tienen sus propios botones "Guardar" (y, en el caso de "Nombre del
+ *  negocio", el mismo texto del título y de la etiqueta del input). `getByRole("heading", ...)`
+ *  matchea sólo el `CardTitle` (un `<h3>`), nunca el `<label>`. */
+function cardWithTitle(title: string): HTMLElement {
+  return screen.getByRole("heading", { name: title }).closest("div")!.parentElement as HTMLElement;
+}
 
 const deviceFixture = {
   id: "device-1",
@@ -51,7 +73,10 @@ beforeEach(() => {
   restoreBackupMock.mockReset();
   fetchMeMock.mockReset();
   updateSellerNameMock.mockReset();
+  fetchSettingsMock.mockReset();
+  updateSettingsMock.mockReset();
   fetchMeMock.mockResolvedValue(deviceFixture);
+  fetchSettingsMock.mockResolvedValue({ businessName: null });
   useThemeStore.setState({ preference: "system", resolvedDark: false });
   window.theme = {
     get: vi.fn().mockResolvedValue({ preference: "system", resolvedDark: false }),
@@ -69,12 +94,26 @@ describe("SettingsPage", () => {
     expect(screen.getByRole("button", { name: /seleccionar backup/i })).toBeInTheDocument();
   });
 
-  it("muestra la sección Apariencia con las tres opciones de tema", () => {
+  it("muestra la sección Apariencia con las seis opciones de tema", () => {
     renderPage();
     expect(screen.getByText("Apariencia")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sistema" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Claro" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Oscuro" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Pastel" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Solarized" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Nord" })).toBeInTheDocument();
+  });
+
+  it("elegir Nord llama a window.theme.set y actualiza el store sin reiniciar", async () => {
+    window.theme.set = vi.fn().mockResolvedValue({ preference: "nord", resolvedDark: true });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getByRole("button", { name: "Nord" }));
+
+    expect(window.theme.set).toHaveBeenCalledWith("nord");
+    expect(useThemeStore.getState()).toEqual({ preference: "nord", resolvedDark: true });
   });
 
   it("elegir Oscuro llama a window.theme.set y actualiza el store sin reiniciar", async () => {
@@ -270,23 +309,58 @@ describe("SettingsPage", () => {
       updateSellerNameMock.mockResolvedValue({ ...deviceFixture, sellerName: "Rodrigo" });
       renderPage();
       await screen.findByText("Vendedor actual");
+      const card = within(cardWithTitle("Vendedor actual"));
 
-      await user.type(screen.getByLabelText(/coloque el nombre del vendedor actual/i), "Rodrigo");
-      await user.click(screen.getByRole("button", { name: /^guardar$/i }));
+      await user.type(card.getByLabelText(/coloque el nombre del vendedor actual/i), "Rodrigo");
+      await user.click(card.getByRole("button", { name: /^guardar$/i }));
 
       expect(updateSellerNameMock).toHaveBeenCalledWith({ sellerName: "Rodrigo" });
-      expect(await screen.findByText(/vendedor actual actualizado/i)).toBeInTheDocument();
+      expect(await card.findByText(/vendedor actual actualizado/i)).toBeInTheDocument();
     });
 
     it("rechaza guardar un nombre vacío sin llamar a la API", async () => {
       const user = userEvent.setup();
       renderPage();
       await screen.findByText("Vendedor actual");
+      const card = within(cardWithTitle("Vendedor actual"));
 
-      await user.click(screen.getByRole("button", { name: /^guardar$/i }));
+      await user.click(card.getByRole("button", { name: /^guardar$/i }));
 
-      expect(await screen.findByText(/ingresá el nombre del vendedor actual/i)).toBeInTheDocument();
+      expect(await card.findByText(/ingresá el nombre del vendedor actual/i)).toBeInTheDocument();
       expect(updateSellerNameMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Nombre del negocio", () => {
+    it("sin nombre configurado, muestra el campo vacío", async () => {
+      renderPage();
+      expect(await screen.findByRole("heading", { name: "Nombre del negocio" })).toBeInTheDocument();
+      const card = within(cardWithTitle("Nombre del negocio"));
+      expect(card.getByPlaceholderText(/almacén doña rosa/i)).toHaveValue("");
+    });
+
+    it("con nombre ya configurado, precarga el campo", async () => {
+      fetchSettingsMock.mockResolvedValue({ businessName: "Almacén Doña Rosa" });
+      renderPage();
+
+      const card = within(cardWithTitle("Nombre del negocio"));
+      await vi.waitFor(() =>
+        expect(card.getByPlaceholderText(/almacén doña rosa/i)).toHaveValue("Almacén Doña Rosa"),
+      );
+    });
+
+    it("guardar un nombre llama a la API y muestra confirmación", async () => {
+      const user = userEvent.setup();
+      updateSettingsMock.mockResolvedValue({ businessName: "Almacén Doña Rosa" });
+      renderPage();
+      await screen.findByRole("heading", { name: "Nombre del negocio" });
+      const card = within(cardWithTitle("Nombre del negocio"));
+
+      await user.type(card.getByPlaceholderText(/almacén doña rosa/i), "Almacén Doña Rosa");
+      await user.click(card.getByRole("button", { name: /^guardar$/i }));
+
+      expect(updateSettingsMock).toHaveBeenCalledWith({ businessName: "Almacén Doña Rosa" });
+      expect(await card.findByText(/nombre del negocio actualizado/i)).toBeInTheDocument();
     });
   });
 });

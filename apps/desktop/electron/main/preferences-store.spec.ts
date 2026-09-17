@@ -38,6 +38,12 @@ describe("PreferencesStore", () => {
     expect(new PreferencesStore(tmpDir).load()).toEqual({ theme: "system" });
   });
 
+  it("persiste y recupera una paleta alternativa (pastel/solarized/nord)", () => {
+    const store = new PreferencesStore(tmpDir);
+    store.save({ theme: "nord" });
+    expect(new PreferencesStore(tmpDir).load()).toEqual({ theme: "nord" });
+  });
+
   it("cae al default si el valor de theme no es válido", () => {
     writeFileSync(path.join(tmpDir, "preferences.json"), JSON.stringify({ theme: "purple" }));
     expect(new PreferencesStore(tmpDir).load()).toEqual({ theme: "system" });

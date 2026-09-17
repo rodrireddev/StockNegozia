@@ -7,7 +7,9 @@
     "icon": "./assets/images/icon.png",
     "scheme": "stocknegozia-mini",
     "userInterfaceStyle": "automatic",
-    "platforms": ["android"],
+    "platforms": [
+      "android"
+    ],
     "android": {
       "package": "com.stocknegozia.mobilemini",
       "versionCode": 1,
@@ -45,7 +47,8 @@
           "recordAudioAndroid": false,
           "enableBackgroundPlayback": false
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true

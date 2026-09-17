@@ -1,5 +1,13 @@
-import { useRef, useState } from "react";
-import { Image, Modal as RNModal, Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  type LayoutChangeEvent,
+  Image,
+  Modal as RNModal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Button } from "@/components/Button";
 import { useTheme } from "@/theme/useTheme";
@@ -38,6 +46,28 @@ export function ProductPhotoCapture({ visible, onCaptured, onCancel }: ProductPh
   const [preview, setPreview] = useState<{ uri: string; dataUri: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
+  // Se remonta la cámara en cada apertura del modal (en vez de reusar la misma instancia entre
+  // aperturas) y se mide su contenedor real con `onLayout` en lugar de confiar únicamente en
+  // `flex: 1` — corrige un caso reportado donde la vista previa se renderizaba a la mitad de su
+  // tamaño real al editar un producto existente (nunca al crear uno nuevo): el contenedor del
+  // modal puede quedar con una altura de ventana desactualizada si el teclado seguía abierto (de
+  // haber estado editando otro campo del formulario) al momento de montar la cámara.
+  const [cameraKey, setCameraKey] = useState(0);
+  const [cameraSize, setCameraSize] = useState<{ width: number; height: number } | null>(null);
+
+  useEffect(() => {
+    if (visible) {
+      setCameraKey((key) => key + 1);
+      // Se descarta la medida anterior al reabrir — evita mostrar la cámara con un tamaño
+      // heredado de la apertura previa hasta que `onLayout` mida el contenedor de nuevo.
+      setCameraSize(null);
+    }
+  }, [visible]);
+
+  function handleCameraWrapperLayout(event: LayoutChangeEvent) {
+    const { width, height } = event.nativeEvent.layout;
+    setCameraSize({ width, height });
+  }
 
   function handleClose() {
     setPreview(null);
@@ -125,8 +155,15 @@ export function ProductPhotoCapture({ visible, onCaptured, onCancel }: ProductPh
           </View>
         ) : (
           <>
-            <View style={styles.cameraWrapper}>
-              <CameraView ref={cameraRef} style={styles.camera} facing="back" />
+            <View style={styles.cameraWrapper} onLayout={handleCameraWrapperLayout}>
+              {cameraSize && (
+                <CameraView
+                  key={cameraKey}
+                  ref={cameraRef}
+                  style={[styles.camera, cameraSize]}
+                  facing="back"
+                />
+              )}
             </View>
             {error && <Text style={{ color: colors.danger }}>{error}</Text>}
             <Button
@@ -148,7 +185,9 @@ const styles = StyleSheet.create({
   centerContent: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.lg },
   message: { textAlign: "center" },
   cameraWrapper: { flex: 1, borderRadius: radius.lg, overflow: "hidden" },
-  camera: { flex: 1 },
+  // Sin `flex: 1` a propósito — el tamaño real se lo da `cameraSize` (medido con `onLayout` sobre
+  // `cameraWrapper`), no el motor de flexbox (ver el comentario en el componente).
+  camera: {},
   previewWrapper: { flex: 1, gap: spacing.md },
   previewImage: { flex: 1, borderRadius: radius.lg },
   previewActions: { gap: spacing.sm },

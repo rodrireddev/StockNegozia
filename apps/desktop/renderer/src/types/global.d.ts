@@ -52,7 +52,16 @@ export interface BackupApi {
   restore(): Promise<RestoreOutcome>;
 }
 
-export type ThemePreference = "system" | "light" | "dark";
+export type DownloadReceiptOutcome =
+  | { cancelled: true }
+  | { cancelled: false; filePath: string }
+  | { cancelled: false; error: string };
+
+export interface ReceiptApi {
+  downloadSale(saleId: number): Promise<DownloadReceiptOutcome>;
+}
+
+export type ThemePreference = "system" | "light" | "dark" | "pastel" | "solarized" | "nord";
 
 export interface ThemeStatus {
   preference: ThemePreference;
@@ -69,6 +78,7 @@ declare global {
   interface Window {
     stockNegozia: StockNegoziaApi;
     backup: BackupApi;
+    receipt: ReceiptApi;
     theme: ThemeApi;
   }
 }

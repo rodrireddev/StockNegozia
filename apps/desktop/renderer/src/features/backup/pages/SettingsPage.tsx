@@ -9,6 +9,8 @@ import { getUserFriendlyError } from "@/lib/errors";
 import { setThemePreference, useThemeStore } from "@/stores/theme-store";
 import { useMe } from "@/features/devices/hooks/useMe";
 import { useUpdateSellerName } from "@/features/devices/hooks/useUpdateSellerName";
+import { useSettings } from "@/features/settings/hooks/useSettings";
+import { useUpdateSettings } from "@/features/settings/hooks/useUpdateSettings";
 import { RestoreConfirmDialog } from "../components/RestoreConfirmDialog";
 import { useCreateBackup } from "../hooks/useCreateBackup";
 import { useRestoreBackup } from "../hooks/useRestoreBackup";
@@ -21,6 +23,11 @@ const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: "system", label: "Sistema" },
   { value: "light", label: "Claro" },
   { value: "dark", label: "Oscuro" },
+  // Paletas alternativas — mismas 3 y mismos colores que en Mobile/Mobile Mini (ver
+  // apps/mobile/src/theme/colors.ts), pensadas para descansar la vista en sesiones largas.
+  { value: "pastel", label: "Pastel" },
+  { value: "solarized", label: "Solarized" },
+  { value: "nord", label: "Nord" },
 ];
 
 function AppearanceCard() {
@@ -34,7 +41,7 @@ function AppearanceCard() {
           Elegí cómo se ve StockNegozia. "Sistema" sigue el tema de Windows.
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex gap-2">
+      <CardContent className="flex flex-wrap gap-2">
         {THEME_OPTIONS.map((option) => (
           <Button
             key={option.value}
@@ -45,6 +52,65 @@ function AppearanceCard() {
             {option.label}
           </Button>
         ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * "Nombre del negocio" reemplaza a "StockNegozia" en el encabezado del recibo PDF que genera el
+ * backend (ver apps/backend/src/core/sales/sale-receipt.pdf.ts) — es un ajuste global del backend
+ * (tabla `app_meta`), no de este dispositivo, así que también lo puede cambiar Mobile.
+ */
+function BusinessNameCard() {
+  const settings = useSettings();
+  const updateSettings = useUpdateSettings();
+  const [value, setValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (settings.data) setValue(settings.data.businessName ?? "");
+  }, [settings.data]);
+
+  function handleSave() {
+    setError(null);
+    setSuccessMessage(null);
+    const trimmed = value.trim();
+    updateSettings.mutate(
+      { businessName: trimmed.length > 0 ? trimmed : null },
+      {
+        onSuccess: () => setSuccessMessage("Nombre del negocio actualizado."),
+        onError: (err) => setError(getUserFriendlyError(err)),
+      },
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Nombre del negocio</CardTitle>
+        <CardDescription>
+          Aparece en el encabezado del recibo PDF de venta en vez de "StockNegozia".
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="space-y-2">
+          <Label htmlFor="business-name">Nombre del negocio</Label>
+          <Input
+            id="business-name"
+            placeholder="Ej: Almacén Doña Rosa"
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+          />
+        </div>
+        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+        {successMessage && (
+          <p className="text-sm text-emerald-700 dark:text-emerald-400">{successMessage}</p>
+        )}
+        <Button onClick={handleSave} disabled={updateSettings.isPending}>
+          {updateSettings.isPending ? "Guardando…" : "Guardar"}
+        </Button>
       </CardContent>
     </Card>
   );
@@ -192,6 +258,7 @@ export function SettingsPage() {
         <h1 className="text-xl font-semibold">Configuración</h1>
       </div>
 
+      <BusinessNameCard />
       <SellerNameCard />
       <AppearanceCard />
 

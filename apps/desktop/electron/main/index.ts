@@ -5,6 +5,7 @@ import { BackupManager } from "./backup-manager";
 import { ensureDeviceCredential } from "./bootstrap-device";
 import { DeviceCredentialStore } from "./device-credential-store";
 import { PreferencesStore } from "./preferences-store";
+import { ReceiptManager } from "./receipt-manager";
 import { createSplashWindow } from "./splash";
 import { ensureMinimumVisible, MIN_SPLASH_VISIBLE_MS } from "./splash-timing";
 import { ThemeController } from "./theme-controller";
@@ -48,6 +49,7 @@ app.commandLine.appendSwitch("in-process-gpu");
 let mainWindow: BrowserWindow | null = null;
 
 const backupManager = new BackupManager(backendManager, credentialStore, dataDir, () => mainWindow);
+const receiptManager = new ReceiptManager(backendManager, credentialStore, () => mainWindow);
 
 // Único punto de entrada de filesystem/backend para Backup/Restore desde el Renderer — ver
 // docs/backup/BACKUP_RESTORE.md §Seguridad. El Renderer nunca recibe ni envía una ruta de
@@ -55,6 +57,12 @@ const backupManager = new BackupManager(backendManager, credentialStore, dataDir
 ipcMain.handle("backup:create", () => backupManager.createBackup());
 ipcMain.handle("backup:selectAndValidate", () => backupManager.selectAndValidateRestoreFile());
 ipcMain.handle("backup:restore", () => backupManager.restoreSelectedFile());
+
+// Mismo criterio que Backup: el recibo PDF lo genera siempre el backend, Electron Main sólo lo
+// descarga y lo guarda donde el usuario elige en el diálogo nativo.
+ipcMain.handle("receipt:downloadSale", (_event, saleId: number) =>
+  receiptManager.downloadSaleReceipt(saleId),
+);
 
 themeController.registerIpcHandlers();
 

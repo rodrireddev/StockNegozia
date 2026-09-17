@@ -6,6 +6,7 @@ import type {
   SelectAndValidateOutcome,
 } from "../main/backup-manager";
 import type { ThemePreference } from "../main/preferences-store";
+import type { DownloadReceiptOutcome } from "../main/receipt-manager";
 import type { ThemeStatus } from "../main/theme-controller";
 
 const backendPort = Number(process.env["STOCKNEGOZIA_PORT"]) || DEFAULT_BACKEND_PORT;
@@ -33,6 +34,18 @@ const backupApi = {
 contextBridge.exposeInMainWorld("backup", backupApi);
 
 /**
+ * Superficie mínima para el recibo PDF de una venta — mismo criterio que Backup: el PDF lo genera
+ * siempre el backend, acá sólo se dispara la descarga y se recibe el resultado ya resuelto por
+ * Electron Main (que es quien muestra el diálogo nativo y escribe el archivo).
+ */
+const receiptApi = {
+  downloadSale: (saleId: number): Promise<DownloadReceiptOutcome> =>
+    ipcRenderer.invoke("receipt:downloadSale", saleId),
+};
+
+contextBridge.exposeInMainWorld("receipt", receiptApi);
+
+/**
  * Superficie mínima para Dark Mode — el Renderer nunca decide `prefers-color-scheme` por su
  * cuenta: `nativeTheme` en Electron Main es la única fuente de verdad (ver
  * docs/desktop/THEME.md), así que acá solo se expone leer/cambiar la preferencia y suscribirse a
@@ -54,5 +67,6 @@ contextBridge.exposeInMainWorld("theme", themeApi);
 
 export type StockNegoziaApi = typeof stockNegoziaApi;
 export type BackupApi = typeof backupApi;
+export type ReceiptApi = typeof receiptApi;
 export type ThemeApi = typeof themeApi;
 export type { ThemePreference, ThemeStatus };

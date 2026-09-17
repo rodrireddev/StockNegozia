@@ -11,6 +11,8 @@ import { PurchasesRepository } from "../purchases/purchases.repository";
 import { PurchasesService } from "../purchases/purchases.service";
 import { SalesRepository } from "../sales/sales.repository";
 import { SalesService } from "../sales/sales.service";
+import { SettingsRepository } from "../settings/settings.repository";
+import { SettingsService } from "../settings/settings.service";
 import { SuppliersRepository } from "../suppliers/suppliers.repository";
 import { SuppliersService } from "../suppliers/suppliers.service";
 import { StockMovementsRepository } from "./stock-movements.repository";
@@ -54,7 +56,14 @@ describe("Stock movements — precio histórico", () => {
       productsService,
       logger,
     );
-    salesService = new SalesService(db, new SalesRepository(db), productsService, logger);
+    const settingsService = new SettingsService(new SettingsRepository(db));
+    salesService = new SalesService(
+      db,
+      new SalesRepository(db),
+      productsService,
+      settingsService,
+      logger,
+    );
     // El proveedor es obligatorio para crear un producto con stock inicial > 0 (ver
     // ProductsService.create()) — distinto del proveedor de `createSupplier()`, que los tests de
     // Purchases usan para sus propias compras.

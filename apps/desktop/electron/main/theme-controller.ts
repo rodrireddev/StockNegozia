@@ -1,6 +1,6 @@
 import { BrowserWindow, ipcMain, nativeTheme } from "electron";
 import type { PreferencesStore, ThemePreference } from "./preferences-store";
-import { resolveDark } from "./theme-colors";
+import { nativeThemeSourceFor, resolveDark } from "./theme-colors";
 
 export interface ThemeStatus {
   preference: ThemePreference;
@@ -25,7 +25,7 @@ export class ThemeController {
 
   applyStoredPreference(): boolean {
     const preference = this.store.load().theme;
-    nativeTheme.themeSource = preference;
+    nativeTheme.themeSource = nativeThemeSourceFor(preference);
     return resolveDark(preference, nativeTheme.shouldUseDarkColors);
   }
 
@@ -39,7 +39,7 @@ export class ThemeController {
 
     ipcMain.handle("theme:set", (_event, preference: ThemePreference) => {
       this.store.save({ theme: preference });
-      nativeTheme.themeSource = preference;
+      nativeTheme.themeSource = nativeThemeSourceFor(preference);
       return this.status();
     });
 

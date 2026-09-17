@@ -1,8 +1,15 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export type ThemeMode = "light" | "dark" | "system";
+export type ThemeMode = "light" | "dark" | "system" | "pastel" | "solarized" | "nord";
 
-const VALID_MODES: readonly ThemeMode[] = ["light", "dark", "system"];
+const VALID_MODES: readonly ThemeMode[] = [
+  "light",
+  "dark",
+  "system",
+  "pastel",
+  "solarized",
+  "nord",
+];
 
 function isThemeMode(value: string): value is ThemeMode {
   return (VALID_MODES as readonly string[]).includes(value);

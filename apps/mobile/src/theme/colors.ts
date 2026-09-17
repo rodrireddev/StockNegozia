@@ -57,3 +57,79 @@ export const darkColors: ThemeColors = {
   dangerForeground: "#450a0a",
   success: "#4ade80",
 };
+
+/**
+ * Tres paletas alternativas seleccionables además de Claro/Oscuro — ver `theme/themes.ts` (el
+ * registro que las expone como "tema" completo, no como una variante de `dark`) y
+ * `docs/mobile/MOBILE_CLIENT.md`. Elegidas por ser combinaciones de color ya documentadas y
+ * probadas específicamente para reducir la fatiga visual en sesiones largas frente a una
+ * pantalla, no colores inventados al azar:
+ *
+ * - **Pastel**: paleta propia de tonos suaves y poco saturados (lavanda/menta/durazno) sobre un
+ *   blanco cálido — sin blancos ni negros puros, que son los que más cansan la vista en uso
+ *   prolongado.
+ * - **Solarized**: la paleta de Ethan Schoonover (https://ethanschoonover.com/solarized/),
+ *   diseñada calculando a mano la luminancia CIELAB de cada color específicamente para minimizar
+ *   el contraste brillante entre texto y fondo. Se usa la variante "Light" (fondo crema, nunca
+ *   blanco puro).
+ * - **Nord**: la paleta ártica de https://www.nordtheme.com — tonos azul-grisáceos de bajo
+ *   contraste, muy usada en editores/terminales por el mismo motivo (reducir fatiga visual en
+ *   sesiones largas). Es oscura por diseño (`dark: true` en el registro).
+ */
+export const pastelColors: ThemeColors = {
+  background: "#fbf7f4",
+  foreground: "#4a4458",
+  primary: "#b79ced",
+  primaryForeground: "#2e2a3a",
+  secondary: "#f3e8f8",
+  secondaryForeground: "#4a4458",
+  muted: "#f0eae4",
+  mutedForeground: "#8a8296",
+  accent: "#bfe3d0",
+  accentForeground: "#264d3b",
+  border: "#e7dfe9",
+  ring: "#b79ced",
+  danger: "#e38b95",
+  dangerForeground: "#4a1420",
+  success: "#8fcb9b",
+};
+
+/** Solarized Light — valores oficiales (`base3`/`base2`/`base01`/`blue`/`red`/`green`, ver
+ *  https://ethanschoonover.com/solarized/#the-values). */
+export const solarizedColors: ThemeColors = {
+  background: "#fdf6e3",
+  foreground: "#586e75",
+  primary: "#268bd2",
+  primaryForeground: "#fdf6e3",
+  secondary: "#eee8d5",
+  secondaryForeground: "#586e75",
+  muted: "#eee8d5",
+  mutedForeground: "#93a1a1",
+  accent: "#eee8d5",
+  accentForeground: "#586e75",
+  border: "#dfd6bd",
+  ring: "#268bd2",
+  danger: "#dc322f",
+  dangerForeground: "#fdf6e3",
+  success: "#859900",
+};
+
+/** Nord — valores oficiales (`nord0`…`nord15`, ver
+ *  https://www.nordtheme.com/docs/colors-and-palettes). */
+export const nordColors: ThemeColors = {
+  background: "#2e3440",
+  foreground: "#eceff4",
+  primary: "#88c0d0",
+  primaryForeground: "#2e3440",
+  secondary: "#3b4252",
+  secondaryForeground: "#eceff4",
+  muted: "#434c5e",
+  mutedForeground: "#d8dee9",
+  accent: "#4c566a",
+  accentForeground: "#eceff4",
+  border: "#4c566a",
+  ring: "#88c0d0",
+  danger: "#bf616a",
+  dangerForeground: "#2e3440",
+  success: "#a3be8c",
+};

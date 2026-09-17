@@ -25,6 +25,7 @@
     "@stocknegozia/validation": "workspace:*",
     "better-sqlite3": "^11.7.0",
     "drizzle-orm": "^0.38.3",
+    "pdfkit": "^0.20.2",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "zod": "^3.24.1"
@@ -35,6 +36,7 @@
     "@stocknegozia/config": "workspace:*",
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.10.5",
+    "@types/pdfkit": "^0.17.6",
     "@types/supertest": "^6.0.2",
     "drizzle-kit": "^0.30.1",
     "supertest": "^7.0.0",

@@ -2,7 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { desc, eq } from "drizzle-orm";
 import { DRIZZLE_CLIENT } from "../../database/database.constants";
 import type { Database, DrizzleExecutor } from "../../database/database.types";
-import { saleItems, sales } from "../../database/schema";
+import { products, saleItems, sales } from "../../database/schema";
 
 export interface NewSaleRecord {
   status: "completed";
@@ -41,6 +41,26 @@ export class SalesRepository {
 
   findItemsBySaleId(saleId: number, executor: DrizzleExecutor = this.db) {
     return executor.select().from(saleItems).where(eq(saleItems.saleId, saleId)).all();
+  }
+
+  /** Trae los items de una venta con el nombre/SKU actual del producto — usado sólo para armar el
+   *  recibo PDF (ver sale-receipt.pdf.ts). Los productos nunca se hard-deletean (sólo se
+   *  desactivan), así que el join siempre resuelve. */
+  findItemsWithProductBySaleId(saleId: number, executor: DrizzleExecutor = this.db) {
+    return executor
+      .select({
+        id: saleItems.id,
+        productId: saleItems.productId,
+        productName: products.name,
+        productSku: products.sku,
+        quantity: saleItems.quantity,
+        unitPrice: saleItems.unitPrice,
+        subtotal: saleItems.subtotal,
+      })
+      .from(saleItems)
+      .innerJoin(products, eq(saleItems.productId, products.id))
+      .where(eq(saleItems.saleId, saleId))
+      .all();
   }
 
   markCancelled(id: number, cancelledAt: Date, executor: DrizzleExecutor = this.db) {

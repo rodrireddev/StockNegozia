@@ -22,6 +22,7 @@ describe("theme-store", () => {
   beforeEach(() => {
     useThemeStore.setState({ preference: "system", resolvedDark: false });
     document.documentElement.classList.remove("dark");
+    document.documentElement.removeAttribute("data-theme");
   });
 
   afterEach(() => {
@@ -90,5 +91,46 @@ describe("theme-store", () => {
 
     expect(useThemeStore.getState().resolvedDark).toBe(true);
     expect(document.documentElement.classList.contains("dark")).toBe(true);
+  });
+
+  it("setThemePreference selecciona pastel: aplica data-theme y no la clase dark", async () => {
+    const { api } = mockThemeApi();
+    api.get.mockResolvedValue({ preference: "system", resolvedDark: false });
+    api.set.mockResolvedValue({ preference: "pastel", resolvedDark: false });
+    window.theme = api as unknown as Window["theme"];
+
+    await initializeTheme();
+    await setThemePreference("pastel");
+
+    expect(useThemeStore.getState()).toEqual({ preference: "pastel", resolvedDark: false });
+    expect(document.documentElement.classList.contains("dark")).toBe(false);
+    expect(document.documentElement.getAttribute("data-theme")).toBe("pastel");
+  });
+
+  it("setThemePreference selecciona nord: aplica data-theme Y la clase dark (nord es oscura)", async () => {
+    const { api } = mockThemeApi();
+    api.get.mockResolvedValue({ preference: "system", resolvedDark: false });
+    api.set.mockResolvedValue({ preference: "nord", resolvedDark: true });
+    window.theme = api as unknown as Window["theme"];
+
+    await initializeTheme();
+    await setThemePreference("nord");
+
+    expect(document.documentElement.classList.contains("dark")).toBe(true);
+    expect(document.documentElement.getAttribute("data-theme")).toBe("nord");
+  });
+
+  it("volver a light desde una paleta alternativa quita el atributo data-theme", async () => {
+    const { api } = mockThemeApi();
+    api.get.mockResolvedValue({ preference: "solarized", resolvedDark: false });
+    api.set.mockResolvedValue({ preference: "light", resolvedDark: false });
+    window.theme = api as unknown as Window["theme"];
+
+    await initializeTheme();
+    expect(document.documentElement.getAttribute("data-theme")).toBe("solarized");
+
+    await setThemePreference("light");
+
+    expect(document.documentElement.getAttribute("data-theme")).toBeNull();
   });
 });

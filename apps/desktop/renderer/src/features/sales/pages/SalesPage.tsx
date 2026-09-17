@@ -13,6 +13,7 @@ import { SaleCartPanel } from "../components/SaleCartPanel";
 import { SaleSearchResults } from "../components/SaleSearchResults";
 import { useCart } from "../hooks/useCart";
 import { useCreateSale } from "../hooks/useCreateSale";
+import { useDownloadReceipt } from "../hooks/useDownloadReceipt";
 
 export function SalesPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -22,6 +23,8 @@ export function SalesPage() {
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showMissingSellerModal, setShowMissingSellerModal] = useState(false);
+  const [generateReceipt, setGenerateReceipt] = useState(false);
+  const [receiptNotice, setReceiptNotice] = useState<string | null>(null);
 
   const debouncedSearch = useDebouncedValue(searchTerm);
   const trimmedDebouncedSearch = debouncedSearch.trim();
@@ -35,6 +38,7 @@ export function SalesPage() {
 
   const cart = useCart();
   const createSale = useCreateSale();
+  const downloadReceipt = useDownloadReceipt();
   const me = useMe();
 
   // El buscador siempre debe estar listo para recibir un escaneo — sin que el usuario tenga que
@@ -52,6 +56,7 @@ export function SalesPage() {
     setSearchTerm("");
     setScanError(null);
     setSuccessMessage(null);
+    setReceiptNotice(null);
     focusSearch();
   }
 
@@ -92,6 +97,7 @@ export function SalesPage() {
     if (cart.isEmpty || createSale.isPending) return;
     setConfirmError(null);
     setSuccessMessage(null);
+    setReceiptNotice(null);
 
     // No se puede registrar una venta sin vendedor actual configurado (ver
     // docs/inventory/STOCK_MOVEMENTS.md §Trazabilidad) — se corta acá, antes de llamar a la API,
@@ -101,8 +107,9 @@ export function SalesPage() {
       return;
     }
 
+    let sale;
     try {
-      await createSale.mutateAsync({
+      sale = await createSale.mutateAsync({
         items: cart.items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
       });
       // El carrito solo se limpia después de que el backend confirmó la venta — nunca antes.
@@ -111,6 +118,20 @@ export function SalesPage() {
       focusSearch();
     } catch (error) {
       setConfirmError(getUserFriendlyError(error));
+      return;
+    }
+
+    // La descarga del recibo es una acción aparte y opcional: si falla, la venta ya quedó
+    // confirmada — nunca se muestra como si la venta hubiera fallado.
+    if (generateReceipt) {
+      const outcome = await downloadReceipt.mutateAsync(sale.id);
+      if (outcome.cancelled) {
+        // El usuario canceló el diálogo de guardado — no hace falta ningún aviso.
+      } else if ("error" in outcome) {
+        setReceiptNotice(`No se pudo guardar el recibo: ${outcome.error}`);
+      } else {
+        setReceiptNotice(`Recibo guardado en ${outcome.filePath}`);
+      }
     }
   }
 
@@ -149,9 +170,12 @@ export function SalesPage() {
           onDecrement={cart.decrementItem}
           onRemove={cart.removeItem}
           onConfirm={handleConfirm}
-          isSubmitting={createSale.isPending}
+          isSubmitting={createSale.isPending || downloadReceipt.isPending}
           errorMessage={confirmError}
           successMessage={successMessage}
+          generateReceipt={generateReceipt}
+          onGenerateReceiptChange={setGenerateReceipt}
+          receiptNotice={receiptNotice}
         />
       </div>
 

@@ -7,6 +7,8 @@ import { DRIZZLE_CLIENT } from "../../database/database.constants";
 import type { Database } from "../../database/database.types";
 import type { sales } from "../../database/schema";
 import { ProductsService } from "../products/products.service";
+import { SettingsService } from "../settings/settings.service";
+import { renderSaleReceiptPdf } from "./sale-receipt.pdf";
 import { SalesRepository } from "./sales.repository";
 
 type SaleRow = typeof sales.$inferSelect;
@@ -69,6 +71,7 @@ export class SalesService {
     @Inject(DRIZZLE_CLIENT) private readonly db: Database,
     private readonly repository: SalesRepository,
     private readonly productsService: ProductsService,
+    private readonly settingsService: SettingsService,
     private readonly logger: AppLogger,
   ) {}
 
@@ -81,6 +84,15 @@ export class SalesService {
     if (!sale) throw new NotFoundException("Venta no encontrada");
     const items = this.repository.findItemsBySaleId(id);
     return { ...toSummaryDto(sale), items: items.map(toItemDto) };
+  }
+
+  /** Genera el PDF del recibo simplificado (no fiscal) de una venta — ver sale-receipt.pdf.ts. */
+  async generateReceiptPdf(id: number): Promise<Buffer> {
+    const sale = this.repository.findById(id);
+    if (!sale) throw new NotFoundException("Venta no encontrada");
+    const lines = this.repository.findItemsWithProductBySaleId(id);
+    const { businessName } = this.settingsService.get();
+    return renderSaleReceiptPdf(sale, lines, businessName ?? "StockNegozia");
   }
 
   /**

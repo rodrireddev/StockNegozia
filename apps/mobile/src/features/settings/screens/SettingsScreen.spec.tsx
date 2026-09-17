@@ -13,10 +13,17 @@ jest.mock("@/devices/useDeviceInfo", () => ({
 jest.mock("@/auth/AuthContext", () => ({
   useAuth: () => ({ signOut: mockSignOut }),
 }));
+jest.mock("@/api/endpoints/settings", () => ({
+  fetchSettings: jest.fn(),
+  updateSettings: jest.fn(),
+}));
 
 import { useDeviceInfo } from "@/devices/useDeviceInfo";
+import { fetchSettings, updateSettings } from "@/api/endpoints/settings";
 
 const mockedUseDeviceInfo = jest.mocked(useDeviceInfo);
+const mockedFetchSettings = jest.mocked(fetchSettings);
+const mockedUpdateSettings = jest.mocked(updateSettings);
 
 async function renderWithClient(ui: ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -41,6 +48,7 @@ const device: DeviceDto = {
 describe("SettingsScreen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockedFetchSettings.mockResolvedValue({ businessName: null });
   });
 
   afterEach(async () => {
@@ -121,5 +129,49 @@ describe("SettingsScreen", () => {
     expect(screen.getByRole("radio", { name: "Claro" }).props.accessibilityState.selected).toBe(
       false,
     );
+  });
+
+  describe("nombre del negocio", () => {
+    beforeEach(() => {
+      mockedUseDeviceInfo.mockReturnValue({
+        isPending: false,
+        isError: false,
+        data: device,
+        refetch: jest.fn(),
+      } as unknown as ReturnType<typeof useDeviceInfo>);
+    });
+
+    it("precarga el nombre del negocio ya guardado", async () => {
+      mockedFetchSettings.mockResolvedValue({ businessName: "Almacén Doña Rosa" });
+
+      await renderWithClient(<SettingsScreen />);
+
+      expect(await screen.findByDisplayValue("Almacén Doña Rosa")).toBeTruthy();
+    });
+
+    it("guardar el nombre lo persiste y avisa", async () => {
+      // Arranca con un nombre YA cargado (en vez de null) para tener una señal observable en el
+      // DOM de que la query de `settings` resolvió y el efecto que precarga el input ya corrió —
+      // esperar la promesa del mock a mano no alcanza, porque react-query todavía hace trabajo
+      // async propio (notifyManager) después de que esa promesa resuelve, y tipear antes de que
+      // eso termine hacía que el efecto pisara lo recién tipeado.
+      mockedFetchSettings.mockResolvedValue({ businessName: "Nombre viejo" });
+      mockedUpdateSettings.mockResolvedValue({ businessName: "Almacén Doña Rosa" });
+
+      await renderWithClient(<SettingsScreen />);
+      const input = await screen.findByDisplayValue("Nombre viejo");
+
+      fireEvent.changeText(input, "Almacén Doña Rosa");
+      // Confirma que el cambio ya se aplicó al input controlado antes de tocar "Guardar" — en este
+      // entorno de test, presionar el botón inmediatamente después de `changeText` podía leer
+      // todavía el valor viejo.
+      await waitFor(() => expect(screen.getByDisplayValue("Almacén Doña Rosa")).toBeTruthy());
+      fireEvent.press(screen.getByRole("button", { name: /^guardar$/i }));
+
+      await waitFor(() =>
+        expect(mockedUpdateSettings).toHaveBeenCalledWith({ businessName: "Almacén Doña Rosa" }),
+      );
+      expect(await screen.findByText(/nombre del negocio actualizado/i)).toBeTruthy();
+    });
   });
 });

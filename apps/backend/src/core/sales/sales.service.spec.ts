@@ -8,6 +8,8 @@ import { CategoriesService } from "../categories/categories.service";
 import { ProductsRepository } from "../products/products.repository";
 import { ProductsService } from "../products/products.service";
 import { PurchasesRepository } from "../purchases/purchases.repository";
+import { SettingsRepository } from "../settings/settings.repository";
+import { SettingsService } from "../settings/settings.service";
 import { StockMovementsRepository } from "../stock-movements/stock-movements.repository";
 import { StockMovementsService } from "../stock-movements/stock-movements.service";
 import { SuppliersRepository } from "../suppliers/suppliers.repository";
@@ -40,7 +42,8 @@ describe("SalesService", () => {
       logger,
     );
     const salesRepository = new SalesRepository(db);
-    salesService = new SalesService(db, salesRepository, productsService, logger);
+    const settingsService = new SettingsService(new SettingsRepository(db));
+    salesService = new SalesService(db, salesRepository, productsService, settingsService, logger);
     // El proveedor es obligatorio para crear un producto con stock inicial > 0 (ver
     // ProductsService.create()).
     defaultSupplierId = suppliersService.create({ name: "Proveedor de prueba" }).id;
@@ -182,6 +185,21 @@ describe("SalesService", () => {
 
     it("devuelve un error apropiado al cancelar una venta inexistente", () => {
       expect(() => salesService.cancel(999_999)).toThrow();
+    });
+  });
+
+  describe("generateReceiptPdf", () => {
+    it("genera un PDF válido para una venta existente", async () => {
+      const product = createProduct({ salePrice: 10000, stock: 10 });
+      const sale = salesService.create({ items: [{ productId: product.id, quantity: 2 }] });
+
+      const buffer = await salesService.generateReceiptPdf(sale.id);
+
+      expect(buffer.subarray(0, 5).toString("ascii")).toBe("%PDF-");
+    });
+
+    it("falla si la venta no existe", async () => {
+      await expect(salesService.generateReceiptPdf(999_999)).rejects.toThrow();
     });
   });
 });

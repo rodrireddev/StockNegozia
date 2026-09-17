@@ -1,7 +1,11 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-export type ThemePreference = "system" | "light" | "dark";
+/**
+ * Paletas alternativas (`pastel`/`solarized`/`nord`) — mismos 6 modos y mismos colores que
+ * `apps/mobile/src/theme/colors.ts`/`themes.ts` (ver `theme-colors.ts` para el mapeo hex).
+ */
+export type ThemePreference = "system" | "light" | "dark" | "pastel" | "solarized" | "nord";
 
 export interface StoredPreferences {
   theme: ThemePreference;
@@ -9,8 +13,19 @@ export interface StoredPreferences {
 
 const DEFAULT_PREFERENCES: StoredPreferences = { theme: "system" };
 
+const VALID_THEME_PREFERENCES: readonly ThemePreference[] = [
+  "system",
+  "light",
+  "dark",
+  "pastel",
+  "solarized",
+  "nord",
+];
+
 function isThemePreference(value: unknown): value is ThemePreference {
-  return value === "system" || value === "light" || value === "dark";
+  return (
+    typeof value === "string" && (VALID_THEME_PREFERENCES as readonly string[]).includes(value)
+  );
 }
 
 /**

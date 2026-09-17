@@ -167,8 +167,16 @@ export function ProductForm({ product }: { product?: ProductDto }) {
           <Label htmlFor="barcode">Código de barras</Label>
           <Input
             id="barcode"
+            placeholder="Escaneá o tipeá el código…"
             value={form.barcode}
             onChange={(e) => update("barcode", e.target.value)}
+            // Un lector de código de barras USB funciona como teclado: tipea el código y manda
+            // Enter solo. Sin este preventDefault, ese Enter dispararía el submit del formulario
+            // (comportamiento normal de un <form> con Enter en un input) antes de completar el
+            // resto de los campos obligatorios.
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.preventDefault();
+            }}
           />
         </div>
 
