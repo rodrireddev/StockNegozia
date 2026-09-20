@@ -1,0 +1,34 @@
+# StockNegozia
+
+> StockNegozia es una plataforma de gestión empresarial para comercios pequeños: una app de
+> escritorio (Windows) que administra Productos, Ventas, Compras, Proveedores e Inventario, con
+> backup/restore manual y un cliente móvil Android que se empareja por red local. Corre 100% local
+> sobre una base de datos SQLite propia — no depende de servidores en la nube para operar.
+
+## Funcionalidades principales
+
+- Productos: alta, edición, búsqueda/filtros y ajuste de stock.
+- Ventas: buscador de productos por nombre/SKU/código de barras (compatible con lectores físicos
+  de código de barras), carrito persistente, confirmación transaccional contra el backend.
+- Compras: carga de compras con costo editable por línea y proveedor obligatorio.
+- Proveedores: alta y listado de proveedores.
+- Inventario: stock, categorías y movimientos de stock auditables e inmutables, con precios
+  históricos.
+- Backup y Restore: copias de seguridad manuales (SQLite Online Backup API), restauración con
+  doble confirmación, backup de resguardo automático y rollback si falla.
+- Cliente móvil (Android): emparejamiento por QR + código de verificación sobre red local (LAN),
+  autenticación por credential de dispositivo, listado de productos.
+- Seguridad: acceso a la API protegido por credential por dispositivo (no por IP/Origin), con
+  pairing y revocación de dispositivos.
+
+## Qué NO incluye todavía
+
+- Clientes (CRM), usuarios y permisos con roles.
+- Exportación de datos (CSV/Excel), backups automáticos/programados, sincronización en la nube.
+- Reportes y dashboard de negocio.
+- Cliente iOS y scanner de cámara en mobile.
+
+## Páginas
+
+- [Landing page](https://stocknegozia.app/): presentación del producto, funcionalidades, cómo
+  funciona, seguridad y preguntas frecuentes.

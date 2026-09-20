@@ -1,0 +1,80 @@
+---
+const navLinks = [
+  { href: "#funcionalidades", label: "Funcionalidades" },
+  { href: "#como-funciona", label: "Cómo funciona" },
+  { href: "#seguridad", label: "Seguridad" },
+  { href: "#preguntas-frecuentes", label: "Preguntas frecuentes" },
+];
+---
+
+<header class="absolute inset-x-0 top-0 z-20">
+  <nav
+    class="container-page flex items-center justify-between py-6"
+    aria-label="Navegación principal"
+  >
+    <a href="#top" class="flex items-center gap-2">
+      <img
+        src="/branding/logo.png"
+        alt="StockNegozia"
+        width="32"
+        height="32"
+        class="h-8 w-8"
+      />
+      <span class="text-base font-semibold text-white">StockNegozia</span>
+    </a>
+
+    <ul class="hidden items-center gap-8 md:flex">
+      {
+        navLinks.map((link) => (
+          <li>
+            <a
+              href={link.href}
+              class="text-sm font-medium text-white/70 transition-colors hover:text-white"
+            >
+              {link.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+
+    <a href="#contacto" class="hidden btn-primary md:inline-flex">
+      Solicitar acceso
+    </a>
+
+    <!-- Menú móvil sin JS: checkbox + label controlan la visibilidad del panel. -->
+    <input type="checkbox" id="menu-toggle" class="peer hidden" />
+    <label
+      for="menu-toggle"
+      class="flex h-9 w-9 items-center justify-center rounded-md text-white md:hidden"
+      aria-label="Abrir menú"
+    >
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M4 6h16M4 12h16M4 18h16"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        ></path>
+      </svg>
+    </label>
+
+    <div
+      class="fixed inset-x-0 top-[72px] hidden flex-col gap-1 border-t border-white/10 bg-ink-950/98 px-6 py-4 backdrop-blur peer-checked:flex md:hidden"
+    >
+      {
+        navLinks.map((link) => (
+          <a
+            href={link.href}
+            class="rounded-md px-2 py-3 text-sm font-medium text-white/80 hover:bg-white/5 hover:text-white"
+          >
+            {link.label}
+          </a>
+        ))
+      }
+      <a href="#contacto" class="btn-primary mt-2 justify-center">
+        Solicitar acceso
+      </a>
+    </div>
+  </nav>
+</header>

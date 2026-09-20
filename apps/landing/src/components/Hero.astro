@@ -1,0 +1,102 @@
+<section
+  id="top"
+  class="relative overflow-hidden bg-ink-950 pb-24 pt-36 md:pb-32 md:pt-44"
+>
+  <div class="absolute inset-0 bg-hero-glow" aria-hidden="true"></div>
+
+  <div class="container-page relative grid gap-14 md:grid-cols-2 md:items-center">
+    <div>
+      <p class="eyebrow">Gestión de stock, ventas y compras</p>
+      <h1 class="mt-4 text-4xl font-bold text-white sm:text-5xl">
+        El control de tu negocio, sin depender de la nube
+      </h1>
+      <p class="mt-6 max-w-xl text-lg leading-relaxed text-white/70">
+        StockNegozia es una plataforma de gestión para comercios: productos,
+        ventas, compras, proveedores e inventario en una sola app de
+        escritorio que corre 100% local, con backups manuales y un cliente
+        móvil que se empareja por red local.
+      </p>
+
+      <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+        <a href="#contacto" class="btn-primary">
+          Solicitar acceso
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path
+              d="M3 8h10m0 0L9 4m4 4L9 12"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            ></path>
+          </svg>
+        </a>
+        <a href="#funcionalidades" class="btn-secondary">Ver funcionalidades</a>
+      </div>
+
+      <dl class="mt-12 grid grid-cols-3 gap-6 border-t border-white/10 pt-8">
+        <div>
+          <dt class="text-xs uppercase tracking-wide text-white/50">Datos</dt>
+          <dd class="mt-1 text-lg font-semibold text-white">100% locales</dd>
+        </div>
+        <div>
+          <dt class="text-xs uppercase tracking-wide text-white/50">Stock</dt>
+          <dd class="mt-1 text-lg font-semibold text-white">Trazable</dd>
+        </div>
+        <div>
+          <dt class="text-xs uppercase tracking-wide text-white/50">Acceso</dt>
+          <dd class="mt-1 text-lg font-semibold text-white">Multi-dispositivo</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="relative" role="img" aria-label="Vista previa de la pantalla de Ventas de StockNegozia, con buscador de productos y carrito">
+      <div
+        class="rounded-2xl border border-white/10 bg-ink-900/80 p-2 shadow-2xl shadow-black/40 backdrop-blur"
+      >
+        <div class="flex items-center gap-1.5 border-b border-white/10 px-3 py-2.5">
+          <span class="h-2.5 w-2.5 rounded-full bg-white/20"></span>
+          <span class="h-2.5 w-2.5 rounded-full bg-white/20"></span>
+          <span class="h-2.5 w-2.5 rounded-full bg-white/20"></span>
+          <span class="ml-3 text-xs font-medium text-white/50">Ventas</span>
+        </div>
+
+        <div class="space-y-3 p-4">
+          <div
+            class="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2.5"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" class="shrink-0 text-white/40">
+              <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"></circle>
+              <path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+            </svg>
+            <span class="text-sm text-white/40">Buscar por nombre, SKU o código de barras…</span>
+          </div>
+
+          {
+            [
+              { name: "Yerba Mate 1kg", sku: "SKU-0231", qty: 2, price: "$3.400" },
+              { name: "Aceite Girasol 900ml", sku: "SKU-0119", qty: 1, price: "$2.150" },
+              { name: "Detergente 750ml", sku: "SKU-0342", qty: 3, price: "$1.980" },
+            ].map((item) => (
+              <div class="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2.5">
+                <div>
+                  <p class="text-sm font-medium text-white">{item.name}</p>
+                  <p class="text-xs text-white/40">{item.sku} · x{item.qty}</p>
+                </div>
+                <span class="text-sm font-semibold text-white">{item.price}</span>
+              </div>
+            ))
+          }
+
+          <div class="flex items-center justify-between rounded-lg border-t border-white/10 pt-3">
+            <span class="text-sm font-medium text-white/60">Total</span>
+            <span class="text-base font-bold text-white">$7.530</span>
+          </div>
+
+          <div class="rounded-lg bg-brand-600 py-2.5 text-center text-sm font-semibold text-white">
+            Confirmar venta
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

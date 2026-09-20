@@ -1,0 +1,54 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Header from "../components/Header.astro";
+import Hero from "../components/Hero.astro";
+import Features from "../components/Features.astro";
+import HowItWorks from "../components/HowItWorks.astro";
+import Faq from "../components/Faq.astro";
+import CTA from "../components/CTA.astro";
+import Footer from "../components/Footer.astro";
+import { faq } from "../data/faq";
+
+const title = "StockNegozia — Gestión de stock, ventas y compras para tu comercio";
+const description =
+  "StockNegozia es una app de escritorio para comercios que gestiona productos, ventas, compras, proveedores e inventario 100% local, con backups manuales y cliente móvil por red local.";
+
+const siteUrl = Astro.site?.toString() ?? "https://stocknegozia.app";
+
+const structuredData = [
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "StockNegozia",
+    description,
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Windows",
+    url: siteUrl,
+    image: new URL("/branding/icon-512.png", siteUrl).toString(),
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faq.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.answer,
+      },
+    })),
+  },
+];
+---
+
+<BaseLayout title={title} description={description} structuredData={structuredData}>
+  <Header />
+  <main>
+    <Hero />
+    <Features />
+    <HowItWorks />
+    <Faq />
+    <CTA />
+  </main>
+  <Footer />
+</BaseLayout>

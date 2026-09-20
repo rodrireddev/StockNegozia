@@ -1,0 +1,43 @@
+# StockNegozia — landing page pública.
+# Todo el sitio es contenido de marketing público: se permite el rastreo completo tanto a
+# buscadores tradicionales como a crawlers de asistentes/buscadores de IA.
+
+User-agent: *
+Allow: /
+
+# Crawlers de IA conocidos — listados de forma explícita para dejar la intención clara, aunque ya
+# quedan cubiertos por el "User-agent: *" de arriba.
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: Meta-ExternalAgent
+Allow: /
+
+Sitemap: https://stocknegozia.app/sitemap-index.xml

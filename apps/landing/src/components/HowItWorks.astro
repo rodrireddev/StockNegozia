@@ -1,0 +1,76 @@
+---
+const steps = [
+  {
+    number: "01",
+    title: "Instalá StockNegozia",
+    description:
+      "Instalás el programa en tu computadora con Windows. Se abre listo para usar, como cualquier otra app: no hay que configurar servidores, cuentas en la nube ni nada externo.",
+  },
+  {
+    number: "02",
+    title: "Cargá productos y proveedores",
+    description:
+      "Sumá tu catálogo con SKU, stock inicial y proveedores. Todo queda persistido en una base de datos local en tu equipo.",
+  },
+  {
+    number: "03",
+    title: "Vendé, comprá y controlá el stock",
+    description:
+      "Cada operación actualiza el inventario al instante y queda registrada como un movimiento auditable, listo para revisar cuando lo necesites.",
+  },
+];
+---
+
+<section id="como-funciona" class="bg-ink-50 py-24">
+  <div class="container-page">
+    <div class="max-w-2xl">
+      <p class="eyebrow">De cero a operando</p>
+      <h2 class="mt-3 text-3xl font-bold text-ink-950 sm:text-4xl">Cómo funciona</h2>
+    </div>
+
+    <ol class="mt-14 grid gap-10 md:grid-cols-3">
+      {
+        steps.map((step) => (
+          <li class="relative">
+            <span class="text-4xl font-bold text-brand-600/30">{step.number}</span>
+            <h3 class="mt-3 text-lg font-semibold text-ink-950">{step.title}</h3>
+            <p class="mt-2 text-sm leading-relaxed text-ink-600">{step.description}</p>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>
+
+<section id="seguridad" class="bg-ink-950 py-20">
+  <div class="container-page">
+    <div class="grid gap-10 md:grid-cols-[1fr_2fr] md:items-center">
+      <div>
+        <p class="eyebrow">Privacidad por diseño</p>
+        <h2 class="mt-3 text-2xl font-bold text-white sm:text-3xl">
+          Tus datos nunca salen de tu dispositivo
+        </h2>
+      </div>
+      <ul class="grid gap-6 sm:grid-cols-3">
+        <li class="rounded-xl border border-white/10 bg-white/5 p-5">
+          <p class="text-sm font-semibold text-white">Sin servidores externos</p>
+          <p class="mt-2 text-sm text-white/60">
+            La base de datos SQLite vive en tu propio equipo, no en la nube de un tercero.
+          </p>
+        </li>
+        <li class="rounded-xl border border-white/10 bg-white/5 p-5">
+          <p class="text-sm font-semibold text-white">Acceso por dispositivo</p>
+          <p class="mt-2 text-sm text-white/60">
+            Cada dispositivo se autentica con su propia credencial, con emparejamiento por QR.
+          </p>
+        </li>
+        <li class="rounded-xl border border-white/10 bg-white/5 p-5">
+          <p class="text-sm font-semibold text-white">Backups con reversión</p>
+          <p class="mt-2 text-sm text-white/60">
+            Restaurar un backup crea antes un resguardo automático y revierte si algo falla.
+          </p>
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>

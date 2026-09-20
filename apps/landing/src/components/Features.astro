@@ -1,0 +1,87 @@
+---
+const features = [
+  {
+    title: "Productos",
+    description:
+      "Alta, edición, búsqueda y filtros, con ajuste de stock en segundos desde la misma pantalla.",
+    icon: "box",
+  },
+  {
+    title: "Ventas rápidas",
+    description:
+      "Buscador con foco automático por nombre, SKU o código de barras, compatible con lectores físicos. Carrito persistente que agrupa cantidades en vez de duplicar líneas.",
+    icon: "cart",
+  },
+  {
+    title: "Compras y proveedores",
+    description:
+      "Carga de compras con costos editables por línea y proveedor obligatorio, para que cada entrada de stock quede trazada a su origen.",
+    icon: "truck",
+  },
+  {
+    title: "Inventario auditable",
+    description:
+      "Cada venta, compra o ajuste manual que modifica el stock genera un movimiento inmutable, separado del stock actual, con precios históricos.",
+    icon: "layers",
+  },
+  {
+    title: "Backup y restore",
+    description:
+      "Copias de seguridad manuales sin detener la app. Restauración con doble confirmación, backup de resguardo automático y reversión si algo falla.",
+    icon: "shield",
+  },
+  {
+    title: "Multi-dispositivo por LAN",
+    description:
+      "Emparejá tablets o celulares Android por red local con QR y código de verificación, sin pasar por servicios externos.",
+    icon: "devices",
+  },
+];
+
+const icons: Record<string, string> = {
+  box: "M3 7l9-4 9 4-9 4-9-4Zm0 0v10l9 4m0-14v14m9-14v10l-9 4",
+  cart: "M3 4h2l2.4 12.2a2 2 0 0 0 2 1.8h7.2a2 2 0 0 0 2-1.6L20 8H6",
+  truck: "M3 7h11v8H3V7Zm11 3h4l3 3v2h-7v-5ZM6.5 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm11 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z",
+  layers: "M12 3 2 8l10 5 10-5-10-5Zm-10 9 10 5 10-5M2 16l10 5 10-5",
+  shield: "M12 3l7 3v6c0 4.5-3 7.7-7 9-4-1.3-7-4.5-7-9V6l7-3Z",
+  devices: "M4 5h11v10H4V5Zm14 3h2v9a1 1 0 0 1-1 1h-6v-2h5V8ZM7 18h5",
+};
+---
+
+<section id="funcionalidades" class="bg-white py-24">
+  <div class="container-page">
+    <div class="max-w-2xl">
+      <p class="eyebrow">Todo lo que necesitás, en un solo lugar</p>
+      <h2 class="mt-3 text-3xl font-bold text-ink-950 sm:text-4xl">
+        Una sola app para vender, comprar y controlar el stock
+      </h2>
+      <p class="mt-4 text-lg text-ink-600">
+        Pensada para comercios que necesitan una operación diaria ágil, no
+        una suite corporativa. Sin pasos de más, sin depender de que internet
+        funcione para poder vender.
+      </p>
+    </div>
+
+    <div class="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {
+        features.map((feature) => (
+          <div class="rounded-xl border border-ink-200 p-6 transition-shadow hover:shadow-lg hover:shadow-ink-950/5">
+            <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-brand-600/10 text-brand-600">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d={icons[feature.icon]}
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </div>
+            <h3 class="mt-4 text-lg font-semibold text-ink-950">{feature.title}</h3>
+            <p class="mt-2 text-sm leading-relaxed text-ink-600">{feature.description}</p>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
