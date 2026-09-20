@@ -2,6 +2,7 @@ import type { ProductDto } from "@stocknegozia/api-contracts";
 import { createProductSchema, updateProductSchema } from "@stocknegozia/validation";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -140,18 +141,14 @@ export function ProductForm({ product }: { product?: ProductDto }) {
 
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
-      {formError && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400">
-          {formError}
-        </div>
-      )}
+      {formError && <Alert variant="destructive">{formError}</Alert>}
 
       <div className="grid grid-cols-2 gap-4">
         <div className="col-span-2 space-y-1.5">
           <Label htmlFor="name">Nombre *</Label>
           <Input id="name" value={form.name} onChange={(e) => update("name", e.target.value)} />
           {fieldErrors.name && (
-            <p className="text-sm text-red-600 dark:text-red-400">{fieldErrors.name[0]}</p>
+            <p className="text-sm text-destructive">{fieldErrors.name[0]}</p>
           )}
         </div>
 
@@ -159,7 +156,7 @@ export function ProductForm({ product }: { product?: ProductDto }) {
           <Label htmlFor="sku">SKU *</Label>
           <Input id="sku" value={form.sku} onChange={(e) => update("sku", e.target.value)} />
           {fieldErrors.sku && (
-            <p className="text-sm text-red-600 dark:text-red-400">{fieldErrors.sku[0]}</p>
+            <p className="text-sm text-destructive">{fieldErrors.sku[0]}</p>
           )}
         </div>
 
@@ -228,7 +225,7 @@ export function ProductForm({ product }: { product?: ProductDto }) {
             onChange={(e) => update("purchasePrice", e.target.value)}
           />
           {fieldErrors.purchasePrice && (
-            <p className="text-sm text-red-600 dark:text-red-400">{fieldErrors.purchasePrice[0]}</p>
+            <p className="text-sm text-destructive">{fieldErrors.purchasePrice[0]}</p>
           )}
         </div>
 
@@ -243,7 +240,7 @@ export function ProductForm({ product }: { product?: ProductDto }) {
             onChange={(e) => update("salePrice", e.target.value)}
           />
           {fieldErrors.salePrice && (
-            <p className="text-sm text-red-600 dark:text-red-400">{fieldErrors.salePrice[0]}</p>
+            <p className="text-sm text-destructive">{fieldErrors.salePrice[0]}</p>
           )}
         </div>
 
@@ -278,7 +275,7 @@ export function ProductForm({ product }: { product?: ProductDto }) {
               <option value={NEW_SUPPLIER_VALUE}>+ Nuevo proveedor…</option>
             </Select>
             {fieldErrors.supplierId && (
-              <p className="text-sm text-red-600 dark:text-red-400">{fieldErrors.supplierId[0]}</p>
+              <p className="text-sm text-destructive">{fieldErrors.supplierId[0]}</p>
             )}
           </div>
         )}
@@ -305,14 +302,14 @@ export function ProductForm({ product }: { product?: ProductDto }) {
             onChange={(e) => update("minimumStock", e.target.value)}
           />
           {fieldErrors.minimumStock && (
-            <p className="text-sm text-red-600 dark:text-red-400">{fieldErrors.minimumStock[0]}</p>
+            <p className="text-sm text-destructive">{fieldErrors.minimumStock[0]}</p>
           )}
         </div>
 
         <div className="col-span-2 space-y-1.5">
           <Label htmlFor="image">Imagen</Label>
           <Input id="image" type="file" accept="image/*" onChange={handleImageChange} />
-          {imageError && <p className="text-sm text-red-600 dark:text-red-400">{imageError}</p>}
+          {imageError && <p className="text-sm text-destructive">{imageError}</p>}
           {form.image && (
             <div className="flex items-center gap-3 pt-1">
               <img src={form.image} alt="Vista previa" className="h-16 w-16 rounded object-cover" />

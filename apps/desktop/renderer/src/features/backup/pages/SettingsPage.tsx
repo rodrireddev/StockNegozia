@@ -1,5 +1,6 @@
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -104,9 +105,9 @@ function BusinessNameCard() {
             onChange={(event) => setValue(event.target.value)}
           />
         </div>
-        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         {successMessage && (
-          <p className="text-sm text-emerald-700 dark:text-emerald-400">{successMessage}</p>
+          <p className="text-sm text-success">{successMessage}</p>
         )}
         <Button onClick={handleSave} disabled={updateSettings.isPending}>
           {updateSettings.isPending ? "Guardando…" : "Guardar"}
@@ -169,9 +170,9 @@ function SellerNameCard() {
             onChange={(event) => setValue(event.target.value)}
           />
         </div>
-        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         {successMessage && (
-          <p className="text-sm text-emerald-700 dark:text-emerald-400">{successMessage}</p>
+          <p className="text-sm text-success">{successMessage}</p>
         )}
         <Button onClick={handleSave} disabled={updateSellerName.isPending}>
           {updateSellerName.isPending ? "Guardando…" : "Guardar"}
@@ -253,10 +254,7 @@ export function SettingsPage() {
 
   return (
     <div className="max-w-2xl space-y-4">
-      <div className="flex items-center gap-2">
-        <img src="/branding/logo.png" alt="" className="h-6 w-6" />
-        <h1 className="text-xl font-semibold">Configuración</h1>
-      </div>
+      <h1 className="text-xl font-semibold">Configuración</h1>
 
       <BusinessNameCard />
       <SellerNameCard />
@@ -280,16 +278,8 @@ export function SettingsPage() {
               "Crear backup"
             )}
           </Button>
-          {backupSuccessMessage && (
-            <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/50 dark:text-emerald-400">
-              {backupSuccessMessage}
-            </p>
-          )}
-          {backupErrorMessage && (
-            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400">
-              {backupErrorMessage}
-            </p>
-          )}
+          {backupSuccessMessage && <Alert variant="success">{backupSuccessMessage}</Alert>}
+          {backupErrorMessage && <Alert variant="destructive">{backupErrorMessage}</Alert>}
         </CardContent>
       </Card>
 
@@ -313,11 +303,7 @@ export function SettingsPage() {
               "Seleccionar backup"
             )}
           </Button>
-          {selectErrorMessage && (
-            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400">
-              {selectErrorMessage}
-            </p>
-          )}
+          {selectErrorMessage && <Alert variant="destructive">{selectErrorMessage}</Alert>}
         </CardContent>
       </Card>
 

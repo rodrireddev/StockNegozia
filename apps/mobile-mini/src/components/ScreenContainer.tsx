@@ -2,12 +2,14 @@ import { StyleSheet, View, type ViewProps } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDeviceSize } from "@/hooks/useDeviceSize";
 import { useTheme } from "@/theme/useTheme";
-import { spacing } from "@/theme/tokens";
+import { maxContentWidth, spacing } from "@/theme/tokens";
 
 /**
- * Contenedor base de pantalla — respeta el safe area (notch, gesture bar de Android) y aplica
- * padding horizontal más generoso en tablet, donde el contenido angosto de un teléfono se vería
- * perdido en un ancho de pantalla mucho mayor (ver docs/mobile/MOBILE_CLIENT.md §Phone + Tablet).
+ * Contenedor base de pantalla — respeta el safe area (notch, gesture bar de Android), aplica
+ * padding horizontal más generoso en tablet, y limita el ancho de contenido a `maxContentWidth`
+ * (centrado) para que una sola columna de texto/controles no se estire de punta a punta en una
+ * tablet en horizontal (ver docs/mobile/MOBILE_CLIENT.md §Phone + Tablet). Sin efecto en teléfono,
+ * donde el ancho de pantalla nunca alcanza ese máximo.
  */
 export function ScreenContainer({ style, children, ...props }: ViewProps) {
   const { colors } = useTheme();
@@ -30,5 +32,11 @@ export function ScreenContainer({ style, children, ...props }: ViewProps) {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-  content: { flex: 1, paddingTop: spacing.lg },
+  content: {
+    flex: 1,
+    paddingTop: spacing.lg,
+    width: "100%",
+    maxWidth: maxContentWidth,
+    alignSelf: "center",
+  },
 });

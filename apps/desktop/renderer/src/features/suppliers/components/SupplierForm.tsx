@@ -45,7 +45,7 @@ export function SupplierForm() {
             onChange={(event) => setName(event.target.value)}
           />
           {fieldErrors.name && (
-            <p className="text-sm text-red-600 dark:text-red-400">{fieldErrors.name[0]}</p>
+            <p className="text-sm text-destructive">{fieldErrors.name[0]}</p>
           )}
         </div>
         <div className="flex-1 space-y-1.5">
@@ -57,14 +57,14 @@ export function SupplierForm() {
             onChange={(event) => setPhone(event.target.value)}
           />
           {fieldErrors.phone && (
-            <p className="text-sm text-red-600 dark:text-red-400">{fieldErrors.phone[0]}</p>
+            <p className="text-sm text-destructive">{fieldErrors.phone[0]}</p>
           )}
         </div>
         <Button type="submit" disabled={createSupplier.isPending}>
           {createSupplier.isPending ? "Guardando…" : "Agregar"}
         </Button>
       </div>
-      {formError && <p className="text-sm text-red-600 dark:text-red-400">{formError}</p>}
+      {formError && <p className="text-sm text-destructive">{formError}</p>}
     </form>
   );
 }

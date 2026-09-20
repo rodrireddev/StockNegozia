@@ -1,4 +1,5 @@
 import { Loader2, ShoppingCart, X } from "lucide-react";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
 import type { CartItem } from "../hooks/useCart";
@@ -79,7 +80,7 @@ export function SaleCartPanel({
                     </span>
                   </div>
                   {insufficientStock && (
-                    <p className="text-xs text-amber-700 dark:text-amber-400">
+                    <p className="text-xs text-warning">
                       Stock disponible: {item.availableStock}. Puede haber cambiado — se confirma al
                       registrar la venta.
                     </p>
@@ -92,21 +93,9 @@ export function SaleCartPanel({
       </div>
 
       <div className="space-y-3 border-t border-border p-4">
-        {errorMessage && (
-          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400">
-            {errorMessage}
-          </p>
-        )}
-        {successMessage && (
-          <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/50 dark:text-emerald-400">
-            {successMessage}
-          </p>
-        )}
-        {receiptNotice && (
-          <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/50 dark:text-amber-400">
-            {receiptNotice}
-          </p>
-        )}
+        {errorMessage && <Alert variant="destructive">{errorMessage}</Alert>}
+        {successMessage && <Alert variant="success">{successMessage}</Alert>}
+        {receiptNotice && <Alert variant="warning">{receiptNotice}</Alert>}
 
         <div className="flex items-center justify-between text-lg font-bold tabular-nums">
           <span>Total</span>

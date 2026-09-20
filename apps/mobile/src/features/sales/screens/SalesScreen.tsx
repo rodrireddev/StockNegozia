@@ -19,8 +19,10 @@ import { ProductScanner, type ScanFeedback } from "@/features/scanner/ProductSca
 import { productAddedFeedback, scanErrorFeedback } from "@/features/scanner/scanFeedback";
 import type { ScanResult } from "@/features/scanner/types";
 import { useScanBeep } from "@/features/scanner/useScanBeep";
+import { useSettings } from "@/features/settings/hooks/useSettings";
 import { useTheme } from "@/theme/useTheme";
 import { spacing, typography } from "@/theme/tokens";
+import { MissingBusinessNameModal } from "../components/MissingBusinessNameModal";
 import { SaleCartRow } from "../components/SaleCartRow";
 import { useCart } from "../hooks/useCart";
 import { useCreateSale } from "../hooks/useCreateSale";
@@ -39,6 +41,7 @@ export function SalesScreen() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [generateReceipt, setGenerateReceipt] = useState(false);
   const [receiptError, setReceiptError] = useState<string | null>(null);
+  const [showMissingBusinessNameModal, setShowMissingBusinessNameModal] = useState(false);
 
   const debouncedSearch = useDebouncedValue(searchTerm);
   const trimmedSearch = debouncedSearch.trim();
@@ -49,6 +52,7 @@ export function SalesScreen() {
   const cart = useCart();
   const createSale = useCreateSale();
   const downloadReceipt = useDownloadReceipt();
+  const settings = useSettings();
   const playScanBeep = useScanBeep();
 
   function handleAdd(product: ProductDto) {
@@ -113,6 +117,14 @@ export function SalesScreen() {
     setConfirmError(null);
     setSuccessMessage(null);
     setReceiptError(null);
+
+    // Generar el recibo con el nombre genérico de fallback del backend ("StockNegozia", ver
+    // sale-receipt.pdf.ts) es un error que antes recién se notaba mirando el PDF ya entregado —
+    // se corta acá, antes de registrar la venta, en vez de dejarlo pasar.
+    if (generateReceipt && !settings.data?.businessName) {
+      setShowMissingBusinessNameModal(true);
+      return;
+    }
 
     let sale;
     try {
@@ -245,6 +257,11 @@ export function SalesScreen() {
           loading={createSale.isPending || downloadReceipt.isPending}
         />
       </View>
+
+      <MissingBusinessNameModal
+        visible={showMissingBusinessNameModal}
+        onClose={() => setShowMissingBusinessNameModal(false)}
+      />
     </ScreenContainer>
   );
 }

@@ -42,7 +42,7 @@ export function SaleCartRow({ item, onIncrement, onDecrement, onRemove }: SaleCa
         </Text>
       </View>
       {insufficientStock && (
-        <Text style={[typography.caption, { color: "#b45309" }]}>
+        <Text style={[typography.caption, { color: colors.warning }]}>
           Stock disponible: {item.availableStock}. Puede haber cambiado — se confirma al registrar
           la venta.
         </Text>

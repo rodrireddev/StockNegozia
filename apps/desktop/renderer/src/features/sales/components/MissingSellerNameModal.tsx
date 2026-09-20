@@ -68,7 +68,7 @@ export function MissingSellerNameModal({ open, onOpenChange }: MissingSellerName
             onChange={(event) => setValue(event.target.value)}
             autoFocus
           />
-          {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

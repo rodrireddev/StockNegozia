@@ -51,13 +51,13 @@ export function SupplierRow({ supplier }: { supplier: SupplierDto }) {
         <TableCell>
           <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus />
           {fieldErrors.name && (
-            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{fieldErrors.name[0]}</p>
+            <p className="mt-1 text-sm text-destructive">{fieldErrors.name[0]}</p>
           )}
         </TableCell>
         <TableCell>
           <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Teléfono" />
           {fieldErrors.phone && (
-            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{fieldErrors.phone[0]}</p>
+            <p className="mt-1 text-sm text-destructive">{fieldErrors.phone[0]}</p>
           )}
         </TableCell>
         <TableCell className="text-muted-foreground">
@@ -78,7 +78,7 @@ export function SupplierRow({ supplier }: { supplier: SupplierDto }) {
             </Button>
           </div>
           {formError && (
-            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formError}</p>
+            <p className="mt-1 text-sm text-destructive">{formError}</p>
           )}
         </TableCell>
       </TableRow>

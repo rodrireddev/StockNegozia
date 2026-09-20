@@ -21,6 +21,15 @@
     --border: #e2e8f0;
     --ring: #0f172a;
     --radius: 0.5rem;
+    /* Mismos hex que `lightColors.danger`/`.success` en `apps/mobile/src/theme/colors.ts`; sin
+       equivalente "warning" del lado mobile todavía, así que se eligió el mismo ámbar que ya
+       declaraba (sin usar) `components/ui/badge.tsx`. */
+    --destructive: #dc2626;
+    --destructive-foreground: #fef2f2;
+    --success: #16a34a;
+    --success-foreground: #f0fdf4;
+    --warning: #d97706;
+    --warning-foreground: #fffbeb;
   }
 
   /* Mismos hex que `darkColors` en `apps/mobile/src/theme/colors.ts`. */
@@ -37,6 +46,12 @@
     --accent-foreground: #f8fafc;
     --border: #1e293b;
     --ring: #cbd5e1;
+    --destructive: #f87171;
+    --destructive-foreground: #450a0a;
+    --success: #4ade80;
+    --success-foreground: #052e16;
+    --warning: #fbbf24;
+    --warning-foreground: #451a03;
   }
 
   /* Paletas alternativas — mismos hex exactos que `pastelColors`/`solarizedColors`/`nordColors` en
@@ -56,6 +71,13 @@
     --accent-foreground: #264d3b;
     --border: #e7dfe9;
     --ring: #b79ced;
+    /* Mismos hex que `pastelColors.danger`/`.success`; el ámbar se desaturó al mismo estilo. */
+    --destructive: #e38b95;
+    --destructive-foreground: #4a1420;
+    --success: #8fcb9b;
+    --success-foreground: #1c3a24;
+    --warning: #e0ab5f;
+    --warning-foreground: #402c08;
   }
 
   [data-theme="solarized"] {
@@ -71,6 +93,14 @@
     --accent-foreground: #586e75;
     --border: #dfd6bd;
     --ring: #268bd2;
+    /* Valores oficiales de Solarized (`red`/`green`/`yellow`) — mismos hex que
+       `solarizedColors.danger`/`.success`. */
+    --destructive: #dc322f;
+    --destructive-foreground: #fdf6e3;
+    --success: #859900;
+    --success-foreground: #fdf6e3;
+    --warning: #b58900;
+    --warning-foreground: #fdf6e3;
   }
 
   [data-theme="nord"] {
@@ -86,6 +116,14 @@
     --accent-foreground: #eceff4;
     --border: #4c566a;
     --ring: #88c0d0;
+    /* Valores oficiales de Nord (`nord11`/`nord14`/`nord13`) — mismos hex que
+       `nordColors.danger`/`.success`. */
+    --destructive: #bf616a;
+    --destructive-foreground: #2e3440;
+    --success: #a3be8c;
+    --success-foreground: #2e3440;
+    --warning: #ebcb8b;
+    --warning-foreground: #2e3440;
   }
 
   * {

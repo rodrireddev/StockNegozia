@@ -10,6 +10,10 @@ jest.mock("@/api/endpoints/products", () => ({
 jest.mock("@/api/endpoints/sales", () => ({
   createSale: jest.fn(),
 }));
+jest.mock("@/api/endpoints/settings", () => ({
+  fetchSettings: jest.fn(),
+  updateSettings: jest.fn(),
+}));
 jest.mock("@/auth/AuthContext", () => ({
   useAuth: () => ({ signOut: jest.fn() }),
 }));
@@ -22,9 +26,11 @@ jest.mock("@/hooks/useDebouncedValue", () => ({
 
 import { fetchProducts } from "@/api/endpoints/products";
 import { createSale } from "@/api/endpoints/sales";
+import { fetchSettings } from "@/api/endpoints/settings";
 
 const mockedFetchProducts = jest.mocked(fetchProducts);
 const mockedCreateSale = jest.mocked(createSale);
+const mockedFetchSettings = jest.mocked(fetchSettings);
 
 function makeProduct(overrides: Partial<ProductDto> & { id: number }): ProductDto {
   return {
@@ -58,6 +64,7 @@ describe("SalesScreen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockedFetchProducts.mockResolvedValue([cocaCola]);
+    mockedFetchSettings.mockResolvedValue({ businessName: "Almacén Doña Rosa" });
   });
 
   afterEach(async () => {

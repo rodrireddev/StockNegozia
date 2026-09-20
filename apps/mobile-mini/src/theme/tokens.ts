@@ -32,3 +32,11 @@ export const minTouchTarget = 48;
 
 /** Breakpoint tablet — ancho de pantalla en dp; ver `src/hooks/useDeviceSize.ts`. */
 export const tabletBreakpoint = 768;
+
+/**
+ * Ancho máximo de una columna de contenido (ver `components/ScreenContainer.tsx`) — en tablet
+ * (sobre todo en horizontal, donde el espacio disponible puede superar los 800dp) evita que texto
+ * y controles de una sola columna se estiren de punta a punta de la pantalla, que es incómodo de
+ * leer/usar. No tiene efecto en teléfono: el ancho de pantalla ahí siempre es menor a este valor.
+ */
+export const maxContentWidth = 640;

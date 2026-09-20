@@ -1,4 +1,5 @@
 import { Loader2 } from "lucide-react";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -63,31 +64,19 @@ export function RestoreConfirmDialog({
             <dd>{isValid ? "Compatible" : "Incompatible"}</dd>
           </dl>
 
-          {!isValid && (
-            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-red-700 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400">
-              {validation.message}
-            </p>
-          )}
+          {!isValid && <Alert variant="destructive">{validation.message}</Alert>}
 
           {isValid && !restoreSuccess && (
-            <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/50 dark:text-amber-400">
+            <Alert variant="warning">
               Restaurar este backup reemplazará los datos actuales de StockNegozia. Los datos
               creados después de la fecha del backup podrían perderse. Antes de continuar se creará
               automáticamente un backup de seguridad de los datos actuales.
-            </p>
+            </Alert>
           )}
 
-          {restoreError && (
-            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-red-700 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400">
-              {restoreError}
-            </p>
-          )}
+          {restoreError && <Alert variant="destructive">{restoreError}</Alert>}
 
-          {restoreSuccess && (
-            <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/50 dark:text-emerald-400">
-              {restoreSuccess}
-            </p>
-          )}
+          {restoreSuccess && <Alert variant="success">{restoreSuccess}</Alert>}
         </div>
 
         <DialogFooter>

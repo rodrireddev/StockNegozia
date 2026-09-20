@@ -74,6 +74,7 @@ export function ProductsTable({ products }: { products: ProductDto[] }) {
                     variant="ghost"
                     size="icon"
                     onClick={() => navigate(`/products/${product.id}/edit`)}
+                    aria-label={`Editar ${product.name}`}
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>

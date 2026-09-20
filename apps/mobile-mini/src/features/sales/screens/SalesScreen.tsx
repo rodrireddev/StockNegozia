@@ -18,8 +18,10 @@ import { ProductScanner, type ScanFeedback } from "@/features/scanner/ProductSca
 import { productAddedFeedback, scanErrorFeedback } from "@/features/scanner/scanFeedback";
 import type { ScanResult } from "@/features/scanner/types";
 import { useScanBeep } from "@/features/scanner/useScanBeep";
+import { useBusinessName } from "@/features/settings/hooks/useBusinessName";
 import { useTheme } from "@/theme/useTheme";
 import { spacing, typography } from "@/theme/tokens";
+import { MissingBusinessNameModal } from "../components/MissingBusinessNameModal";
 import { SaleCartRow } from "../components/SaleCartRow";
 import { useCart } from "../hooks/useCart";
 import { useCreateSale } from "../hooks/useCreateSale";
@@ -38,6 +40,7 @@ export function SalesScreen() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [generateReceipt, setGenerateReceipt] = useState(false);
   const [receiptError, setReceiptError] = useState<string | null>(null);
+  const [showMissingBusinessNameModal, setShowMissingBusinessNameModal] = useState(false);
 
   const debouncedSearch = useDebouncedValue(searchTerm);
   const trimmedSearch = debouncedSearch.trim();
@@ -47,6 +50,7 @@ export function SalesScreen() {
   const cart = useCart();
   const createSale = useCreateSale();
   const generateReceiptMutation = useGenerateReceipt();
+  const businessName = useBusinessName();
   const playScanBeep = useScanBeep();
 
   function handleAdd(product: ProductDto) {
@@ -111,6 +115,16 @@ export function SalesScreen() {
     setConfirmError(null);
     setSuccessMessage(null);
     setReceiptError(null);
+
+    // Generar el recibo con el nombre genérico de fallback ("StockNegozia", ver
+    // features/sales/data/receipt.ts) es un error que antes recién se notaba mirando el PDF ya
+    // generado — se corta acá, antes de registrar la venta, en vez de dejarlo pasar. Si todavía no
+    // terminó de leerse `AsyncStorage` (`!businessName.loaded`), se trata como si faltara: es
+    // preferible un falso bloqueo momentáneo a arriesgarse a generar el recibo genérico.
+    if (generateReceipt && !(businessName.loaded && businessName.value)) {
+      setShowMissingBusinessNameModal(true);
+      return;
+    }
 
     // Se captura antes de `cart.clear()` — el carrito ya trae name/sku/unitPrice por línea, así
     // que no hace falta re-consultar productos por id para armar el recibo.
@@ -257,6 +271,11 @@ export function SalesScreen() {
           loading={createSale.isPending || generateReceiptMutation.isPending}
         />
       </View>
+
+      <MissingBusinessNameModal
+        visible={showMissingBusinessNameModal}
+        onClose={() => setShowMissingBusinessNameModal(false)}
+      />
     </ScreenContainer>
   );
 }

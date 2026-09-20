@@ -1,5 +1,7 @@
 import type { DeviceDto } from "@stocknegozia/api-contracts";
+import { Loader2, Smartphone } from "lucide-react";
 import { useState } from "react";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { getUserFriendlyError } from "@/lib/errors";
 import { DeviceCard } from "../components/DeviceCard";
@@ -30,14 +32,18 @@ export function DevicesPage() {
         <Button onClick={() => setPairingOpen(true)}>Emparejar dispositivo</Button>
       </div>
 
-      {devices.isLoading && <p className="text-sm text-muted-foreground">Cargando…</p>}
-      {devices.isError && (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400">
-          {getUserFriendlyError(devices.error)}
-        </p>
+      {devices.isLoading && (
+        <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span>Cargando dispositivos…</span>
+        </div>
       )}
+      {devices.isError && <Alert variant="destructive">{getUserFriendlyError(devices.error)}</Alert>}
       {devices.data && devices.data.length === 0 && (
-        <p className="text-sm text-muted-foreground">Todavía no hay dispositivos emparejados.</p>
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border py-16 text-center">
+          <Smartphone className="h-10 w-10 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Todavía no hay dispositivos emparejados.</p>
+        </div>
       )}
 
       <div className="space-y-3">

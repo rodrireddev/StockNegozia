@@ -12,7 +12,7 @@ export function StatusPill({ label, tone = "neutral" }: { label: string; tone?: 
       : tone === "danger"
         ? colors.danger
         : tone === "warning"
-          ? "#d97706"
+          ? colors.warning
           : colors.mutedForeground;
 
   return (

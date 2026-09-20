@@ -20,6 +20,8 @@ export interface ThemeColors {
   danger: string;
   dangerForeground: string;
   success: string;
+  warning: string;
+  warningForeground: string;
 }
 
 export const lightColors: ThemeColors = {
@@ -38,6 +40,8 @@ export const lightColors: ThemeColors = {
   danger: "#dc2626",
   dangerForeground: "#fef2f2",
   success: "#16a34a",
+  warning: "#d97706",
+  warningForeground: "#fffbeb",
 };
 
 export const darkColors: ThemeColors = {
@@ -56,6 +60,8 @@ export const darkColors: ThemeColors = {
   danger: "#f87171",
   dangerForeground: "#450a0a",
   success: "#4ade80",
+  warning: "#fbbf24",
+  warningForeground: "#451a03",
 };
 
 /**
@@ -92,6 +98,8 @@ export const pastelColors: ThemeColors = {
   danger: "#e38b95",
   dangerForeground: "#4a1420",
   success: "#8fcb9b",
+  warning: "#e0ab5f",
+  warningForeground: "#402c08",
 };
 
 /** Solarized Light — valores oficiales (`base3`/`base2`/`base01`/`blue`/`red`/`green`, ver
@@ -112,6 +120,8 @@ export const solarizedColors: ThemeColors = {
   danger: "#dc322f",
   dangerForeground: "#fdf6e3",
   success: "#859900",
+  warning: "#b58900",
+  warningForeground: "#fdf6e3",
 };
 
 /** Nord — valores oficiales (`nord0`…`nord15`, ver
@@ -132,4 +142,6 @@ export const nordColors: ThemeColors = {
   danger: "#bf616a",
   dangerForeground: "#2e3440",
   success: "#a3be8c",
+  warning: "#ebcb8b",
+  warningForeground: "#2e3440",
 };

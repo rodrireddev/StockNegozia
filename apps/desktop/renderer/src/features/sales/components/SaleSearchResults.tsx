@@ -81,8 +81,17 @@ export function SaleSearchResults({
           {products.map((product) => (
             <TableRow
               key={product.id}
-              className="cursor-pointer"
+              className="cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring"
+              tabIndex={0}
+              role="button"
+              aria-label={`Agregar ${product.name} a la venta`}
               onClick={() => onSelect(product)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onSelect(product);
+                }
+              }}
             >
               <TableCell className="font-medium">{product.name}</TableCell>
               <TableCell className="text-muted-foreground">{product.sku}</TableCell>

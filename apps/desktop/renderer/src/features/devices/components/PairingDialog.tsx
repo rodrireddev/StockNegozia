@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -108,9 +109,7 @@ export function PairingDialog({ open, onOpenChange }: PairingDialogProps) {
         )}
 
         {createPairing.isError && (
-          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400">
-            {getUserFriendlyError(createPairing.error)}
-          </p>
+          <Alert variant="destructive">{getUserFriendlyError(createPairing.error)}</Alert>
         )}
 
         {createPairing.data && currentStatus !== "confirmed" && currentStatus !== "expired" && (
@@ -133,18 +132,14 @@ export function PairingDialog({ open, onOpenChange }: PairingDialogProps) {
 
         {currentStatus === "confirmed" && (
           <div className="space-y-3 py-4 text-center">
-            <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/50 dark:text-emerald-400">
-              Dispositivo emparejado correctamente.
-            </p>
+            <Alert variant="success">Dispositivo emparejado correctamente.</Alert>
             <Button onClick={() => onOpenChange(false)}>Cerrar</Button>
           </div>
         )}
 
         {currentStatus === "expired" && (
           <div className="space-y-3 py-4 text-center">
-            <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/50 dark:text-amber-400">
-              El pairing expiró antes de confirmarse.
-            </p>
+            <Alert variant="warning">El pairing expiró antes de confirmarse.</Alert>
             <Button variant="outline" onClick={() => createPairing.mutate()}>
               Generar uno nuevo
             </Button>

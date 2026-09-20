@@ -59,7 +59,7 @@ export function MovementsTable({ movements, productsById }: MovementsTableProps)
                 className={cn(
                   "text-right tabular-nums font-medium",
                   movement.direction === "IN"
-                    ? "text-emerald-700 dark:text-emerald-400"
+                    ? "text-success"
                     : "text-foreground",
                 )}
               >

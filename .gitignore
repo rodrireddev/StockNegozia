@@ -12,6 +12,9 @@ release/
 # Turborepo
 .turbo/
 
+# Vercel (project link metadata, machine/account-specific)
+.vercel/
+
 # Database (local dev data — never commit real data)
 apps/backend/data/
 apps/backend/data-*/

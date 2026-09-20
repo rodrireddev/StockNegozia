@@ -156,7 +156,7 @@ export function NewPurchasePage() {
           }}
           onKeyDown={handleSearchKeyDown}
         />
-        {scanError && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{scanError}</p>}
+        {scanError && <p className="mt-1 text-sm text-destructive">{scanError}</p>}
       </div>
 
       <div className="grid flex-1 grid-cols-1 gap-4 overflow-hidden lg:grid-cols-[1fr_360px]">
