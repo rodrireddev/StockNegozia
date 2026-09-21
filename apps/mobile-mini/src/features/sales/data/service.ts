@@ -73,6 +73,8 @@ export const salesService = {
           productId: item.productId,
           quantity: item.quantity,
           unitPrice: product.salePrice,
+          // Snapshot histórico del costo — ver comentario en el schema (`sale_items.unitCost`).
+          unitCost: product.purchasePrice,
           subtotal,
         };
       });

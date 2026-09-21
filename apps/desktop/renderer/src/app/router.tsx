@@ -8,6 +8,8 @@ import { InventoryStockPage } from "@/features/inventory/pages/InventoryStockPag
 import { ProductFormPage } from "@/features/products/pages/ProductFormPage";
 import { ProductsPage } from "@/features/products/pages/ProductsPage";
 import { NewPurchasePage } from "@/features/purchases/pages/NewPurchasePage";
+import { ProfitsChartPage } from "@/features/profits/pages/ProfitsChartPage";
+import { ProfitsHistoryPage } from "@/features/profits/pages/ProfitsHistoryPage";
 import { SalesPage } from "@/features/sales/pages/SalesPage";
 import { SuppliersPage } from "@/features/suppliers/pages/SuppliersPage";
 import { MainLayout } from "@/layouts/MainLayout";
@@ -26,6 +28,8 @@ export const router = createHashRouter([
       { path: "inventory", element: <InventoryStockPage /> },
       { path: "inventory/categories", element: <InventoryCategoriesPage /> },
       { path: "inventory/movements", element: <InventoryMovementsPage /> },
+      { path: "profits", element: <ProfitsHistoryPage /> },
+      { path: "profits/chart", element: <ProfitsChartPage /> },
       { path: "suppliers", element: <SuppliersPage /> },
       { path: "devices", element: <DevicesPage /> },
       { path: "settings", element: <SettingsPage /> },

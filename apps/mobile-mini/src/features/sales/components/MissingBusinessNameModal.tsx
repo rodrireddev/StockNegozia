@@ -5,11 +5,12 @@ import { Modal } from "@/components/Modal";
 import { TextField } from "@/components/TextField";
 import { useTheme } from "@/theme/useTheme";
 import { spacing, typography } from "@/theme/tokens";
-import { useBusinessName } from "@/features/settings/hooks/useBusinessName";
 
 interface MissingBusinessNameModalProps {
   visible: boolean;
   onClose: () => void;
+  onSave: (name: string) => Promise<void>;
+  isSaving: boolean;
 }
 
 /**
@@ -19,10 +20,20 @@ interface MissingBusinessNameModalProps {
  * generado. `SalesScreen.handleConfirm()` abre este modal en vez de registrar la venta cuando el
  * checkbox de recibo está tildado y falta el nombre — solo cierra el modal al guardar, no
  * reintenta la venta sola (la persona confirma de nuevo por su cuenta).
+ *
+ * `onSave`/`isSaving` vienen del `useBusinessName()` de `SalesScreen`, no de uno propio acá: ese
+ * hook no comparte estado entre instancias (es un `useState` local por componente, ver
+ * `features/settings/hooks/useBusinessName.ts`), así que una instancia separada guardaba el nombre
+ * sin que `SalesScreen` se enterara — `handleConfirm()` seguía viendo `value: null` y reabría este
+ * modal en loop, sin llegar nunca a registrar la venta.
  */
-export function MissingBusinessNameModal({ visible, onClose }: MissingBusinessNameModalProps) {
+export function MissingBusinessNameModal({
+  visible,
+  onClose,
+  onSave,
+  isSaving,
+}: MissingBusinessNameModalProps) {
   const { colors } = useTheme();
-  const businessName = useBusinessName();
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +44,7 @@ export function MissingBusinessNameModal({ visible, onClose }: MissingBusinessNa
       setError("Ingresá el nombre del negocio");
       return;
     }
-    await businessName.save(trimmed);
+    await onSave(trimmed);
     setValue("");
     onClose();
   }
@@ -60,18 +71,13 @@ export function MissingBusinessNameModal({ visible, onClose }: MissingBusinessNa
         {error && <Text style={{ color: colors.danger }}>{error}</Text>}
         <View style={styles.actions}>
           <View style={styles.action}>
-            <Button
-              label="Cancelar"
-              variant="ghost"
-              onPress={onClose}
-              disabled={businessName.isSaving}
-            />
+            <Button label="Cancelar" variant="ghost" onPress={onClose} disabled={isSaving} />
           </View>
           <View style={styles.action}>
             <Button
-              label={businessName.isSaving ? "Guardando…" : "Guardar"}
+              label={isSaving ? "Guardando…" : "Guardar"}
               onPress={handleSave}
-              loading={businessName.isSaving}
+              loading={isSaving}
             />
           </View>
         </View>

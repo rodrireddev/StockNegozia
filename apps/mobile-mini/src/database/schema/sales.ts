@@ -31,6 +31,11 @@ export const saleItems = sqliteTable(
     quantity: integer("quantity").notNull(),
     // Snapshot histórico: el precio del producto al momento de la venta, no el actual.
     unitPrice: real("unit_price").notNull(),
+    // Snapshot histórico del costo (`products.purchasePrice`) al momento de la venta — mismo
+    // criterio que `unitPrice`: la base para "Ganancias" (`features/profits`) nunca puede ser el
+    // costo ACTUAL del producto, o una venta vieja cambiaría de ganancia cada vez que se actualiza
+    // el costo del producto.
+    unitCost: real("unit_cost").notNull().default(0),
     subtotal: real("subtotal").notNull(),
   },
   (table) => ({

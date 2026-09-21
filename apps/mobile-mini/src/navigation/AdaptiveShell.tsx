@@ -8,9 +8,11 @@ import {
   Settings,
   ShoppingBag,
   ShoppingCart,
+  TrendingUp,
   Truck,
   type LucideProps,
 } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDeviceSize } from "@/hooks/useDeviceSize";
 import { useTheme } from "@/theme/useTheme";
 import { minTouchTarget, spacing, typography } from "@/theme/tokens";
@@ -36,6 +38,7 @@ const TABLET_NAV_ITEMS: NavItem[] = [
   { href: "/sales", label: "Ventas", icon: ShoppingCart },
   { href: "/purchases", label: "Compras", icon: ShoppingBag },
   { href: "/inventory", label: "Inventario", icon: Layers },
+  { href: "/profits", label: "Ganancias", icon: TrendingUp },
   { href: "/suppliers", label: "Proveedores", icon: Truck },
   { href: "/settings", label: "Ajustes", icon: Settings },
 ];
@@ -49,6 +52,7 @@ export function AdaptiveShell() {
   const { isTablet } = useDeviceSize();
   const pathname = usePathname();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const items = (isTablet ? TABLET_NAV_ITEMS : PHONE_NAV_ITEMS).map((item) => ({
     ...item,
@@ -83,7 +87,15 @@ export function AdaptiveShell() {
       <View
         style={[
           styles.bottomBar,
-          { borderTopColor: colors.border, backgroundColor: colors.background },
+          {
+            borderTopColor: colors.border,
+            backgroundColor: colors.background,
+            // En vez de un padding fijo: si no se suma el inset inferior acá, el propio contenido
+            // de la barra (iconos/labels) termina bajo la gesture bar del sistema en equipos con
+            // zonas de gesto altas (p. ej. MIUI) — este es el único elemento que toca el borde
+            // físico inferior en teléfono, ver `ScreenContainer` (edges "bottom" solo en tablet).
+            paddingBottom: Math.max(insets.bottom, spacing.sm),
+          },
         ]}
       >
         {items.map((item) => (
@@ -152,7 +164,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingTop: spacing.xs,
-    paddingBottom: spacing.sm,
   },
   tabItem: {
     flex: 1,

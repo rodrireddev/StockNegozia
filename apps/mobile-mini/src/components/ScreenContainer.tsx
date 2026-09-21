@@ -10,6 +10,11 @@ import { maxContentWidth, spacing } from "@/theme/tokens";
  * (centrado) para que una sola columna de texto/controles no se estire de punta a punta en una
  * tablet en horizontal (ver docs/mobile/MOBILE_CLIENT.md §Phone + Tablet). Sin efecto en teléfono,
  * donde el ancho de pantalla nunca alcanza ese máximo.
+ *
+ * El edge "bottom" solo se reserva en tablet: ahí el side rail no ocupa la franja inferior, así
+ * que el contenido sí toca el borde físico. En teléfono el `Slot` vive arriba de la bottom tab bar
+ * de `AdaptiveShell` (que es quien reserva el inset inferior) — sumarlo acá también dejaría un
+ * hueco vacío extra entre el contenido y la tab bar.
  */
 export function ScreenContainer({ style, children, ...props }: ViewProps) {
   const { colors } = useTheme();
@@ -18,7 +23,7 @@ export function ScreenContainer({ style, children, ...props }: ViewProps) {
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: colors.background }]}
-      edges={["top", "bottom"]}
+      edges={isTablet ? ["top", "bottom"] : ["top"]}
     >
       <View
         style={[styles.content, { paddingHorizontal: isTablet ? spacing.xxxl : spacing.lg }, style]}

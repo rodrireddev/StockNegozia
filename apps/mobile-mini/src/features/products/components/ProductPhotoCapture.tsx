@@ -8,6 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Button } from "@/components/Button";
 import { useTheme } from "@/theme/useTheme";
@@ -117,7 +118,13 @@ export function ProductPhotoCapture({ visible, onCaptured, onCancel }: ProductPh
 
   return (
     <RNModal visible={visible} animationType="slide" onRequestClose={handleClose}>
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* `Modal` nativo: ventana propia, no anidada en el `Slot` de `AdaptiveShell` — necesita su
+          propio safe area (notch arriba, gesture bar abajo) para que "Tomar foto" no quede debajo
+          de la barra de gestos del sistema (reportado en equipos Xiaomi/MIUI). */}
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={["top", "bottom"]}
+      >
         <View style={styles.header}>
           <Text style={[typography.title, { color: colors.foreground }]}>Foto del producto</Text>
           <Pressable onPress={handleClose} accessibilityRole="button" testID="photo-capture-close">
@@ -174,7 +181,7 @@ export function ProductPhotoCapture({ visible, onCaptured, onCancel }: ProductPh
             />
           </>
         )}
-      </View>
+      </SafeAreaView>
     </RNModal>
   );
 }

@@ -10,6 +10,8 @@ export function useCreateSale() {
       // La venta descuenta stock y genera un stock_movement SALE — invalida lo que depende de eso.
       void queryClient.invalidateQueries({ queryKey: ["products"] });
       void queryClient.invalidateQueries({ queryKey: ["stock-movements"] });
+      // También genera una nueva entrada de ganancia (ver `features/profits`).
+      void queryClient.invalidateQueries({ queryKey: ["profits"] });
     },
   });
 }

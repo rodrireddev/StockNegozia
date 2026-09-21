@@ -9,6 +9,7 @@
     "android": "expo run:android",
     "dev": "expo start",
     "web": "expo start --web",
+    "eas-build-post-install": "pnpm --filter @stocknegozia/shared --filter @stocknegozia/api-contracts --filter @stocknegozia/validation run build",
     "prebuild": "expo prebuild --platform android",
     "build:dev": "eas build --platform android --profile development",
     "build:preview": "eas build --platform android --profile preview",

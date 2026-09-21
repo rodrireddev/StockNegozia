@@ -275,6 +275,8 @@ export function SalesScreen() {
       <MissingBusinessNameModal
         visible={showMissingBusinessNameModal}
         onClose={() => setShowMissingBusinessNameModal(false)}
+        onSave={businessName.save}
+        isSaving={businessName.isSaving}
       />
     </ScreenContainer>
   );

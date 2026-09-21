@@ -1,7 +1,15 @@
 import type { ComponentType } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter, type Href } from "expo-router";
-import { ChevronRight, Layers, Settings, ShoppingBag, Truck, type LucideProps } from "lucide-react-native";
+import {
+  ChevronRight,
+  Layers,
+  Settings,
+  ShoppingBag,
+  TrendingUp,
+  Truck,
+  type LucideProps,
+} from "lucide-react-native";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { Card } from "@/components/Card";
 import { useTheme } from "@/theme/useTheme";
@@ -17,6 +25,7 @@ interface MoreItem {
 const ITEMS: MoreItem[] = [
   { href: "/purchases", label: "Compras", description: "Registrar compras", icon: ShoppingBag },
   { href: "/inventory", label: "Inventario", description: "Categorías y movimientos de stock", icon: Layers },
+  { href: "/profits", label: "Ganancias", description: "Historial y gráfico de ganancias", icon: TrendingUp },
   { href: "/suppliers", label: "Proveedores", description: "Ver, agregar y editar proveedores", icon: Truck },
   { href: "/settings", label: "Ajustes", description: "Este dispositivo y cerrar sesión", icon: Settings },
 ];

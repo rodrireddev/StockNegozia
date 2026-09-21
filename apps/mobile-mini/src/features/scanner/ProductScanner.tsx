@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Animated, Modal as RNModal, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Animated,
+  KeyboardAvoidingView,
+  Modal as RNModal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   CameraView,
   useCameraPermissions,
@@ -150,107 +159,118 @@ export function ProductScanner({ visible, onDetected, onCancel, feedback }: Prod
 
   return (
     <RNModal visible={visible} animationType="slide" onRequestClose={handleClose}>
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.header}>
-          <Text style={[typography.title, { color: colors.foreground }]}>Escanear producto</Text>
-          <Pressable onPress={handleClose} accessibilityRole="button" testID="scanner-close">
-            <Text style={{ color: colors.primary }}>Cerrar</Text>
-          </Pressable>
-        </View>
+      {/* `Modal` nativo: ventana propia, no anidada en el `Slot` de `AdaptiveShell` — necesita su
+          propio safe area (notch arriba, gesture bar abajo), igual que `ProductPhotoCapture`, y su
+          propio `KeyboardAvoidingView`: el `windowSoftInputMode="adjustResize"` de la Activity no
+          llega acá (mismo motivo que en `components/Modal.tsx`), así que sin esto el teclado tapaba
+          los botones del formulario manual ("Buscar" / "Volver a la cámara"). */}
+      <KeyboardAvoidingView style={styles.avoider} behavior="height">
+        <SafeAreaView
+          style={[styles.container, { backgroundColor: colors.background }]}
+          edges={["top", "bottom"]}
+        >
+          <View style={styles.header}>
+            <Text style={[typography.title, { color: colors.foreground }]}>Escanear producto</Text>
+            <Pressable onPress={handleClose} accessibilityRole="button" testID="scanner-close">
+              <Text style={{ color: colors.primary }}>Cerrar</Text>
+            </Pressable>
+          </View>
 
-        {displayedFeedback && (
-          <Animated.View
-            testID="scanner-feedback"
-            pointerEvents="none"
-            style={[
-              styles.feedbackBanner,
-              {
-                opacity: feedbackOpacity,
-                borderLeftColor:
-                  displayedFeedback.type === "success" ? colors.success : colors.danger,
-              },
-            ]}
-          >
-            <Text
+          {displayedFeedback && (
+            <Animated.View
+              testID="scanner-feedback"
+              pointerEvents="none"
               style={[
-                styles.feedbackText1,
-                { color: displayedFeedback.type === "success" ? colors.success : colors.danger },
+                styles.feedbackBanner,
+                {
+                  opacity: feedbackOpacity,
+                  borderLeftColor:
+                    displayedFeedback.type === "success" ? colors.success : colors.danger,
+                },
               ]}
             >
-              {displayedFeedback.text1}
-            </Text>
-            {displayedFeedback.text2 && (
-              <Text style={styles.feedbackText2}>{displayedFeedback.text2}</Text>
-            )}
-          </Animated.View>
-        )}
+              <Text
+                style={[
+                  styles.feedbackText1,
+                  { color: displayedFeedback.type === "success" ? colors.success : colors.danger },
+                ]}
+              >
+                {displayedFeedback.text1}
+              </Text>
+              {displayedFeedback.text2 && (
+                <Text style={styles.feedbackText2}>{displayedFeedback.text2}</Text>
+              )}
+            </Animated.View>
+          )}
 
-        {manualMode ? (
-          <View style={styles.manualForm}>
-            <TextField
-              label="Código"
-              placeholder="SKU o código de barras"
-              value={manualValue}
-              onChangeText={setManualValue}
-              onSubmitEditing={handleManualSubmit}
-              autoFocus
-              autoCapitalize="none"
-              returnKeyType="done"
-              testID="scanner-manual-input"
-            />
-            <Button label="Buscar" onPress={handleManualSubmit} testID="scanner-manual-submit" />
-            <Button
-              label="Volver a la cámara"
-              variant="ghost"
-              onPress={() => setManualMode(false)}
-            />
-          </View>
-        ) : !permission ? (
-          <View style={styles.centerContent} />
-        ) : !permission.granted ? (
-          <View style={styles.centerContent}>
-            <Text style={[typography.body, styles.message, { color: colors.foreground }]}>
-              StockNegozia necesita acceso a la cámara para escanear el código del producto. No se
-              guarda ni se envía ninguna foto o video.
-            </Text>
-            <Button
-              label={permission.canAskAgain ? "Permitir cámara" : "Abrir configuración"}
-              onPress={requestPermission}
-              testID="scanner-permission-request"
-            />
-            <Button
-              label="Ingresar manualmente"
-              variant="ghost"
-              onPress={() => setManualMode(true)}
-            />
-          </View>
-        ) : (
-          <>
-            <View style={styles.cameraWrapper}>
-              <CameraView
-                style={styles.camera}
-                facing="back"
-                barcodeScannerSettings={{ barcodeTypes: PRODUCT_BARCODE_TYPES }}
-                onBarcodeScanned={handleBarcodeScanned}
+          {manualMode ? (
+            <View style={styles.manualForm}>
+              <TextField
+                label="Código"
+                placeholder="SKU o código de barras"
+                value={manualValue}
+                onChangeText={setManualValue}
+                onSubmitEditing={handleManualSubmit}
+                autoFocus
+                autoCapitalize="none"
+                returnKeyType="done"
+                testID="scanner-manual-input"
               />
-              <View style={[styles.frame, { borderColor: colors.primary }]} />
+              <Button label="Buscar" onPress={handleManualSubmit} testID="scanner-manual-submit" />
+              <Button
+                label="Volver a la cámara"
+                variant="ghost"
+                onPress={() => setManualMode(false)}
+              />
             </View>
-            <Text style={[typography.caption, styles.hint, { color: colors.mutedForeground }]}>
-              Apuntá al código del producto
-            </Text>
-            <Button
-              label="Ingresar manualmente"
-              variant="ghost"
-              onPress={() => setManualMode(true)}
-            />
-          </>
-        )}
-      </View>
+          ) : !permission ? (
+            <View style={styles.centerContent} />
+          ) : !permission.granted ? (
+            <View style={styles.centerContent}>
+              <Text style={[typography.body, styles.message, { color: colors.foreground }]}>
+                StockNegozia necesita acceso a la cámara para escanear el código del producto. No se
+                guarda ni se envía ninguna foto o video.
+              </Text>
+              <Button
+                label={permission.canAskAgain ? "Permitir cámara" : "Abrir configuración"}
+                onPress={requestPermission}
+                testID="scanner-permission-request"
+              />
+              <Button
+                label="Ingresar manualmente"
+                variant="ghost"
+                onPress={() => setManualMode(true)}
+              />
+            </View>
+          ) : (
+            <>
+              <View style={styles.cameraWrapper}>
+                <CameraView
+                  style={styles.camera}
+                  facing="back"
+                  barcodeScannerSettings={{ barcodeTypes: PRODUCT_BARCODE_TYPES }}
+                  onBarcodeScanned={handleBarcodeScanned}
+                />
+                <View style={[styles.frame, { borderColor: colors.primary }]} />
+              </View>
+              <Text style={[typography.caption, styles.hint, { color: colors.mutedForeground }]}>
+                Apuntá al código del producto
+              </Text>
+              <Button
+                label="Ingresar manualmente"
+                variant="ghost"
+                onPress={() => setManualMode(true)}
+              />
+            </>
+          )}
+        </SafeAreaView>
+      </KeyboardAvoidingView>
     </RNModal>
   );
 }
 
 const styles = StyleSheet.create({
+  avoider: { flex: 1 },
   container: { flex: 1, padding: spacing.lg, gap: spacing.md },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   centerContent: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.lg },

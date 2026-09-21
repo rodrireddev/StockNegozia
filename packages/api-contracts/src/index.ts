@@ -7,3 +7,4 @@ export * from "./suppliers/supplier.contract";
 export * from "./purchases/purchase.contract";
 export * from "./backup/backup.contract";
 export * from "./settings/settings.contract";
+export * from "./profits/profit.contract";

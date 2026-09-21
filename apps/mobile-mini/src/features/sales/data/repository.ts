@@ -14,6 +14,7 @@ export interface NewSaleItemRecord {
   productId: number;
   quantity: number;
   unitPrice: number;
+  unitCost: number;
   subtotal: number;
 }
 
