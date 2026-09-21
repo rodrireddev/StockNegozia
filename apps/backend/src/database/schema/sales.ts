@@ -34,7 +34,13 @@ export const saleItems = sqliteTable(
     // Snapshot histórico del costo (`products.purchasePrice`) al momento de la venta — mismo
     // criterio que `unitPrice`: la base de "Ganancias" (`core/profits`) nunca puede ser el costo
     // ACTUAL del producto, o una venta vieja cambiaría de ganancia cada vez que se actualiza el
-    // costo. `default(0)` sólo por compatibilidad con filas existentes de antes de este campo.
+    // costo. `default(0)` sólo aplica mientras se ejecuta el ALTER TABLE en sí — la migración que
+    // agrega esta columna (`0014_fixed_mystique.sql`) hace un UPDATE inmediatamente después para
+    // completar las filas ya existentes con el costo real de la última COMPRA (`purchase_items.
+    // unitCost`) vigente al momento de esa venta (el mismo historial de costos que ya usa
+    // "Movimientos"/`unitValue`) — sólo cae al `purchasePrice` ACTUAL del producto si nunca hubo
+    // una compra registrada antes de esa venta. Dejarlas en 0 haría que cada venta vieja mostrara
+    // el 100% del precio de venta como ganancia.
     unitCost: real("unit_cost").notNull().default(0),
     subtotal: real("subtotal").notNull(),
   },
