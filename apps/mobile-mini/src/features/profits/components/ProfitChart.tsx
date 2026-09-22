@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { DailyProfitDto } from "@/features/profits/data/service";
 import { useTheme } from "@/theme/useTheme";
 import { radius, spacing, typography } from "@/theme/tokens";
@@ -12,6 +12,13 @@ const compactCurrencyFormatter = new Intl.NumberFormat("es-AR", {
   maximumFractionDigits: 0,
 });
 
+interface ProfitChartProps {
+  data: DailyProfitDto[];
+  /** Al tocar un día se llama con su `date` (`YYYY-MM-DD`) — pensado para abrir el detalle de ese
+   *  día. Sin esta prop las barras no son tocables (uso en un contexto de solo lectura). */
+  onSelectDay?: (date: string) => void;
+}
+
 /**
  * Barras día vs. ganancia de la última semana. Sin librería de gráficos (no hay ninguna en el
  * proyecto, ver package.json): son `View`s con alto proporcional, suficiente para 7 barras y más
@@ -19,7 +26,7 @@ const compactCurrencyFormatter = new Intl.NumberFormat("es-AR", {
  * arriba, negativa abajo) para poder mostrar un día con pérdida sin distorsionar la escala de
  * los demás — un solo `maxAbsProfit` comparte la escala de ambas zonas.
  */
-export function ProfitChart({ data }: { data: DailyProfitDto[] }) {
+export function ProfitChart({ data, onSelectDay }: ProfitChartProps) {
   const { colors } = useTheme();
   const hasNegative = data.some((day) => day.profit < 0);
   const maxAbsProfit = Math.max(1, ...data.map((day) => Math.abs(day.profit)));
@@ -33,7 +40,12 @@ export function ProfitChart({ data }: { data: DailyProfitDto[] }) {
               ? Math.max(4, (day.profit / maxAbsProfit) * (POSITIVE_ZONE_HEIGHT - 20))
               : 2;
           return (
-            <View key={day.date} style={styles.column}>
+            <Pressable
+              key={day.date}
+              style={styles.column}
+              disabled={!onSelectDay}
+              onPress={() => onSelectDay?.(day.date)}
+            >
               <Text
                 style={[typography.caption, styles.valueLabel, { color: colors.mutedForeground }]}
                 numberOfLines={1}
@@ -48,7 +60,7 @@ export function ProfitChart({ data }: { data: DailyProfitDto[] }) {
                   ]}
                 />
               </View>
-            </View>
+            </Pressable>
           );
         })}
       </View>
@@ -75,9 +87,14 @@ export function ProfitChart({ data }: { data: DailyProfitDto[] }) {
 
       <View style={styles.zone}>
         {data.map((day) => (
-          <View key={day.date} style={styles.column}>
+          <Pressable
+            key={day.date}
+            style={styles.column}
+            disabled={!onSelectDay}
+            onPress={() => onSelectDay?.(day.date)}
+          >
             <Text style={[typography.caption, { color: colors.mutedForeground }]}>{day.label}</Text>
-          </View>
+          </Pressable>
         ))}
       </View>
     </View>

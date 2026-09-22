@@ -13,11 +13,8 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { Button } from "@/components/Button";
 import { useTheme } from "@/theme/useTheme";
 import { radius, spacing, typography } from "@/theme/tokens";
+import { estimateBase64Bytes, MAX_IMAGE_BYTES } from "../utils/image";
 
-/** Mismo límite que Desktop (`MAX_IMAGE_BYTES` en su `ProductForm.tsx`) — el campo `image` es un
- *  string libre (URL o data URI) sin límite de tamaño en el backend; el límite es una convención
- *  de cliente que ambas apps respetan igual, para no guardar fotos enormes en la base SQLite. */
-const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 /** Calidad JPEG del `takePictureAsync` — mantiene una foto de producto típica bien por debajo del
  *  límite sin agregar un paso de redimensionado/compresión aparte. */
 const CAPTURE_QUALITY = 0.5;
@@ -26,11 +23,6 @@ export interface ProductPhotoCaptureProps {
   visible: boolean;
   onCaptured: (dataUri: string) => void;
   onCancel: () => void;
-}
-
-function estimateBase64Bytes(base64: string): number {
-  // Cada 4 caracteres base64 codifican 3 bytes — estimación estándar sin decodificar el string.
-  return Math.ceil((base64.length * 3) / 4);
 }
 
 /**

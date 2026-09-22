@@ -3,6 +3,7 @@ import { Image, Keyboard, ScrollView, StyleSheet, Text, View } from "react-nativ
 import type { ProductDto } from "@stocknegozia/api-contracts";
 import { createProductSchema, updateProductSchema } from "@stocknegozia/validation";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import { Button } from "@/components/Button";
 import { Checkbox } from "@/components/Checkbox";
 import { Select } from "@/components/Select";
@@ -13,9 +14,14 @@ import type { ScanResult } from "@/features/scanner/types";
 import { useTheme } from "@/theme/useTheme";
 import { radius, spacing, typography } from "@/theme/tokens";
 import { useSuppliers } from "@/features/suppliers/hooks/useSuppliers";
+import { estimateBase64Bytes, MAX_IMAGE_BYTES } from "../utils/image";
 import { useCategories } from "../hooks/useCategories";
 import { useCreateProduct } from "../hooks/useCreateProduct";
 import { useUpdateProduct } from "../hooks/useUpdateProduct";
+
+/** Misma calidad JPEG que `ProductPhotoCapture` (cámara) — mantiene una foto típica bien por
+ *  debajo de `MAX_IMAGE_BYTES` sin agregar un paso de redimensionado aparte. */
+const GALLERY_QUALITY = 0.5;
 
 const NEW_CATEGORY_VALUE = "__new__";
 const NO_CATEGORY_VALUE = "";
@@ -82,6 +88,31 @@ export function ProductForm({
 
   function update<K extends keyof ProductFormState>(key: K, value: ProductFormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  /** Alternativa a `ProductPhotoCapture` (cámara): elegir una foto ya existente de la galería del
+   *  teléfono. Mismo formato de salida (data URI base64) y mismo límite de tamaño, para que
+   *  `products.image` se comporte igual sin importar de dónde vino la foto. */
+  async function handlePickFromGallery() {
+    setFormError(null);
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      base64: true,
+      quality: GALLERY_QUALITY,
+    });
+    if (result.canceled) return;
+
+    const base64 = result.assets[0]?.base64;
+    if (!base64) {
+      setFormError("No se pudo cargar esa foto. Probá con otra.");
+      return;
+    }
+    const dataUri = `data:image/jpeg;base64,${base64}`;
+    if (estimateBase64Bytes(dataUri) > MAX_IMAGE_BYTES) {
+      setFormError("La imagen no puede superar los 2MB — probá con otra foto.");
+      return;
+    }
+    update("image", dataUri);
   }
 
   function buildBasePayload() {
@@ -282,15 +313,26 @@ export function ProductForm({
             />
           </View>
         ) : (
-          <Button
-            label="📷 Tomar foto"
-            variant="secondary"
-            onPress={() => {
-              Keyboard.dismiss();
-              setPhotoCaptureOpen(true);
-            }}
-            testID="take-product-photo"
-          />
+          <View style={styles.imageButtons}>
+            <Button
+              label="📷 Tomar foto"
+              variant="secondary"
+              onPress={() => {
+                Keyboard.dismiss();
+                setPhotoCaptureOpen(true);
+              }}
+              testID="take-product-photo"
+            />
+            <Button
+              label="🖼️ Elegir de la galería"
+              variant="secondary"
+              onPress={() => {
+                Keyboard.dismiss();
+                void handlePickFromGallery();
+              }}
+              testID="pick-product-photo"
+            />
+          </View>
         )}
       </View>
       <ProductPhotoCapture
@@ -332,6 +374,7 @@ const styles = StyleSheet.create({
   errorBanner: { borderRadius: 8, padding: spacing.md },
   actions: { gap: spacing.sm, marginTop: spacing.md },
   imageSection: { gap: spacing.xs },
+  imageButtons: { gap: spacing.sm },
   imageRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   imagePreview: { width: 64, height: 64, borderRadius: radius.md },
 });

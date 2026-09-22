@@ -51,6 +51,12 @@
           "enableBackgroundPlayback": false
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "StockNegozia necesita acceso a tus fotos para elegir la imagen de un producto."
+        }
+      ],
       "expo-sharing"
     ],
     "experiments": {

@@ -229,7 +229,7 @@ importers:
     devDependencies:
       '@nestjs/cli':
         specifier: ^11.0.0
-        version: 11.0.24(@types/node@22.20.2)(esbuild@0.19.12)(lightningcss@1.33.0)(postcss@8.5.28)(prettier@3.9.6)
+        version: 11.0.24(@types/node@22.20.2)(csso@5.0.5)(esbuild@0.19.12)(lightningcss@1.33.0)(postcss@8.5.28)(prettier@3.9.6)
       '@nestjs/testing':
         specifier: ^11.0.1
         version: 11.2.3(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.2.3)(@nestjs/platform-express@11.2.3)
@@ -563,6 +563,9 @@ importers:
       expo-file-system:
         specifier: ~57.0.7
         version: 57.0.7(expo@57.0.23)(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))
+      expo-image-picker:
+        specifier: ~57.0.19
+        version: 57.0.19(expo@57.0.23)
       expo-linking:
         specifier: ~57.0.10
         version: 57.0.10(expo@57.0.23)(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1)
@@ -5697,6 +5700,16 @@ packages:
       expo: '*'
       react: '*'
       react-native: '*'
+
+  expo-image-loader@57.0.1:
+    resolution: {integrity: sha512-uhrZKLT/cTl2mXyR28kPpVkS5O+PK9N1QA/07IFM4f5T4g0lTW1JHT3NEWwEEsGFldPmVX4j7LwUVVZxE+woug==}
+    peerDependencies:
+      expo: '*'
+
+  expo-image-picker@57.0.19:
+    resolution: {integrity: sha512-SWKY235q7TOmlGhFTUWhJZnRqrW/HYHG/6USypa1qgnaQ0ndvToUGjZwVMeAlqtJeqJCXOXSAJzXTxkw7jJc+A==}
+    peerDependencies:
+      expo: '*'
 
   expo-keep-awake@57.0.2:
     resolution: {integrity: sha512-GqgH746wtJImmsbyHmCQoi7cOslKuWQBbJHXr53S35Bpf5UvxCAztvnitUEd7D0QvFN2rvkOhylbZpgZZfBLlQ==}
@@ -12664,7 +12677,7 @@ snapshots:
       '@emnapi/runtime': 1.11.3
       '@tybys/wasm-util': 0.10.4
 
-  '@nestjs/cli@11.0.24(@types/node@22.20.2)(esbuild@0.19.12)(lightningcss@1.33.0)(postcss@8.5.28)(prettier@3.9.6)':
+  '@nestjs/cli@11.0.24(@types/node@22.20.2)(csso@5.0.5)(esbuild@0.19.12)(lightningcss@1.33.0)(postcss@8.5.28)(prettier@3.9.6)':
     dependencies:
       '@angular-devkit/core': 19.2.27(chokidar@4.0.3)
       '@angular-devkit/schematics': 19.2.27(chokidar@4.0.3)
@@ -12675,14 +12688,14 @@ snapshots:
       chokidar: 4.0.3
       cli-table3: 0.6.5
       commander: 4.1.1
-      fork-ts-checker-webpack-plugin: 9.1.0(typescript@5.9.3)(webpack@5.106.2(esbuild@0.19.12)(lightningcss@1.33.0)(postcss@8.5.28))
+      fork-ts-checker-webpack-plugin: 9.1.0(typescript@5.9.3)(webpack@5.106.2(csso@5.0.5)(esbuild@0.19.12)(lightningcss@1.33.0)(postcss@8.5.28))
       glob: 13.0.6
       node-emoji: 1.11.0
       ora: 5.4.1
       tsconfig-paths: 4.2.0
       tsconfig-paths-webpack-plugin: 4.2.0
       typescript: 5.9.3
-      webpack: 5.106.2(esbuild@0.19.12)(lightningcss@1.33.0)(postcss@8.5.28)
+      webpack: 5.106.2(csso@5.0.5)(esbuild@0.19.12)(lightningcss@1.33.0)(postcss@8.5.28)
       webpack-node-externals: 3.0.0
     transitivePeerDependencies:
       - '@minify-html/node'
@@ -16170,6 +16183,15 @@ snapshots:
       react-native: 0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
     optional: true
 
+  expo-image-loader@57.0.1(expo@57.0.23):
+    dependencies:
+      expo: 57.0.23(4e29d11972c2628fbb51a52f32ddf706)
+
+  expo-image-picker@57.0.19(expo@57.0.23):
+    dependencies:
+      expo: 57.0.23(4e29d11972c2628fbb51a52f32ddf706)
+      expo-image-loader: 57.0.1(expo@57.0.23)
+
   expo-keep-awake@57.0.2(expo@57.0.23)(react@19.2.3):
     dependencies:
       expo: 57.0.23(4e29d11972c2628fbb51a52f32ddf706)
@@ -16729,7 +16751,7 @@ snapshots:
 
   forever-agent@0.6.1: {}
 
-  fork-ts-checker-webpack-plugin@9.1.0(typescript@5.9.3)(webpack@5.106.2(esbuild@0.19.12)(lightningcss@1.33.0)(postcss@8.5.28)):
+  fork-ts-checker-webpack-plugin@9.1.0(typescript@5.9.3)(webpack@5.106.2(csso@5.0.5)(esbuild@0.19.12)(lightningcss@1.33.0)(postcss@8.5.28)):
     dependencies:
       '@babel/code-frame': 7.29.7
       chalk: 4.1.2
@@ -16744,7 +16766,7 @@ snapshots:
       semver: 7.8.5
       tapable: 2.3.3
       typescript: 5.9.3
-      webpack: 5.106.2(esbuild@0.19.12)(lightningcss@1.33.0)(postcss@8.5.28)
+      webpack: 5.106.2(csso@5.0.5)(esbuild@0.19.12)(lightningcss@1.33.0)(postcss@8.5.28)
 
   form-data@2.3.3:
     dependencies:
@@ -20911,14 +20933,15 @@ snapshots:
       ansi-escapes: 4.3.2
       supports-hyperlinks: 2.3.0
 
-  terser-webpack-plugin@5.6.1(esbuild@0.19.12)(lightningcss@1.33.0)(postcss@8.5.28)(webpack@5.106.2(esbuild@0.19.12)(lightningcss@1.33.0)(postcss@8.5.28)):
+  terser-webpack-plugin@5.6.1(csso@5.0.5)(esbuild@0.19.12)(lightningcss@1.33.0)(postcss@8.5.28)(webpack@5.106.2(csso@5.0.5)(esbuild@0.19.12)(lightningcss@1.33.0)(postcss@8.5.28)):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       jest-worker: 27.5.1
       schema-utils: 4.4.0
       terser: 5.51.2
-      webpack: 5.106.2(esbuild@0.19.12)(lightningcss@1.33.0)(postcss@8.5.28)
+      webpack: 5.106.2(csso@5.0.5)(esbuild@0.19.12)(lightningcss@1.33.0)(postcss@8.5.28)
     optionalDependencies:
+      csso: 5.0.5
       esbuild: 0.19.12
       lightningcss: 1.33.0
       postcss: 8.5.28
@@ -21651,7 +21674,7 @@ snapshots:
 
   webpack-sources@3.5.1: {}
 
-  webpack@5.106.2(esbuild@0.19.12)(lightningcss@1.33.0)(postcss@8.5.28):
+  webpack@5.106.2(csso@5.0.5)(esbuild@0.19.12)(lightningcss@1.33.0)(postcss@8.5.28):
     dependencies:
       '@types/eslint-scope': 3.7.7
       '@types/estree': 1.0.9
@@ -21674,7 +21697,7 @@ snapshots:
       neo-async: 2.6.2
       schema-utils: 4.4.0
       tapable: 2.3.3
-      terser-webpack-plugin: 5.6.1(esbuild@0.19.12)(lightningcss@1.33.0)(postcss@8.5.28)(webpack@5.106.2(esbuild@0.19.12)(lightningcss@1.33.0)(postcss@8.5.28))
+      terser-webpack-plugin: 5.6.1(csso@5.0.5)(esbuild@0.19.12)(lightningcss@1.33.0)(postcss@8.5.28)(webpack@5.106.2(csso@5.0.5)(esbuild@0.19.12)(lightningcss@1.33.0)(postcss@8.5.28))
       watchpack: 2.5.2
       webpack-sources: 3.5.1
     transitivePeerDependencies:

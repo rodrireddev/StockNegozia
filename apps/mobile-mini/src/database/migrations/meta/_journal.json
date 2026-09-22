@@ -15,6 +15,20 @@
       "when": 1790003636091,
       "tag": "0001_lucky_marvex",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1790034075526,
+      "tag": "0002_repair_unit_cost_backfill",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1790112439529,
+      "tag": "0003_chief_wild_pack",
+      "breakpoints": true
     }
   ]
 }
