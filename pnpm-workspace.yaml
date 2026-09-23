@@ -14,6 +14,7 @@ minimumReleaseAgeExclude:
   - '@expo/router-server@57.0.10'
   - babel-preset-expo@57.0.12
   - expo@57.0.23
+  - react-native-google-mobile-ads@17.1.0
 
 onlyBuiltDependencies:
   - better-sqlite3

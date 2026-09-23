@@ -57,7 +57,14 @@
           "photosPermission": "StockNegozia necesita acceso a tus fotos para elegir la imagen de un producto."
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

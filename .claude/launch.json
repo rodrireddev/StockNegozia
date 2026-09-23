@@ -6,6 +6,12 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@stocknegozia/landing", "dev", "--", "--host"],
       "port": 4321
+    },
+    {
+      "name": "admin-panel",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@stocknegozia/admin-panel", "dev"],
+      "port": 5560
     }
   ]
 }

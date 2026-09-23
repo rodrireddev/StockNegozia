@@ -1,12 +1,16 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
+import mobileAds from "react-native-google-mobile-ads";
+import { AccountProvider } from "@/accounts/AccountContext";
 import { db } from "@/database/client";
 import migrations from "@/database/migrations/migrations";
 import { AdaptiveShell } from "@/navigation/AdaptiveShell";
+import { getOnboardingSeen, loadOnboardingSeen, markOnboardingSeen } from "@/features/onboarding/onboardingStore";
+import { OnboardingScreen } from "@/features/onboarding/screens/OnboardingScreen";
 import { ThemeProvider, useThemeMode } from "@/theme/ThemeContext";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -31,13 +35,27 @@ const queryClient = new QueryClient({
 function RootNavigator() {
   const { dark, ready: themeReady } = useThemeMode();
   const { success: migrationsReady, error: migrationError } = useMigrations(db, migrations);
-  const bootstrapping = !themeReady || (!migrationsReady && !migrationError);
+  const [onboardingSeen, setOnboardingSeen] = useState<boolean | null>(getOnboardingSeen());
+  const bootstrapping =
+    !themeReady || (!migrationsReady && !migrationError) || onboardingSeen === null;
+
+  useEffect(() => {
+    loadOnboardingSeen().then(setOnboardingSeen);
+  }, []);
 
   useEffect(() => {
     if (!bootstrapping) {
       SplashScreen.hideAsync().catch(() => {});
     }
   }, [bootstrapping]);
+
+  // No bloquea el splash ni el resto del arranque — un rewarded ad recién hace falta cuando el
+  // usuario entra a pedir uno (prototipo, doc ADS_CREDITS_GAMIFICATION.md), no en cada apertura.
+  useEffect(() => {
+    mobileAds()
+      .initialize()
+      .catch(() => {});
+  }, []);
 
   if (bootstrapping) return null;
 
@@ -46,6 +64,20 @@ function RootNavigator() {
     // dispositivo (almacenamiento corrupto/lleno). Se corta acá en vez de dejar que cada pantalla
     // falle por su cuenta contra una base a medio migrar.
     throw migrationError;
+  }
+
+  if (!onboardingSeen) {
+    // Solo la primera vez que se instala la app (doc ADS_CREDITS_GAMIFICATION.md) — nunca más
+    // después de esto en este dispositivo. Ver "¿Cómo funciona?" en Beneficios para volver a
+    // verlo a pedido.
+    return (
+      <OnboardingScreen
+        onFinish={() => {
+          markOnboardingSeen();
+          setOnboardingSeen(true);
+        }}
+      />
+    );
   }
 
   return (
@@ -61,7 +93,9 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ThemeProvider>
         <QueryClientProvider client={queryClient}>
-          <RootNavigator />
+          <AccountProvider>
+            <RootNavigator />
+          </AccountProvider>
         </QueryClientProvider>
       </ThemeProvider>
     </SafeAreaProvider>

@@ -3,6 +3,12 @@
 Estado: **idea en diseño, nada implementado todavía**. Este doc es el resumen de la sesión de
 diseño para retomarla en el futuro sin perder el razonamiento detrás de cada decisión.
 
+**Alcance: esto suma un backend nuevo y un frontend nuevo al monorepo, además de los que ya
+existen** (`apps/backend`, `apps/mobile`, `apps/mobile-mini`, `apps/desktop`, `apps/landing`) —
+no reemplaza ni modifica ninguno de los actuales. El backend nuevo es multi-tenant (cuentas,
+créditos, tablero de pedidos — ver sección 6, `apps/backend` actual es solo pairing LAN); el
+frontend nuevo es el panel de administración (sección 7, React + Vite, separado de todo lo demás).
+
 ## Principio rector
 
 `mobile-mini` es una herramienta de trabajo diaria (POS/inventario de un comercio chico), no un
@@ -101,6 +107,61 @@ Argentina/LatAm es tráfico tier-2/tier-3 para AdMob: eCPM de rewarded video ron
 Todos los números de esta sección van en una tabla de config versionada (ver sección 7), no
 hardcodeados — se ajustan con datos reales después de la Etapa 1, no a ojo.
 
+### 1bis. Ads en `apps/desktop` (Electron) — pendiente de confirmar con el proveedor
+
+`mobile-mini` usa AdMob (android/ios, confirmado, soporte nativo oficial). **Ni AdSense ni AdMob
+sirven para `apps/desktop`** — investigado en detalle, no es una suposición:
+
+- **AdSense**: política de programa de Google, textual: *"Google ads... may not be: Integrated
+  into a software application... including toolbars"*. Las únicas excepciones de WebView que
+  Google autoriza son para apps **móviles** registradas con el Google Mobile Ads SDK (o casos
+  puntuales como Chrome Custom Tabs/Trusted Web Activities en Android, SFSafariViewController en
+  iOS) — nada de eso cubre un Electron de escritorio. Forzarlo (cargar el script de AdSense en un
+  WebView de Electron) viola la política igual, aunque técnicamente cargue: Google prohíbe el
+  *contexto de distribución* ("software application"), no el motor de renderizado — el riesgo real
+  es terminación de la cuenta de AdSense.
+- **AdMob**: es explícitamente solo para apps móviles nativas (Android/iOS) y engines tipo
+  Unity/Cocos. No tiene soporte para desktop/Electron en absoluto, ni siquiera con matices.
+- Referencia externa: BlueStacks (el caso que motivó esta pregunta) **no usa AdSense ni AdMob** —
+  monetiza con publicidad directa/promoción de juegos y su propia red de video ads.
+
+**Candidatos evaluados para desktop:**
+
+| Candidato | Formato | Soporta Electron/desktop empaquetado | Bloqueante conocido |
+|---|---|---|---|
+| [AppLixir](https://www.applixir.com/) | Rewarded video, SDK web (script tag + JS) | Probable técnicamente (Electron = Chromium), no confirmado en sus términos — hablan de "web games/HTML5/dominio propio", no de apps empaquetadas | **Mínimo 5.000 DAU para integrar** (su FAQ) — muy por encima de los 20-100 comercios de Etapa 1 |
+| [Playwire](https://www.playwire.com/desktop-app) | Rewarded video + display, header bidding | Tienen una línea de producto **específica para "desktop apps"** ("built from scratch" para ese entorno, no herramientas web forzadas) | No publican mínimo de tráfico ni eCPM — solo vía contacto de ventas. No mencionan Electron por nombre, hay que preguntar directamente |
+| Meta Audience Network | Rewarded video, banner, interstitial | **Descartado** — confirmado en su propio repo oficial (`facebook/FBAudienceNetwork`): "monetize your iOS and Android apps". Es mobile-only, sin excepción, igual que AdMob | N/A, no aplica a desktop |
+| Adsterra / PropellerAds | Popunder, push, social bar, algo de video | Aceptan "software" de forma más amplia que AdSense/AdMob, sin la restricción explícita de "no software applications" | No son rewarded-video-first (formatos más agresivos/intrusivos: popunders, push) — encajan mal con el principio rector del doc de no romper confianza del usuario por unos centavos de revenue; quedan como último recurso, no como primera opción |
+
+**Orden de acción sugerido, cuando `apps/desktop` tenga tráfico real** (no antes — escribir sin
+poder dar un número de usuarios real desperdicia el primer contacto):
+
+1. **Playwire primero** — es el único que se posiciona explícitamente para "desktop apps", vale más
+   la pena que resolver la duda de AppLixir. Sin contacto ni email público encontrado en su sitio;
+   hay que usar su formulario de ventas en https://www.playwire.com/desktop-app.
+   - Preguntar: ¿soportan específicamente apps Electron (Chromium empaquetado, sin dominio público
+     real, distribuidas como instalador)? ¿Mínimo de tráfico/DAU? ¿eCPM esperado para
+     Argentina/LatAm? ¿Tienen SSV (verificación server-side) para rewarded video, equivalente a la
+     de AdMob?
+2. **AppLixir como alternativa** — `info@applixir.com` (único email público, no hay sales/support
+   separado) o +1 425-390-4167.
+   - Preguntar, en este orden: (a) ¿sus términos permiten el SDK dentro de una app de escritorio
+     empaquetada, no solo un sitio/juego HTML5 en dominio propio?; (b) si depende de un "dominio"
+     registrado, ¿cómo se registra una app sin URL pública?; (c) ¿el mínimo de 5.000 DAU es
+     negociable con tráfico menor pero consistente?; (d) ¿ofrecen SSV?; (e) eCPM real para
+     Argentina/LatAm (el $4–15 publicado es global, mismo motivo por el que la sección 1 corrige el
+     eCPM de AdMob con benchmark regional).
+3. **Google Ad Manager (ex-DFP) como respaldo final** — tiene un camino de excepción fuera del
+   molde estándar de AdSense, pero es enterprise: requiere aplicar y ser aprobado por Google, no es
+   self-service, puede tardar semanas y suele pedir volumen mínimo también. No se investigó en
+   profundidad porque no era la prioridad.
+
+**Mientras tanto**: `apps/desktop` no integra ningún network de ads de terceros. El schema del
+backend (`ad_placements`, ver sección 6) ya modela el campo de red como texto libre (no un enum
+cerrado a admob/adsense) específicamente para no tener que migrar el schema cuando esto se
+resuelva — ver `apps/cloud-backend/src/database/schema/ad-placements.ts`.
+
 ## 2. Gamification (capa de retención)
 
 Research: apps con gamification ven +47% retención a 90 días (Deloitte 2024); usuarios que miran
@@ -196,7 +257,8 @@ Sin ads pagados en esta etapa — quema presupuesto antes de tener el funnel/ret
 emparejamiento de dispositivos en LAN (`devices`, `pairing-sessions`, `API_ACCESS_MODE`,
 `pairingHost` en `apps/backend/src/config`) — el desktop actúa de servidor local para que el
 mobile se sincronice en la misma red. No es un backend multi-tenant para cuentas de usuario por
-internet. Créditos/cuentas/tablero de pedidos necesitan un **backend nuevo, separado**.
+internet. Créditos/cuentas/tablero de pedidos necesitan un **backend nuevo, separado**:
+`apps/cloud-backend` (scaffold y entidades ya creados — ver "Próximos pasos").
 
 **Backend nuevo — recomendado:**
 - Mismo stack que ya conocen (NestJS + Drizzle), pero con **Postgres** en vez de SQLite (SQLite no
@@ -243,8 +305,25 @@ hasta 3x lo almacenado).
 
 Sin esto, ajustar los números de la sección 1 significa tocar código y redeployar cada vez —
 contradice la idea de config versionada. Es un panel interno (para el equipo, no para los
-comerciantes), colgado del backend nuevo (sección 6) como una sección admin protegida con su
-propio auth — no una app aparte.
+comerciantes), consume la API del backend nuevo (sección 6), protegido con su propio auth de
+admin (no el mismo login que usan los comercios).
+
+**Stack: React + TypeScript + Vite, frontend separado del backend** (se descartó Next.js — su
+despliegue fuera de Vercel es más engorroso que lo que vale la pena para un panel interno sin
+necesidad real de SSR). Estado: **Zustand** para estado de cliente (mismo patrón centralizado que
+Redux, sin el boilerplate de actions/reducers/slices) + **TanStack Query** para estado de
+servidor (llamadas a la API, cache, refetch) — ya se usa en `apps/mobile` y `apps/mobile-mini`,
+mantiene consistencia con el resto del monorepo en vez de sumar un patrón nuevo. Reusa directo
+`@stocknegozia/api-contracts` y `@stocknegozia/validation` para los tipos de la API.
+
+**Deploy: Render Static Site, no Vercel.** El plan Hobby (gratis) de Vercel es explícitamente
+solo para uso no comercial — su propia política cuenta como "uso comercial" cualquier deploy que
+beneficie económicamente a alguien involucrado en el proyecto, así que un panel interno de un
+negocio comercial no califica para Hobby gratis (necesitaría plan Pro, pago). Al ser Vite un
+build estático (sin SSR), se despliega como **Static Site** en Render — mismo proveedor que ya
+se eligió para el backend (sección 6), sin sumar un proveedor nuevo, y sin siquiera el
+cold-start que sí aplica a los Web Services de Render: un static site son archivos servidos,
+nunca se "duerme".
 
 **Qué necesita, sin sobre-construir para la Etapa 1** (tabla editable + números planos alcanza,
 nada de gráficos elaborados todavía — mismo criterio que ya se aplicó al tablero de pedidos y los
@@ -263,9 +342,69 @@ niveles):
 
 ## Próximos pasos (cuando se retome)
 
-- Definir entidades del backend nuevo: usuarios, ledger de créditos, racha, pedidos de feature,
-  votos, referidos, tabla de config del panel admin.
-- Decidir arquitectura de sync local↔cloud (caché vs. fuente de verdad única).
-- Prototipo de integración AdMob rewarded en `mobile-mini`.
+- [x] Definir entidades del backend nuevo — `apps/cloud-backend` (NestJS + Drizzle + Postgres),
+  schema en `apps/cloud-backend/src/database/schema/`: `users`, `credit_ledger`,
+  `streak_milestone_claims`, `setup_quest_completions`, `daily_mission_completions`,
+  `rewarded_ad_views`, `referrals`, `entitlements` (backup/sin-ads), `feature_requests`,
+  `feature_votes`, `admin_users`, `credit_config_items` + `credit_config_item_revisions`.
+  Migración inicial generada (`0000_mushy_shriek.sql`); typecheck/build/lint verdes.
+  `feature_requests`/`feature_votes` tienen schema ya pero su módulo (controller/service, voto
+  ponderado) queda para Etapa 2 — ver sección 5.
+- [x] Diferenciar admin del comercio: `admin_users` es una tabla separada de `users` (los
+  comercios), con su propio login — el admin es quien entra al panel a balancear el costo en
+  créditos de cada feature. Cada feature/costo balanceable es una fila propia en
+  `credit_config_items` (no un JSON con todos los números juntos), con historial de cambios por
+  ítem en `credit_config_item_revisions` (valor anterior, nuevo, qué admin lo cambió, cuándo, nota
+  opcional) — el panel admin (sección 7) lista esto como una tabla editable feature por feature,
+  no un editor de "toda la config" en bloque.
+- [x] Arquitectura de sync local↔cloud para v1 (implícito en el schema de arriba, no requirió una
+  tabla nueva): local sigue siendo dueño de productos/ventas/stock (como hoy); el backend nuevo es
+  fuente de verdad solo para lo account-gated (ledger de créditos, racha, referidos, tablero). El
+  merge de cuentas entre múltiples dispositivos sigue pendiente (doc §3), no bloquea v1.
+- [x] Módulo NestJS de auth de admin + balanceo de config (doc §7), primero de los módulos sobre
+  las entidades: `POST /admin/auth/login` (email+password, hash scrypt, JWT de 12h — sin modo
+  "development" que deje pasar todo, a diferencia de apps/backend) y `GET/PATCH
+  /admin/credit-config[/:key]` + `GET /admin/credit-config/:key/revisions`, todo detrás de
+  `AdminJwtGuard`. `pnpm run db:seed` en `apps/cloud-backend` crea el primer admin (desde
+  `ADMIN_SEED_EMAIL`/`ADMIN_SEED_PASSWORD`) y precarga los 21 ítems de `credit_config_items` con
+  los números de la sección 1. typecheck/build/lint verdes.
+- [x] Prototipo de integración AdMob rewarded en `mobile-mini`, con el ad unit de prueba oficial
+  de Google (`TestIds.REWARDED` de `react-native-google-mobile-ads`) hasta tener cuenta de AdMob
+  propia — ver `src/features/ads/hooks/useRewardedAd.ts`. Requiere dev client (no funciona en
+  Expo Go); no se pudo probar en un emulador/dispositivo real desde acá, solo typecheck/lint.
+- [x] Auth de cuenta en `mobile-mini` contra `apps/cloud-backend` (`src/accounts/`, mismo patrón
+  de `SecureSessionStore`/`AccountContext` que `apps/mobile` usa para pairing LAN, pero
+  completamente separado — este es email+password contra el backend nuevo, no pairing). Vive
+  detrás de una pantalla nueva, "Beneficios" (`/benefits`, solo visible en dev por ahora): sin
+  cuenta muestra login/registro, con cuenta muestra saldo + el test de rewarded ad. Pendiente
+  antes de sacar el gate de dev: deployar `apps/cloud-backend` a algún lado alcanzable desde un
+  celular real, y decidir SSV antes de que el reward de un ad otorgue créditos de verdad (hoy el
+  test screen no acredita nada, solo prueba que el SDK carga/muestra).
+- [x] Onboarding del sistema de créditos/anuncios en `mobile-mini` — 3 pantallas, en lenguaje
+  simple (sin "ledger"/"gamification"/"SSV"), pensado para alguien sin vocabulario técnico (doc
+  §5, público real: kiosqueros, almaceneros): (1) lo gratis de siempre no cambia, (2) cómo se
+  ganan y para qué sirven los créditos (ads opcionales + uso normal de la app), (3) por qué el
+  modelo es anuncios opcionales y no una cuota mensual fija. Se muestra una sola vez, en la
+  primera instalación (`src/features/onboarding/onboardingStore.ts`, `AsyncStorage`, no vuelve a
+  aparecer solo) — accesible de nuevo a pedido con "¿Cómo funciona esto?" en Beneficios
+  (`OnboardingRecapButton`).
 - Guion de reclutamiento de los primeros fundadores.
-- Diseño de UI del panel de administración (sección 7).
+- Diseño de UI del panel de administración (sección 7) — ya tiene API para consumir
+  (`/admin/auth/login`, `/admin/credit-config`).
+- [x] Módulos de cuentas + créditos + racha + referidos — el "mínimo indispensable" de Etapa 1
+  (doc §5). `POST /accounts/register` (con `referralCode` opcional) + `login` + `GET
+  /accounts/me`; `GET /credits/me/balance` + `/ledger`; `POST /gamification/activity` (racha,
+  hitos día 3/7/14/30, dispara validación de referido). Todos los montos salen de
+  `credit_config_items` (nada hardcodeado), balanceables desde el panel admin ya construido.
+  Probado end-to-end contra Postgres real: registro con bienvenida, racha hasta día 3 con hito +
+  validación de referido (invitador e invitado acreditados correctamente), idempotencia
+  confirmada (llamar `activity` dos veces el mismo día no duplica créditos). Pendiente: migración
+  de datos locales de una cuenta que ya venía usando la app sin registrarse (doc §3, caso
+  "usuario existente se registra") — no implementado todavía, es un endpoint aparte.
+- [x] Schema de ads definido (sin módulo NestJS todavía — solo entidades): `ad_placements` +
+  `ad_placement_revisions` (qué ad unit/network usa cada placement por plataforma, con
+  kill-switch y auditoría), `ad_reward_callbacks` (idempotencia de SSV de AdMob),
+  `house_ads` + `house_ad_impressions` (fallback propio cuando AdMob no tiene fill). Ver
+  `apps/cloud-backend/src/database/schema/`. **Pausado para desktop** — ver sección 1bis:
+  ningún network de terceros confirmado todavía para Electron, no escribir código de integración
+  hasta resolver esa consulta.

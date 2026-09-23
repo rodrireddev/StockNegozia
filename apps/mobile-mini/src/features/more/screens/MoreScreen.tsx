@@ -6,6 +6,7 @@ import {
   Layers,
   Settings,
   ShoppingBag,
+  Sparkles,
   TrendingUp,
   Truck,
   Wallet,
@@ -31,6 +32,22 @@ const ITEMS: MoreItem[] = [
   { href: "/suppliers", label: "Proveedores", description: "Ver, agregar y editar proveedores", icon: Truck },
   { href: "/settings", label: "Ajustes", description: "Este dispositivo y cerrar sesión", icon: Settings },
 ];
+
+/**
+ * Solo en dev: cuenta + créditos + rewarded ads (doc ADS_CREDITS_GAMIFICATION.md) — todavía usa el
+ * ad unit de prueba de AdMob y no hay `apps/cloud-backend` deployado a producción, no debería
+ * aparecer en un build para comerciantes reales todavía.
+ */
+if (__DEV__) {
+  ITEMS.push({
+    // `as Href`: expo-router recién agrega esta ruta al union tipado de `typedRoutes` después de
+    // que el dev server la vea una vez (no corrió acá) — cast puntual, no un patrón a repetir.
+    href: "/benefits" as Href,
+    label: "Beneficios (preview)",
+    description: "Cuenta, créditos y anuncios de prueba",
+    icon: Sparkles,
+  });
+}
 
 /** Hub de teléfono para las secciones que no entran en la barra inferior (`Productos`/`Ventas`/
  *  `Más`) — en tablet estas mismas secciones están directamente en el riel lateral, ver
