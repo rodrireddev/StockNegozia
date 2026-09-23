@@ -190,56 +190,67 @@ export function SalesScreen() {
         feedback={scanFeedback}
       />
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.results}>
-          {productsQuery.isLoading || isResolvingScan ? (
-            <LoadingState message="Buscando productos…" />
-          ) : productsQuery.isError ? (
-            <ErrorState
-              message="No pudimos cargar los productos."
-              onRetry={() => void productsQuery.refetch()}
+      <View style={styles.body}>
+        <ScrollView
+          style={styles.resultsScroll}
+          contentContainerStyle={styles.resultsContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.results}>
+            {productsQuery.isLoading || isResolvingScan ? (
+              <LoadingState message="Buscando productos…" />
+            ) : productsQuery.isError ? (
+              <ErrorState
+                message="No pudimos cargar los productos."
+                onRetry={() => void productsQuery.refetch()}
+              />
+            ) : (productsQuery.data ?? []).length === 0 ? (
+              <Text style={[typography.caption, { color: colors.mutedForeground }]}>
+                {trimmedSearch
+                  ? `No encontramos productos que coincidan con "${trimmedSearch}".`
+                  : "No tenés productos cargados todavía."}
+              </Text>
+            ) : (
+              (productsQuery.data ?? []).map((product) => (
+                <Pressable key={product.id} onPress={() => handleSelectProduct(product)}>
+                  <ProductListItem product={product} />
+                </Pressable>
+              ))
+            )}
+          </View>
+        </ScrollView>
+
+        {/* Sección aparte (no dentro del scroll de resultados) para que "Venta actual" quede
+            siempre visible junto al total/checkbox del footer, sin tener que scrollear más allá
+            de todos los productos encontrados. */}
+        <View style={[styles.cartSection, { borderTopColor: colors.border }]}>
+          <Text style={[typography.subtitle, { color: colors.foreground }]}>Venta actual</Text>
+
+          {cart.items.length === 0 ? (
+            <EmptyState
+              title="Carrito vacío"
+              message="Buscá o escaneá un producto para empezar."
+              icon={ShoppingCart}
             />
-          ) : (productsQuery.data ?? []).length === 0 ? (
-            <Text style={[typography.caption, { color: colors.mutedForeground }]}>
-              {trimmedSearch
-                ? `No encontramos productos que coincidan con "${trimmedSearch}".`
-                : "No tenés productos cargados todavía."}
-            </Text>
           ) : (
-            (productsQuery.data ?? []).map((product) => (
-              <Pressable key={product.id} onPress={() => handleSelectProduct(product)}>
-                <ProductListItem product={product} />
-              </Pressable>
-            ))
+            <ScrollView
+              style={styles.cartScroll}
+              contentContainerStyle={styles.cartList}
+              keyboardShouldPersistTaps="handled"
+            >
+              {cart.items.map((item) => (
+                <SaleCartRow
+                  key={item.productId}
+                  item={item}
+                  onIncrement={() => cart.incrementItem(item.productId)}
+                  onDecrement={() => cart.decrementItem(item.productId)}
+                  onRemove={() => cart.removeItem(item.productId)}
+                />
+              ))}
+            </ScrollView>
           )}
         </View>
-
-        <Text style={[typography.subtitle, { color: colors.foreground }]}>Venta actual</Text>
-
-        {cart.items.length === 0 ? (
-          <EmptyState
-            title="Carrito vacío"
-            message="Buscá o escaneá un producto para empezar."
-            icon={ShoppingCart}
-          />
-        ) : (
-          <View style={styles.cartList}>
-            {cart.items.map((item) => (
-              <SaleCartRow
-                key={item.productId}
-                item={item}
-                onIncrement={() => cart.incrementItem(item.productId)}
-                onDecrement={() => cart.decrementItem(item.productId)}
-                onRemove={() => cart.removeItem(item.productId)}
-              />
-            ))}
-          </View>
-        )}
-      </ScrollView>
+      </View>
 
       <View style={[styles.footer, { borderTopColor: colors.border }]}>
         {confirmError && <Text style={{ color: colors.danger }}>{confirmError}</Text>}
@@ -275,10 +286,18 @@ export function SalesScreen() {
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  content: { gap: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.md },
+  body: { flex: 1 },
+  resultsScroll: { flex: 1 },
+  resultsContent: { paddingTop: spacing.md, paddingBottom: spacing.sm },
   results: { gap: spacing.sm },
-  cartList: { gap: spacing.sm },
+  cartSection: {
+    flex: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: spacing.sm,
+    gap: spacing.sm,
+  },
+  cartScroll: { flex: 1 },
+  cartList: { gap: spacing.sm, paddingBottom: spacing.sm },
   footer: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spacing.md, gap: spacing.sm },
   totalRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
 });
