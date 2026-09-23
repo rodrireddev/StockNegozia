@@ -1,26 +1,28 @@
 import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
-import type { ProductDto, ProfitEntryDto } from "@stocknegozia/api-contracts";
+import type { ProductDto, ProfitLedgerEntryDto } from "@stocknegozia/api-contracts";
 import { ProfitsScreen } from "./ProfitsScreen";
 
 jest.mock("@/api/endpoints/products", () => ({
   fetchProducts: jest.fn(),
 }));
 jest.mock("@/api/endpoints/profits", () => ({
-  fetchProfits: jest.fn(),
+  fetchProfitLedger: jest.fn(),
   fetchDailyProfits: jest.fn(),
+  fetchHourlyProfits: jest.fn(),
 }));
 jest.mock("@/auth/AuthContext", () => ({
   useAuth: () => ({ signOut: jest.fn() }),
 }));
 
 import { fetchProducts } from "@/api/endpoints/products";
-import { fetchDailyProfits, fetchProfits } from "@/api/endpoints/profits";
+import { fetchDailyProfits, fetchHourlyProfits, fetchProfitLedger } from "@/api/endpoints/profits";
 
 const mockedFetchProducts = jest.mocked(fetchProducts);
-const mockedFetchProfits = jest.mocked(fetchProfits);
+const mockedFetchProfitLedger = jest.mocked(fetchProfitLedger);
 const mockedFetchDailyProfits = jest.mocked(fetchDailyProfits);
+const mockedFetchHourlyProfits = jest.mocked(fetchHourlyProfits);
 
 const cocaCola: ProductDto = {
   id: 1,
@@ -41,8 +43,11 @@ const cocaCola: ProductDto = {
   updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
-function makeEntry(overrides: Partial<ProfitEntryDto> & { id: number }): ProfitEntryDto {
+function makeSaleEntry(
+  overrides: Partial<ProfitLedgerEntryDto> & { id: number },
+): ProfitLedgerEntryDto {
   return {
+    kind: "sale",
     saleId: 1,
     productId: 1,
     productName: "Coca-Cola 2L",
@@ -56,7 +61,7 @@ function makeEntry(overrides: Partial<ProfitEntryDto> & { id: number }): ProfitE
     deviceType: null,
     createdAt: "2026-01-01T12:00:00.000Z",
     ...overrides,
-  };
+  } as ProfitLedgerEntryDto;
 }
 
 async function renderWithClient(ui: ReactNode) {
@@ -69,6 +74,7 @@ describe("ProfitsScreen", () => {
     jest.clearAllMocks();
     mockedFetchProducts.mockResolvedValue([cocaCola]);
     mockedFetchDailyProfits.mockResolvedValue([]);
+    mockedFetchHourlyProfits.mockResolvedValue([]);
   });
 
   afterEach(async () => {
@@ -76,29 +82,29 @@ describe("ProfitsScreen", () => {
   });
 
   it("muestra un estado de carga mientras se consulta el historial", async () => {
-    mockedFetchProfits.mockReturnValue(new Promise(() => {}));
+    mockedFetchProfitLedger.mockReturnValue(new Promise(() => {}));
     await renderWithClient(<ProfitsScreen />);
 
     expect(screen.getByText(/cargando ganancias/i)).toBeTruthy();
   });
 
   it("muestra un mensaje amigable si falla la carga", async () => {
-    mockedFetchProfits.mockRejectedValue(new Error("network down"));
+    mockedFetchProfitLedger.mockRejectedValue(new Error("network down"));
     await renderWithClient(<ProfitsScreen />);
 
     expect(await screen.findByText(/no se pudo cargar el historial/i)).toBeTruthy();
   });
 
   it("muestra un estado vacío cuando no hay ganancias", async () => {
-    mockedFetchProfits.mockResolvedValue([]);
+    mockedFetchProfitLedger.mockResolvedValue([]);
     await renderWithClient(<ProfitsScreen />);
 
     expect(await screen.findByText(/todavía no hay ganancias/i)).toBeTruthy();
   });
 
   it("renderiza el producto, vendido, costo, ganancia y vendedor de cada línea, más el total", async () => {
-    mockedFetchProfits.mockResolvedValue([
-      makeEntry({ id: 1, deviceName: "Rodrigo", deviceType: "desktop" }),
+    mockedFetchProfitLedger.mockResolvedValue([
+      makeSaleEntry({ id: 1, deviceName: "Rodrigo", deviceType: "desktop" }),
     ]);
     await renderWithClient(<ProfitsScreen />);
 
@@ -111,15 +117,37 @@ describe("ProfitsScreen", () => {
   });
 
   it("una venta sin dispositivo asociado no muestra la línea 'Vendedor'", async () => {
-    mockedFetchProfits.mockResolvedValue([makeEntry({ id: 1, deviceName: null, deviceType: null })]);
+    mockedFetchProfitLedger.mockResolvedValue([
+      makeSaleEntry({ id: 1, deviceName: null, deviceType: null }),
+    ]);
     await renderWithClient(<ProfitsScreen />);
 
     await screen.findByText("Coca-Cola 2L");
     expect(screen.queryByText(/vendedor:/i)).toBeNull();
   });
 
+  it("un retiro de caja aparece como línea propia y resta de la ganancia sin tocar vendido/costo", async () => {
+    mockedFetchProfitLedger.mockResolvedValue([
+      makeSaleEntry({ id: 1, revenue: 2400, cost: 1600, profit: 800 }),
+      {
+        kind: "cashAdjustment",
+        id: 2,
+        direction: "OUT",
+        amount: 300,
+        reason: "Pago sueldo Juan",
+        createdAt: "2026-01-01T12:00:00.000Z",
+      },
+    ]);
+    await renderWithClient(<ProfitsScreen />);
+
+    expect(await screen.findByText("Retiro de caja")).toBeTruthy();
+    expect(screen.getByText("Pago sueldo Juan")).toBeTruthy();
+    // Ganancia total: 800 (venta) - 300 (retiro) = 500.
+    expect(screen.getByText("$ 500,00")).toBeTruthy();
+  });
+
   it("filtrar por producto vuelve a consultar el historial con ese filtro", async () => {
-    mockedFetchProfits.mockResolvedValue([]);
+    mockedFetchProfitLedger.mockResolvedValue([]);
     await renderWithClient(<ProfitsScreen />);
     await screen.findByText(/todavía no hay ganancias/i);
 
@@ -127,21 +155,34 @@ describe("ProfitsScreen", () => {
     fireEvent.press(await screen.findByText("Coca-Cola 2L"));
 
     await waitFor(() => {
-      expect(mockedFetchProfits).toHaveBeenLastCalledWith(expect.objectContaining({ productId: 1 }));
+      expect(mockedFetchProfitLedger).toHaveBeenLastCalledWith(expect.objectContaining({ productId: 1 }));
     });
   });
 
   it("el gráfico semanal se muestra al cambiar de pestaña", async () => {
-    mockedFetchProfits.mockResolvedValue([]);
+    mockedFetchProfitLedger.mockResolvedValue([]);
     mockedFetchDailyProfits.mockResolvedValue([
       { date: "2026-01-01", label: "Jue", revenue: 1200, cost: 800, profit: 400 },
     ]);
     await renderWithClient(<ProfitsScreen />);
     await screen.findByText(/todavía no hay ganancias/i);
 
-    fireEvent.press(screen.getByText("Gráfico semanal"));
+    fireEvent.press(screen.getByText("Gráfico"));
 
-    expect(await screen.findByText("Últimos 7 días")).toBeTruthy();
+    expect(await screen.findByText(/últimos 7 días/i)).toBeTruthy();
     expect(screen.getByText("Jue")).toBeTruthy();
+  });
+
+  it("el modo Diario muestra el gráfico por hora de hoy", async () => {
+    mockedFetchProfitLedger.mockResolvedValue([]);
+    mockedFetchHourlyProfits.mockResolvedValue([{ hour: 10, label: "10h", revenue: 500, cost: 300, profit: 200 }]);
+    await renderWithClient(<ProfitsScreen />);
+    await screen.findByText(/todavía no hay ganancias/i);
+
+    fireEvent.press(screen.getByText("Gráfico"));
+    await screen.findByText(/últimos 7 días/i);
+    fireEvent.press(screen.getByText("Diario"));
+
+    expect(await screen.findByText("Por hora")).toBeTruthy();
   });
 });

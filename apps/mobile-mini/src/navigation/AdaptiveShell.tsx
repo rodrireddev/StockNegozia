@@ -10,6 +10,7 @@ import {
   ShoppingCart,
   TrendingUp,
   Truck,
+  Wallet,
   type LucideProps,
 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -39,6 +40,7 @@ const TABLET_NAV_ITEMS: NavItem[] = [
   { href: "/purchases", label: "Compras", icon: ShoppingBag },
   { href: "/inventory", label: "Inventario", icon: Layers },
   { href: "/profits", label: "Ganancias", icon: TrendingUp },
+  { href: "/cash-adjustments", label: "Ajustes de caja", icon: Wallet },
   { href: "/suppliers", label: "Proveedores", icon: Truck },
   { href: "/settings", label: "Ajustes", icon: Settings },
 ];

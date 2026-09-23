@@ -7,3 +7,4 @@ export * from "./pairing-sessions";
 export * from "./suppliers";
 export * from "./purchases";
 export * from "./stock-movements";
+export * from "./cash-adjustments";

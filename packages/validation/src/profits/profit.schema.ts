@@ -17,3 +17,14 @@ export const dailyProfitQuerySchema = z.object({
 });
 
 export type DailyProfitQueryInput = z.infer<typeof dailyProfitQuerySchema>;
+
+/** `GET /profits/hourly` — un único día puntual (`YYYY-MM-DD`), para el gráfico "Diario". Sin
+ *  `date` se usa el día de hoy (ver `ProfitsService.findHourlySummary`). */
+export const hourlyProfitQuerySchema = z.object({
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Formato de fecha inválido (esperado YYYY-MM-DD)")
+    .optional(),
+});
+
+export type HourlyProfitQueryInput = z.infer<typeof hourlyProfitQuerySchema>;

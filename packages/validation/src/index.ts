@@ -9,3 +9,4 @@ export * from "./purchases/purchase.schema";
 export * from "./backup/backup.schema";
 export * from "./settings/settings.schema";
 export * from "./profits/profit.schema";
+export * from "./cash-adjustments/cash-adjustment.schema";

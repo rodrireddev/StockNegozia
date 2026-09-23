@@ -20,6 +20,8 @@ import { SuppliersRepository } from "../suppliers/suppliers.repository";
 import { SuppliersService } from "../suppliers/suppliers.service";
 import { SalesRepository } from "../sales/sales.repository";
 import { SalesService } from "../sales/sales.service";
+import { CashAdjustmentsRepository } from "../cash-adjustments/cash-adjustments.repository";
+import { CashAdjustmentsService } from "../cash-adjustments/cash-adjustments.service";
 import { ProfitsRepository } from "./profits.repository";
 import { ProfitsService } from "./profits.service";
 
@@ -29,6 +31,7 @@ describe("ProfitsService", () => {
   let salesService: SalesService;
   let devicesService: DevicesService;
   let profitsService: ProfitsService;
+  let cashAdjustmentsService: CashAdjustmentsService;
   let defaultSupplierId: number;
 
   beforeEach(() => {
@@ -49,7 +52,8 @@ describe("ProfitsService", () => {
     );
     const settingsService = new SettingsService(new SettingsRepository(db));
     salesService = new SalesService(db, new SalesRepository(db), productsService, settingsService, logger);
-    profitsService = new ProfitsService(new ProfitsRepository(db));
+    cashAdjustmentsService = new CashAdjustmentsService(new CashAdjustmentsRepository(db), logger);
+    profitsService = new ProfitsService(new ProfitsRepository(db), cashAdjustmentsService);
     defaultSupplierId = suppliersService.create({ name: "Proveedor de prueba" }).id;
   });
 
@@ -151,6 +155,59 @@ describe("ProfitsService", () => {
 
       const otherDays = summary.slice(0, -1);
       expect(otherDays.every((day) => day.profit === 0 && day.revenue === 0 && day.cost === 0)).toBe(true);
+    });
+
+    it("un retiro de caja resta de la ganancia del día sin tocar vendido/costo", () => {
+      const product = createProduct({ purchasePrice: 5000, salePrice: 10000 });
+      salesService.create({ items: [{ productId: product.id, quantity: 1 }] });
+      cashAdjustmentsService.create({ direction: "OUT", amount: 3000, reason: "Pago sueldo" });
+
+      const today = profitsService.findDailySummary(1)[0]!;
+      expect(today.revenue).toBe(10000);
+      expect(today.cost).toBe(5000);
+      expect(today.profit).toBe(2000); // 5000 (margen) - 3000 (retiro)
+    });
+  });
+
+  describe("findLedger", () => {
+    it("combina ventas y ajustes de caja ordenados del más reciente al más viejo", () => {
+      const product = createProduct();
+      salesService.create({ items: [{ productId: product.id, quantity: 1 }] });
+      cashAdjustmentsService.create({ direction: "OUT", amount: 500, reason: "Pago sueldo" });
+
+      const ledger = profitsService.findLedger();
+      expect(ledger).toHaveLength(2);
+      expect(ledger.map((entry) => entry.kind).sort()).toEqual(["cashAdjustment", "sale"]);
+    });
+
+    it("filtrar por productId excluye los ajustes de caja (no están atados a ningún producto)", () => {
+      const product = createProduct();
+      salesService.create({ items: [{ productId: product.id, quantity: 1 }] });
+      cashAdjustmentsService.create({ direction: "OUT", amount: 500, reason: "Pago sueldo" });
+
+      const ledger = profitsService.findLedger({ productId: product.id });
+      expect(ledger).toHaveLength(1);
+      expect(ledger[0]!.kind).toBe("sale");
+    });
+  });
+
+  describe("findHourlySummary", () => {
+    it("agrupa por hora del día de hoy, con retiros de caja restando del margen de venta", () => {
+      const product = createProduct({ purchasePrice: 5000, salePrice: 10000 });
+      salesService.create({ items: [{ productId: product.id, quantity: 1 }] });
+      cashAdjustmentsService.create({ direction: "OUT", amount: 1000, reason: "Pago sueldo" });
+
+      const hourly = profitsService.findHourlySummary();
+      expect(hourly).toHaveLength(24);
+
+      const currentHour = new Date().getHours();
+      const bucket = hourly[currentHour]!;
+      expect(bucket.revenue).toBe(10000);
+      expect(bucket.cost).toBe(5000);
+      expect(bucket.profit).toBe(4000); // 5000 (margen) - 1000 (retiro)
+
+      const otherHours = hourly.filter((_, hour) => hour !== currentHour);
+      expect(otherHours.every((hour) => hour.profit === 0)).toBe(true);
     });
   });
 });

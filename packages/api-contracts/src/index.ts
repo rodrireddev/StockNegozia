@@ -8,3 +8,4 @@ export * from "./purchases/purchase.contract";
 export * from "./backup/backup.contract";
 export * from "./settings/settings.contract";
 export * from "./profits/profit.contract";
+export * from "./cash-adjustments/cash-adjustment.contract";

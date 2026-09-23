@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { CashAdjustmentsModule } from "./cash-adjustments/cash-adjustments.module";
 import { CustomersModule } from "./customers/customers.module";
 import { InventoryModule } from "./inventory/inventory.module";
 import { PermissionsModule } from "./permissions/permissions.module";
@@ -15,13 +16,15 @@ import { UsersModule } from "./users/users.module";
  * Agrega los módulos de dominio de StockNegozia. Ver core/README.md — `inventory/`, `customers/`,
  * `users/` y `permissions/` siguen siendo placeholders estructurales sin lógica de negocio.
  * `StockMovementsModule` (ver docs/inventory/STOCK_MOVEMENTS.md), `SuppliersModule`,
- * `PurchasesModule` (ver docs/inventory/PURCHASES.md) y `ProfitsModule` son reales.
+ * `PurchasesModule` (ver docs/inventory/PURCHASES.md), `ProfitsModule` y `CashAdjustmentsModule`
+ * son reales.
  */
 @Module({
   imports: [
     ProductsModule,
     InventoryModule,
     SalesModule,
+    CashAdjustmentsModule,
     ProfitsModule,
     SettingsModule,
     StockMovementsModule,

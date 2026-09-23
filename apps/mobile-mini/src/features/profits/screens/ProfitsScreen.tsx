@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { TrendingUp } from "lucide-react-native";
 import { Card } from "@/components/Card";
@@ -8,37 +8,45 @@ import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { Select } from "@/components/Select";
-import { CashAdjustmentsSection } from "@/features/cash-adjustments/components/CashAdjustmentsSection";
 import { useProducts } from "@/features/products/hooks/useProducts";
 import { useTheme } from "@/theme/useTheme";
 import { minTouchTarget, radius, spacing, typography } from "@/theme/tokens";
+import { DayProfitView } from "../components/DayProfitView";
 import { ProfitChart } from "../components/ProfitChart";
 import { ProfitLedgerListItem } from "../components/ProfitLedgerListItem";
 import { ProfitTotalsCard } from "../components/ProfitTotalsCard";
-import { sumDailyProfits, sumLedgerEntries } from "../data/ledger";
+import { dayBounds, sumDailyProfits, sumLedgerEntries } from "../data/ledger";
 import { useDailyProfits } from "../hooks/useDailyProfits";
 import { useProfitLedger } from "../hooks/useProfitLedger";
 
-type ViewMode = "list" | "chart" | "cash";
+type ViewMode = "list" | "chart";
+type ChartMode = "weekly" | "daily";
 
 const TABS = [
   { value: "list" as const, label: "Historial" },
-  { value: "chart" as const, label: "Gráfico semanal" },
-  { value: "cash" as const, label: "Ajustes de caja" },
+  { value: "chart" as const, label: "Gráfico" },
+];
+
+const CHART_MODES = [
+  { value: "weekly" as const, label: "Semanal" },
+  { value: "daily" as const, label: "Diario" },
 ];
 
 /**
  * Historial de ganancias (ventas + ajustes de caja combinados, ver `features/profits/data/
- * ledger.ts`) más un gráfico semanal día vs. ganancia, y la administración de ajustes de caja. La
- * ganancia de cada venta sale de `sale_items.unitPrice - sale_items.unitCost` (ambos congelados al
- * momento de la venta) — nunca de los precios ACTUALES del producto. Un ajuste de caja no toca
- * ningún producto: sólo resta/suma directamente sobre la "Ganancia" final, nunca sobre "Vendido"/
- * "Costo" (que siguen siendo pura economía de venta).
+ * ledger.ts`) más gráficos de ganancia — semanal (día vs. ganancia, últimos 7 días) y diario (hora
+ * vs. ganancia, hoy). La ganancia de cada venta sale de `sale_items.unitPrice - sale_items.
+ * unitCost` (ambos congelados al momento de la venta) — nunca de los precios ACTUALES del
+ * producto. Un ajuste de caja no toca ningún producto: sólo resta/suma directamente sobre la
+ * "Ganancia" final, nunca sobre "Vendido"/"Costo" (que siguen siendo pura economía de venta). La
+ * administración de ajustes de caja (alta + su propio historial) vive en su propia pantalla desde
+ * el menú principal (`features/cash-adjustments`), no acá.
  */
 export function ProfitsScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const [view, setView] = useState<ViewMode>("list");
+  const [chartMode, setChartMode] = useState<ChartMode>("weekly");
   const [productId, setProductId] = useState("");
 
   const productsQuery = useProducts({ status: "all", stockStatus: "all" });
@@ -52,6 +60,7 @@ export function ProfitsScreen() {
 
   const ledgerQuery = useProfitLedger({ productId: productId ? Number(productId) : undefined });
   const dailyQuery = useDailyProfits(7);
+  const today = useMemo(() => dayBounds(new Date()), []);
 
   const listTotals = useMemo(() => sumLedgerEntries(ledgerQuery.data ?? []), [ledgerQuery.data]);
   const weekTotals = useMemo(() => sumDailyProfits(dailyQuery.data ?? []), [dailyQuery.data]);
@@ -124,43 +133,81 @@ export function ProfitsScreen() {
             />
           )}
         </>
-      ) : view === "chart" ? (
-        dailyQuery.isPending ? (
-          <LoadingState message="Cargando gráfico…" />
-        ) : dailyQuery.isError ? (
-          <ErrorState message="No se pudo cargar el gráfico." onRetry={dailyQuery.refetch} />
-        ) : (
-          <View style={styles.chartContent}>
-            <ProfitTotalsCard {...weekTotals} />
-            <Card>
-              <Text style={[typography.label, { color: colors.mutedForeground, marginBottom: spacing.lg }]}>
-                Últimos 7 días · tocá un día para ver el detalle
-              </Text>
-              <ProfitChart
-                data={dailyQuery.data}
-                onSelectDay={(date) => router.push({ pathname: "/profits/day", params: { date } })}
-              />
-            </Card>
-          </View>
-        )
       ) : (
-        <CashAdjustmentsSection />
+        <>
+          <View style={styles.filters}>
+            {CHART_MODES.map((mode) => {
+              const isActive = chartMode === mode.value;
+              return (
+                <Pressable
+                  key={mode.value}
+                  onPress={() => setChartMode(mode.value)}
+                  style={[styles.chartModeTab, { backgroundColor: isActive ? colors.primary : colors.secondary }]}
+                >
+                  <Text
+                    style={[
+                      typography.label,
+                      { color: isActive ? colors.primaryForeground : colors.secondaryForeground },
+                    ]}
+                  >
+                    {mode.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {chartMode === "weekly" ? (
+            dailyQuery.isPending ? (
+              <LoadingState message="Cargando gráfico…" />
+            ) : dailyQuery.isError ? (
+              <ErrorState message="No se pudo cargar el gráfico." onRetry={dailyQuery.refetch} />
+            ) : (
+              <View style={styles.chartContent}>
+                <ProfitTotalsCard {...weekTotals} />
+                <Card>
+                  <Text
+                    style={[typography.label, { color: colors.mutedForeground, marginBottom: spacing.lg }]}
+                  >
+                    Últimos 7 días · tocá un día para ver el detalle
+                  </Text>
+                  <ProfitChart
+                    data={dailyQuery.data}
+                    onSelectDay={(date) => router.push({ pathname: "/profits/day", params: { date } })}
+                  />
+                </Card>
+              </View>
+            )
+          ) : (
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <DayProfitView from={today.from} to={today.to} />
+            </ScrollView>
+          )}
+        </>
       )}
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  viewToggle: { flexDirection: "row", gap: spacing.xs, marginBottom: spacing.md },
+  viewToggle: { flexDirection: "row", gap: spacing.sm, marginBottom: spacing.md },
   tab: {
     flex: 1,
     minHeight: minTouchTarget,
     borderRadius: radius.md,
-    paddingHorizontal: spacing.xs,
+    paddingHorizontal: spacing.md,
     alignItems: "center",
     justifyContent: "center",
   },
-  filters: { gap: spacing.md, marginBottom: spacing.md },
+  chartModeTab: {
+    flex: 1,
+    minHeight: minTouchTarget,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filters: { flexDirection: "row", gap: spacing.sm, marginBottom: spacing.md },
   listContent: { gap: spacing.sm, paddingBottom: spacing.xxl },
   listHeader: { marginBottom: spacing.sm },
   chartContent: { gap: spacing.md },

@@ -37,7 +37,6 @@ misiones (~90/mes) ≈ **~127 créditos/mes**.
 | Exportar reporte (PDF/Excel) | 10 | Necesidad frecuente (contador/AFIP), tiene que ser barato y rápido |
 | **Backup automático en la nube — 30 días** | **160** | El motivador ancla: perder el celular sin backup = perder el negocio (miedo a perder datos > gamification). Es una suscripción en créditos, no un pago único — da un motivo recurrente de seguir juntando |
 | Sacarse anuncios (si se agregan banners/interstitials) — 30 días | 150 | Mismo patrón recurrente que el backup |
-| Slot extra de proveedor/categoría/producto | 40 (una vez) | Solo le importa al que ya creció más allá del límite free |
 | Crear pedido de feature nuevo (sección 4) | 20 | Fricción anti-spam |
 | Votar/boostear un pedido existente | 5 c/u, tope 30 (6 votos) por ítem/usuario | Retorno de peso decreciente desde el 3er voto en el mismo ítem |
 
@@ -52,6 +51,36 @@ margen para reportes y otros sinks.
 
 Opcional: paquetes de créditos comprables por IAP para quien no quiere mirar anuncios (funnel
 híbrido: ads para el usuario sensible al precio, IAP para el que paga por comodidad).
+
+### Cofounder Pack — pago único, cupo de 100
+
+Salida directa para quien no quiere mirar ads nunca, complementaria al sistema de créditos, no un
+reemplazo. **Riesgo a blindar:** una "lifetime deal" sin límite compromete a mantener premium
+gratis para siempre a ese usuario mientras la infraestructura (hoy $0 en free tier) eventualmente
+escala con el crecimiento real — por eso el cupo es una condición del modelo, no un detalle de
+marketing.
+
+- **Cupo: 100 usuarios**, no reabre después. Es la versión self-service (vía landing, sin
+  reclutamiento manual) del mismo espíritu que el programa de fundadores de la Etapa 1 — ese es
+  a mano y gratis a cambio de feedback (20-50 personas), este es pago y abierto a cualquiera.
+- **Precio: ~$20 USD** (o equivalente en ARS) — por encima del valor estimado de varios años de
+  revenue de ads de un usuario comprometido (~$4-6 USD/año mirando ads al tope), para que sea un
+  buen trade para el negocio, no una regalada.
+- **Incluye, de por vida** (esto es lo que justifica pagar $20 de una vez frente a nunca pagar
+  nada o ir juntando créditos):
+  1. Sin publicidad, nunca — no necesita mirar un rewarded ad para nada de lo siguiente.
+  2. Backup automático en la nube incluido — el beneficio ancla, resuelto para siempre sin gastar
+     créditos cada mes.
+  3. Nivel Pro desde el día uno (el multiplicador más alto de créditos, por si igual quiere
+     acumular para otra cosa).
+  4. Voto con peso reforzado en el tablero de pedidos — financió el roadmap por adelantado, tiene
+     más influencia real en qué se construye después.
+  5. Acceso anticipado a funcionalidades nuevas, antes que el resto de los usuarios.
+  6. Badge visible de "Cofounder" en su perfil/app.
+  7. Lugar en una lista pública de fundadores (si quiere aparecer) — cierra el loop con la prueba
+     social que se usa para crecer en la Etapa 1.
+- **Pendiente técnico:** en Android, un pago único por contenido digital dentro de la app suele
+  tener que pasar por Google Play Billing, no un cobro directo — a definir en la implementación.
 
 ### Revenue real esperado (AdMob, Argentina)
 
@@ -226,8 +255,8 @@ niveles):
    poder revertir si un ajuste sale mal).
 2. **Métricas para decidir con datos, no a ojo**:
    - De dónde vienen los créditos ganados (% ads / misiones / racha / referidos).
-   - En qué se gastan (% backup / reportes / slots / votos) — si nadie compra un sink, el precio
-     está mal, no hace falta adivinar.
+   - En qué se gastan (% backup / reportes / votos / sacarse ads) — si nadie compra un sink, el
+     precio está mal, no hace falta adivinar.
    - % de usuarios que cubren cada sink solo con pasivo vs. necesitando ads.
    - Revenue real de AdMob vs. lo proyectado (sección 1) — para corregir el eCPM estimado con
      datos reales de Argentina en vez de benchmarks genéricos.

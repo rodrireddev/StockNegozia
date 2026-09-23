@@ -39,14 +39,3 @@ export function ProfitsSummary({ revenue, cost, profit }: ProfitsSummaryProps) {
     </Card>
   );
 }
-
-export function sumProfitEntries(entries: { revenue: number; cost: number; profit: number }[]) {
-  return entries.reduce(
-    (acc, entry) => ({
-      revenue: acc.revenue + entry.revenue,
-      cost: acc.cost + entry.cost,
-      profit: acc.profit + entry.profit,
-    }),
-    { revenue: 0, cost: 0, profit: 0 },
-  );
-}

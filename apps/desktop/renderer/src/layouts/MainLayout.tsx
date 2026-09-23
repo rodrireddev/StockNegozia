@@ -11,6 +11,7 @@ const navItems = [
   { to: "/purchases", label: "Compras" },
   { to: "/inventory", label: "Inventario" },
   { to: "/profits", label: "Ganancias" },
+  { to: "/cash-adjustments", label: "Ajustes de caja" },
   { to: "/suppliers", label: "Proveedores" },
   { to: "/devices", label: "Dispositivos" },
   { to: "/settings", label: "Configuración" },

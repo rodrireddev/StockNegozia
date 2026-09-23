@@ -12,6 +12,9 @@ const compactCurrencyFormatter = new Intl.NumberFormat("es-AR", {
 
 interface ProfitsChartProps {
   data: DailyProfitDto[];
+  /** Al hacer click en un día se llama con su `date` (`YYYY-MM-DD`) — pensado para abrir el
+   *  detalle de ese día. Sin esta prop las barras no son clickeables. */
+  onSelectDay?: (date: string) => void;
 }
 
 /**
@@ -21,7 +24,7 @@ interface ProfitsChartProps {
  * un solo `maxAbsProfit` comparte la escala de ambas zonas. Misma estructura que
  * `apps/mobile-mini/src/features/profits/components/ProfitChart.tsx`.
  */
-export function ProfitsChart({ data }: ProfitsChartProps) {
+export function ProfitsChart({ data, onSelectDay }: ProfitsChartProps) {
   const hasNegative = data.some((day) => day.profit < 0);
   const maxAbsProfit = Math.max(1, ...data.map((day) => Math.abs(day.profit)));
 
@@ -34,7 +37,16 @@ export function ProfitsChart({ data }: ProfitsChartProps) {
               ? Math.max(4, (day.profit / maxAbsProfit) * (POSITIVE_ZONE_HEIGHT - 20))
               : 2;
           return (
-            <div key={day.date} className="flex flex-1 flex-col items-center justify-end gap-1">
+            <button
+              key={day.date}
+              type="button"
+              disabled={!onSelectDay}
+              onClick={() => onSelectDay?.(day.date)}
+              className={cn(
+                "flex flex-1 flex-col items-center justify-end gap-1",
+                onSelectDay && "cursor-pointer rounded-sm hover:bg-accent",
+              )}
+            >
               <span className="text-[10px] leading-none text-muted-foreground">
                 {day.profit !== 0 ? compactCurrencyFormatter.format(day.profit) : ""}
               </span>
@@ -42,7 +54,7 @@ export function ProfitsChart({ data }: ProfitsChartProps) {
                 className={cn("w-3/5 rounded-t-sm", day.profit === 0 ? "bg-border" : "bg-success")}
                 style={{ height: barHeight }}
               />
-            </div>
+            </button>
           );
         })}
       </div>
@@ -69,9 +81,18 @@ export function ProfitsChart({ data }: ProfitsChartProps) {
 
       <div className="flex gap-2 pt-1">
         {data.map((day) => (
-          <div key={day.date} className="flex-1 text-center text-xs text-muted-foreground">
+          <button
+            key={day.date}
+            type="button"
+            disabled={!onSelectDay}
+            onClick={() => onSelectDay?.(day.date)}
+            className={cn(
+              "flex-1 text-center text-xs text-muted-foreground",
+              onSelectDay && "cursor-pointer rounded-sm hover:bg-accent hover:text-foreground",
+            )}
+          >
             {day.label}
-          </div>
+          </button>
         ))}
       </div>
     </div>

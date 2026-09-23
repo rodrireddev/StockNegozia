@@ -4,15 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { TabNav } from "@/components/ui/tab-nav";
 import { useProducts } from "@/features/products/hooks/useProducts";
-import { ProfitsSummary, sumProfitEntries } from "../components/ProfitsSummary";
+import { ProfitsSummary } from "../components/ProfitsSummary";
 import { ProfitsTable } from "../components/ProfitsTable";
-import { useProfits } from "../hooks/useProfits";
+import { sumLedgerEntries } from "../data/ledger";
+import { useProfitLedger } from "../hooks/useProfitLedger";
 
 /**
- * Historial de ganancias por línea de venta (similar a "Movimientos" de Inventario, ver
- * `InventoryMovementsPage`). La ganancia de cada línea sale de `sale_items.unitPrice -
- * sale_items.unitCost` (ambos congelados al momento de la venta) — nunca de los precios ACTUALES
- * del producto, ver `ProfitsRepository` en el backend.
+ * Historial combinado de ganancias — ventas + ajustes de caja (ver `features/profits/data/
+ * ledger.ts`). La ganancia de cada venta sale de `sale_items.unitPrice - sale_items.unitCost`
+ * (ambos congelados al momento de la venta) — nunca de los precios ACTUALES del producto, ver
+ * `ProfitsRepository` en el backend. Un ajuste de caja no toca ningún producto: sólo resta/suma
+ * sobre la "Ganancia" final, nunca sobre "Vendido"/"Costo". La administración de ajustes de caja
+ * (alta + su propio historial) vive en su propia pantalla del menú principal
+ * (`features/cash-adjustments`), no acá.
  */
 export function ProfitsHistoryPage() {
   const [productId, setProductId] = useState("");
@@ -26,9 +30,9 @@ export function ProfitsHistoryPage() {
     isLoading,
     isError,
     refetch,
-  } = useProfits({ productId: productId ? Number(productId) : undefined });
+  } = useProfitLedger({ productId: productId ? Number(productId) : undefined });
 
-  const totals = useMemo(() => sumProfitEntries(entries ?? []), [entries]);
+  const totals = useMemo(() => sumLedgerEntries(entries ?? []), [entries]);
 
   return (
     <div className="space-y-4">
@@ -36,7 +40,7 @@ export function ProfitsHistoryPage() {
       <TabNav
         items={[
           { to: "/profits", label: "Historial", end: true },
-          { to: "/profits/chart", label: "Gráfico semanal" },
+          { to: "/profits/chart", label: "Gráfico" },
         ]}
       />
 
@@ -81,7 +85,9 @@ export function ProfitsHistoryPage() {
         <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border py-16 text-center">
           <TrendingUp className="h-10 w-10 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
-            {productId ? "Este producto no tiene ventas registradas." : "Todavía no hay ganancias registradas."}
+            {productId
+              ? "Este producto no tiene ventas registradas."
+              : "Todavía no hay ganancias registradas. Las ventas y ajustes de caja van a aparecer acá."}
           </p>
         </div>
       )}

@@ -1,5 +1,6 @@
 import { createHashRouter } from "react-router-dom";
 import { SettingsPage } from "@/features/backup/pages/SettingsPage";
+import { CashAdjustmentsPage } from "@/features/cash-adjustments/pages/CashAdjustmentsPage";
 import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
 import { DevicesPage } from "@/features/devices/pages/DevicesPage";
 import { InventoryCategoriesPage } from "@/features/inventory/pages/InventoryCategoriesPage";
@@ -30,6 +31,7 @@ export const router = createHashRouter([
       { path: "inventory/movements", element: <InventoryMovementsPage /> },
       { path: "profits", element: <ProfitsHistoryPage /> },
       { path: "profits/chart", element: <ProfitsChartPage /> },
+      { path: "cash-adjustments", element: <CashAdjustmentsPage /> },
       { path: "suppliers", element: <SuppliersPage /> },
       { path: "devices", element: <DevicesPage /> },
       { path: "settings", element: <SettingsPage /> },

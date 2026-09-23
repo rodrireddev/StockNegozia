@@ -71,6 +71,7 @@ export class ApiAccessGuard implements CanActivate {
       if (token) {
         const device = this.devicesService.findByCredential(token);
         if (device && device.status === "active") {
+          this.devicesService.touchLastSeen(device.id, device.lastSeenAt);
           request.device = { id: device.id, name: device.name, type: device.type, isAdmin: device.isAdmin };
           RequestContext.setDevice({
             id: device.id,

@@ -212,3 +212,74 @@ describe("M14: flujo completo de device management (pairing → uso → revocaci
     expect(raw.toLowerCase()).not.toContain("bearer ");
   });
 });
+
+/**
+ * `API_ACCESS_MODE=development` es el modo por defecto (ver .env.example) y no exige credential,
+ * pero el Desktop igual adjunta la suya en cada request (ver el comentario en `ApiAccessGuard`)
+ * para quedar identificado como actor. Ese mismo camino tiene que actualizar `lastSeenAt` — si no,
+ * el propio dispositivo queda para siempre como "Todavía no se conectó" en `/auth/devices` aunque
+ * esté activo y en uso.
+ */
+describe("M14: lastSeenAt en API_ACCESS_MODE=development", () => {
+  let app: INestApplication;
+  let dir: string;
+
+  afterAll(async () => {
+    await app.close();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("un request autenticado en modo development también actualiza lastSeenAt", async () => {
+    dir = mkdtempSync(path.join(tmpdir(), "stocknegozia-device-dev-mode-"));
+    const logger = new AppLogger({ level: "debug", dir, persistence: true, console: false });
+    const config: FakeAppConfig = {
+      accessMode: "development",
+      configDir: path.join(dir, "config"),
+      port: 38124,
+      pairingExpirationMinutes: 5,
+    };
+    const db = createTestDb();
+
+    const moduleRef = await Test.createTestingModule({
+      controllers: [AuthController, DevicesController, FakeProductsController],
+      providers: [
+        { provide: AppLogger, useValue: logger },
+        { provide: APP_FILTER, useClass: GlobalExceptionFilter },
+        { provide: DRIZZLE_CLIENT, useValue: db },
+        DevicesRepository,
+        DevicesService,
+        CredentialService,
+        BootstrapTokenService,
+        PairingRepository,
+        PairingService,
+        AdminDeviceGuard,
+        Reflector,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        { provide: ConfigService, useValue: { get: () => config } as any },
+        { provide: APP_GUARD, useClass: ApiAccessGuard },
+      ],
+    }).compile();
+
+    app = moduleRef.createNestApplication();
+    const middleware = new RequestContextMiddleware(logger);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    app.use((req: any, res: any, next: () => void) => middleware.use(req, res, next));
+    await app.init();
+
+    const bootstrapToken = readFileSync(path.join(config.configDir, "bootstrap.token"), "utf-8");
+    const bootstrap = await request(app.getHttpServer())
+      .post("/auth/bootstrap")
+      .send({ token: bootstrapToken, name: "Desktop administrador", type: "desktop" });
+    const adminCredential = bootstrap.body.credential as string;
+    const deviceId = bootstrap.body.deviceId as string;
+
+    // Se consulta el repo directo (no vía un endpoint protegido): cualquier request autenticado,
+    // incluida la propia consulta de "estoy viendo mi lastSeenAt", también lo actualizaría.
+    const repository = moduleRef.get(DevicesRepository);
+    expect(repository.findById(deviceId)?.lastSeenAt).toBeNull();
+
+    await request(app.getHttpServer()).get("/products").set("Authorization", `Bearer ${adminCredential}`);
+
+    expect(repository.findById(deviceId)?.lastSeenAt).toBeInstanceOf(Date);
+  });
+});

@@ -7,7 +7,6 @@ import { ledgerEntryProfit, sumDailyProfits, sumLedgerEntries, type ProfitLedger
 function saleEntry(overrides: Partial<ProfitLedgerEntry> & { id: number }): ProfitLedgerEntry {
   return {
     kind: "sale",
-    id: overrides.id,
     saleId: overrides.id,
     productId: 1,
     productName: "Producto",
@@ -27,8 +26,6 @@ function cashAdjustmentEntry(
 ): ProfitLedgerEntry {
   return {
     kind: "cashAdjustment",
-    id: overrides.id,
-    direction: overrides.direction,
     amount: 50,
     reason: "Pago sueldo",
     createdAt: "2026-01-01T12:00:00.000Z",
