@@ -53,11 +53,17 @@ export function SalesScreen() {
   const businessName = useBusinessName();
   const playScanBeep = useScanBeep();
 
-  function handleAdd(product: ProductDto) {
+  function addToCart(product: ProductDto) {
     cart.addItem(product);
-    setSearchTerm("");
     setScanError(null);
     setSuccessMessage(null);
+  }
+
+  // Al elegir un producto de la lista de resultados, la búsqueda se mantiene: la persona suele
+  // agregar varias unidades del mismo resultado o de resultados vecinos, y borrarla la obligaría a
+  // volver a escribir lo mismo por cada producto.
+  function handleSelectProduct(product: ProductDto) {
+    addToCart(product);
   }
 
   async function handleSubmitSearch() {
@@ -67,7 +73,8 @@ export function SalesScreen() {
 
     const currentMatch = resolveScanMatch(productsQuery.data ?? [], raw);
     if (currentMatch) {
-      handleAdd(currentMatch);
+      addToCart(currentMatch);
+      setSearchTerm("");
       return;
     }
 
@@ -76,7 +83,8 @@ export function SalesScreen() {
       const fresh = await fetchProducts({ search: raw });
       const match = resolveScanMatch(fresh, raw);
       if (match) {
-        handleAdd(match);
+        addToCart(match);
+        setSearchTerm("");
       } else {
         setScanError(`No encontramos ningún producto para "${raw}".`);
       }
@@ -217,7 +225,7 @@ export function SalesScreen() {
             </Text>
           ) : (
             (productsQuery.data ?? []).map((product) => (
-              <Pressable key={product.id} onPress={() => handleAdd(product)}>
+              <Pressable key={product.id} onPress={() => handleSelectProduct(product)}>
                 <ProductListItem product={product} />
               </Pressable>
             ))
