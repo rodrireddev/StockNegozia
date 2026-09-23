@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter, type Href } from "expo-router";
 import {
   ChevronRight,
@@ -44,7 +44,7 @@ export function MoreScreen() {
       <Text style={[typography.title, { color: colors.foreground, marginBottom: spacing.md }]}>
         Más
       </Text>
-      <View style={styles.list}>
+      <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
         {ITEMS.map((item) => (
           <Pressable key={item.label} onPress={() => router.push(item.href)}>
             <Card style={styles.row}>
@@ -59,13 +59,13 @@ export function MoreScreen() {
             </Card>
           </Pressable>
         ))}
-      </View>
+      </ScrollView>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  list: { gap: spacing.sm },
+  list: { gap: spacing.sm, paddingBottom: spacing.lg },
   row: { flexDirection: "row", alignItems: "center", gap: spacing.md, minHeight: minTouchTarget },
   rowText: { flex: 1, gap: 2 },
 });
