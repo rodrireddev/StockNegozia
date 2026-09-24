@@ -16,6 +16,12 @@
 # de crearlo. Orden sugerido: 1) deployar cloud-backend, copiar su URL; 2) deployar admin-panel con
 # esa URL en `VITE_CLOUD_BACKEND_URL`; 3) volver a cloud-backend y poner la URL de admin-panel en
 # `CORS_ALLOWED_ORIGINS`; 4) redeploy de cloud-backend (Render lo hace solo al guardar el env var).
+#
+# Ningún buildCommand llama a `corepack enable`: el paso automático de Render (antes de correr
+# este buildCommand) ya instala con la versión de pnpm fijada en `packageManager` (package.json)
+# sin necesidad de activarlo a mano, y llamarlo igual acá rompió el deploy de forma intermitente
+# con "EROFS: read-only file system, unlink '/usr/bin/pnpm'" (el binario global es de solo lectura
+# en la imagen de build de Render).
 
 services:
   - type: web
@@ -32,7 +38,7 @@ services:
     # este servicio ni usa) compilando nativo en cada deploy; verificado localmente que el install
     # con este filtro tarda 12s en vez de más de un minuto, y en `stocknegozia-landing`/
     # `stocknegozia-admin-panel` evita ese compile por completo (ahí ni falta, ver más abajo).
-    buildCommand: corepack enable && pnpm install --filter @stocknegozia/cloud-backend... --frozen-lockfile && pnpm turbo run build --filter=@stocknegozia/cloud-backend
+    buildCommand: pnpm install --filter @stocknegozia/cloud-backend... --frozen-lockfile && pnpm turbo run build --filter=@stocknegozia/cloud-backend
     startCommand: pnpm --filter @stocknegozia/cloud-backend start:prod
     healthCheckPath: /health
     envVars:
@@ -68,7 +74,7 @@ services:
   - type: web
     name: stocknegozia-admin-panel
     runtime: static
-    buildCommand: corepack enable && pnpm install --filter @stocknegozia/admin-panel... --frozen-lockfile && pnpm turbo run build --filter=@stocknegozia/admin-panel
+    buildCommand: pnpm install --filter @stocknegozia/admin-panel... --frozen-lockfile && pnpm turbo run build --filter=@stocknegozia/admin-panel
     staticPublishPath: ./apps/admin-panel/dist
     envVars:
       # URL de stocknegozia-cloud-backend (paso 2 de la nota de arriba) — Vite la incrusta en el
@@ -85,5 +91,5 @@ services:
   - type: web
     name: stocknegozia-landing
     runtime: static
-    buildCommand: corepack enable && pnpm install --filter @stocknegozia/landing... --frozen-lockfile && pnpm turbo run build --filter=@stocknegozia/landing
+    buildCommand: pnpm install --filter @stocknegozia/landing... --frozen-lockfile && pnpm turbo run build --filter=@stocknegozia/landing
     staticPublishPath: ./apps/landing/dist
