@@ -20,6 +20,7 @@ import { spacing, typography } from "@/theme/tokens";
 import { useTheme } from "@/theme/useTheme";
 
 const STATUS_LABEL: Record<string, string> = {
+  unavailable: "No disponible en esta build",
   idle: "Sin cargar",
   loading: "Cargando anuncio…",
   loaded: "Listo para mostrar",
@@ -123,42 +124,52 @@ function AuthenticatedBenefits({
 
       <Card style={styles.card}>
         <Text style={[typography.bodyStrong, { color: colors.foreground }]}>Ver un anuncio</Text>
-        <Text style={[typography.caption, { color: colors.mutedForeground }]}>
-          Ad unit de prueba de AdMob (todavía sin cuenta propia) — pero los créditos que acredita
-          ya son reales, con el mismo tope diario y cooldown que va a tener en producción.
-        </Text>
-        <Text style={[typography.caption, { color: colors.foreground }]}>
-          Estado: {STATUS_LABEL[status] ?? status}
-        </Text>
-        {error && <Text style={[typography.caption, { color: colors.danger }]}>{error}</Text>}
-        {lastClaim && lastClaim.granted && (
-          <Text style={[typography.caption, { color: colors.success }]}>
-            +{lastClaim.creditsAwarded} créditos acreditados
-          </Text>
-        )}
-        {lastClaim && !lastClaim.granted && (
+        {status === "unavailable" ? (
           <Text style={[typography.caption, { color: colors.mutedForeground }]}>
-            {lastClaim.reason === "daily_cap"
-              ? "Ya llegaste al tope de anuncios de hoy."
-              : "Todavía no pasó el tiempo de espera entre anuncios."}
+            Los anuncios necesitan una build nativa (dev client) — en Expo Go esta parte no está
+            disponible, el resto de la app funciona igual.
           </Text>
-        )}
-        <View style={styles.actions}>
-          <Button
-            label="Cargar anuncio"
-            variant="secondary"
-            onPress={load}
-            disabled={status === "loading" || status === "showing"}
-            loading={status === "loading"}
-          />
-          <Button label="Mostrar anuncio" onPress={show} disabled={status !== "loaded"} />
-        </View>
-        {adsPrivacyOptions.visible && (
-          <Button
-            label="Opciones de privacidad de anuncios"
-            variant="ghost"
-            onPress={adsPrivacyOptions.open}
-          />
+        ) : (
+          <>
+            <Text style={[typography.caption, { color: colors.mutedForeground }]}>
+              Ad unit de prueba de AdMob (todavía sin cuenta propia) — pero los créditos que
+              acredita ya son reales, con el mismo tope diario y cooldown que va a tener en
+              producción.
+            </Text>
+            <Text style={[typography.caption, { color: colors.foreground }]}>
+              Estado: {STATUS_LABEL[status] ?? status}
+            </Text>
+            {error && <Text style={[typography.caption, { color: colors.danger }]}>{error}</Text>}
+            {lastClaim && lastClaim.granted && (
+              <Text style={[typography.caption, { color: colors.success }]}>
+                +{lastClaim.creditsAwarded} créditos acreditados
+              </Text>
+            )}
+            {lastClaim && !lastClaim.granted && (
+              <Text style={[typography.caption, { color: colors.mutedForeground }]}>
+                {lastClaim.reason === "daily_cap"
+                  ? "Ya llegaste al tope de anuncios de hoy."
+                  : "Todavía no pasó el tiempo de espera entre anuncios."}
+              </Text>
+            )}
+            <View style={styles.actions}>
+              <Button
+                label="Cargar anuncio"
+                variant="secondary"
+                onPress={load}
+                disabled={status === "loading" || status === "showing"}
+                loading={status === "loading"}
+              />
+              <Button label="Mostrar anuncio" onPress={show} disabled={status !== "loaded"} />
+            </View>
+            {adsPrivacyOptions.visible && (
+              <Button
+                label="Opciones de privacidad de anuncios"
+                variant="ghost"
+                onPress={adsPrivacyOptions.open}
+              />
+            )}
+          </>
         )}
       </Card>
 

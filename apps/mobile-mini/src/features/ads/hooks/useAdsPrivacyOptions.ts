@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { AdsConsent, AdsConsentPrivacyOptionsRequirementStatus } from "react-native-google-mobile-ads";
+import { getNativeAdsModule } from "../nativeAdsModule";
 
 export interface UseAdsPrivacyOptionsResult {
   /** Solo `true` para usuarios donde el UMP de Google exige poder revisar el consentimiento
-   *  después (ej. EEA/UK) — evita mostrar un botón sin sentido al resto. */
+   *  después (ej. EEA/UK) — evita mostrar un botón sin sentido al resto. También `false` en
+   *  Expo Go, donde no hay módulo nativo con el que mostrar nada (ver `nativeAdsModule.ts`). */
   visible: boolean;
   open: () => void;
 }
@@ -14,15 +15,18 @@ export interface UseAdsPrivacyOptionsResult {
  * después para cambiar de opinión. `showPrivacyOptionsForm()` es la API del propio SDK para eso.
  */
 export function useAdsPrivacyOptions(): UseAdsPrivacyOptionsResult {
+  const nativeAds = getNativeAdsModule();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    if (!nativeAds) return;
     let cancelled = false;
-    AdsConsent.getConsentInfo()
+    nativeAds.AdsConsent.getConsentInfo()
       .then((info) => {
         if (!cancelled) {
           setVisible(
-            info.privacyOptionsRequirementStatus === AdsConsentPrivacyOptionsRequirementStatus.REQUIRED,
+            info.privacyOptionsRequirementStatus ===
+              nativeAds.AdsConsentPrivacyOptionsRequirementStatus.REQUIRED,
           );
         }
       })
@@ -30,12 +34,12 @@ export function useAdsPrivacyOptions(): UseAdsPrivacyOptionsResult {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [nativeAds]);
 
   return {
     visible,
     open: () => {
-      AdsConsent.showPrivacyOptionsForm().catch(() => {});
+      nativeAds?.AdsConsent.showPrivacyOptionsForm().catch(() => {});
     },
   };
 }

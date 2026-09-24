@@ -1,26 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
-import {
-  AdEventType,
-  RewardedAd,
-  RewardedAdEventType,
-  TestIds,
-} from "react-native-google-mobile-ads";
+import type { RewardedAd } from "react-native-google-mobile-ads";
 import type { RewardedAdClaimResult } from "@stocknegozia/api-contracts";
 import { useAccount } from "@/accounts/AccountContext";
 import { getAdPlacement } from "@/accounts/api/ads.api";
 import { claimRewardedAd } from "@/accounts/api/gamification.api";
+import { getNativeAdsModule } from "../nativeAdsModule";
 
 const REWARDED_AD_PLACEMENT_KEY = "rewarded_credits";
 
 /**
- * `TestIds.REWARDED` de la propia librería — fallback si `apps/cloud-backend` no tiene un
- * placement habilitado para esta plataforma, o si la request falla (sin red, sin cuenta todavía).
- * Nunca deja al usuario sin poder ver un anuncio solo porque el backend esté caído.
+ * Mismo valor que expone `TestIds.REWARDED` del SDK para Android — hardcodeado en vez de
+ * importado porque el paquete no se puede importar de forma estática (ver `nativeAdsModule.ts`).
+ * Fallback si `apps/cloud-backend` no tiene un placement habilitado para esta plataforma, o si la
+ * request falla (sin red, sin cuenta todavía). Nunca deja al usuario sin poder ver un anuncio solo
+ * porque el backend esté caído.
  */
-export const REWARDED_AD_UNIT_ID = TestIds.REWARDED;
+export const REWARDED_AD_UNIT_ID = "ca-app-pub-3940256099942544/5224354917";
 
-export type RewardedAdStatus = "idle" | "loading" | "loaded" | "showing" | "error";
+/** `unavailable` = corriendo en Expo Go u otro entorno sin el módulo nativo (ver `nativeAdsModule.ts`). */
+export type RewardedAdStatus = "unavailable" | "idle" | "loading" | "loaded" | "showing" | "error";
 
 export interface UseRewardedAdResult {
   status: RewardedAdStatus;
@@ -43,8 +42,9 @@ export interface UseRewardedAdResult {
  * `RewardedAdsService` del backend.
  */
 export function useRewardedAd(): UseRewardedAdResult {
+  const nativeAds = getNativeAdsModule();
   const { status: accountStatus, me, refetchMe } = useAccount();
-  const [status, setStatus] = useState<RewardedAdStatus>("idle");
+  const [status, setStatus] = useState<RewardedAdStatus>(nativeAds ? "idle" : "unavailable");
   const [lastClaim, setLastClaim] = useState<RewardedAdClaimResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [adUnitId, setAdUnitId] = useState<string>(REWARDED_AD_UNIT_ID);
@@ -65,19 +65,21 @@ export function useRewardedAd(): UseRewardedAdResult {
   }, [accountStatus]);
 
   useEffect(() => {
+    if (!nativeAds) return; // Expo Go — no hay módulo nativo con el que crear un RewardedAd.
+
     // `userId` (doc ADS_CREDITS_GAMIFICATION.md, SSV) — Google lo devuelve firmado en el callback
     // de SSV, así el backend sabe a quién acreditar sin confiar en lo que diga el cliente. Sin
     // efecto todavía: el ad unit de prueba no tiene SSV configurado (ver `AdRewardCallbackService`
     // del backend), pero queda listo para el día que haya una cuenta de AdMob real.
-    const ad = RewardedAd.createForAdRequest(adUnitId, {
+    const ad = nativeAds.RewardedAd.createForAdRequest(adUnitId, {
       serverSideVerificationOptions: me ? { userId: me.id } : undefined,
     });
     adRef.current = ad;
 
-    const unsubscribeLoaded = ad.addAdEventListener(RewardedAdEventType.LOADED, () => {
+    const unsubscribeLoaded = ad.addAdEventListener(nativeAds.RewardedAdEventType.LOADED, () => {
       setStatus("loaded");
     });
-    const unsubscribeEarned = ad.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {
+    const unsubscribeEarned = ad.addAdEventListener(nativeAds.RewardedAdEventType.EARNED_REWARD, () => {
       // El SDK ya confirmó que se vio completo — recién ahí tiene sentido pedirle al backend que
       // acredite. Sin cuenta no hay nada que acreditar (el módulo entero vive detrás de login).
       if (accountStatus !== "authenticated") return;
@@ -88,12 +90,12 @@ export function useRewardedAd(): UseRewardedAdResult {
         })
         .catch((err) => setError(err instanceof Error ? err.message : "No se pudo acreditar"));
     });
-    const unsubscribeClosed = ad.addAdEventListener(AdEventType.CLOSED, () => {
+    const unsubscribeClosed = ad.addAdEventListener(nativeAds.AdEventType.CLOSED, () => {
       // Se cerró el anuncio (con o sin reward) — hay que pedir uno nuevo para la próxima vez, un
       // `RewardedAd` de esta librería se consume una sola vez.
       setStatus("idle");
     });
-    const unsubscribeError = ad.addAdEventListener(AdEventType.ERROR, (adError: Error) => {
+    const unsubscribeError = ad.addAdEventListener(nativeAds.AdEventType.ERROR, (adError: Error) => {
       setStatus("error");
       setError(adError.message);
     });
@@ -104,19 +106,20 @@ export function useRewardedAd(): UseRewardedAdResult {
       unsubscribeClosed();
       unsubscribeError();
     };
-  }, [adUnitId, accountStatus, me, refetchMe]);
+  }, [nativeAds, adUnitId, accountStatus, me, refetchMe]);
 
   const load = useCallback(() => {
+    if (!nativeAds) return;
     setError(null);
     setStatus("loading");
     adRef.current?.load();
-  }, []);
+  }, [nativeAds]);
 
   const show = useCallback(() => {
-    if (status !== "loaded") return;
+    if (!nativeAds || status !== "loaded") return;
     setStatus("showing");
     adRef.current?.show();
-  }, [status]);
+  }, [nativeAds, status]);
 
   return { status, lastClaim, error, load, show };
 }

@@ -4,8 +4,8 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
-import mobileAds, { AdsConsent } from "react-native-google-mobile-ads";
 import { AccountProvider } from "@/accounts/AccountContext";
+import { getNativeAdsModule } from "@/features/ads/nativeAdsModule";
 import { db } from "@/database/client";
 import migrations from "@/database/migrations/migrations";
 import { AdaptiveShell } from "@/navigation/AdaptiveShell";
@@ -55,11 +55,16 @@ function RootNavigator() {
   // pide/muestra el formulario de consentimiento si corresponde (ej. usuarios en EEA/UK), doc de
   // Google: nunca hay que inicializar ni pedir anuncios antes de eso. Si falla (sin red, etc.) se
   // sigue igual — no hay nada más que reintentar acá, y sin esto tampoco había anuncios antes.
+  // `getNativeAdsModule()` devuelve `null` en Expo Go (sin dev client) — ahí no hay nada que
+  // inicializar, y el resto de la app sigue funcionando igual (ver ese archivo).
   useEffect(() => {
-    AdsConsent.gatherConsent()
+    const nativeAds = getNativeAdsModule();
+    if (!nativeAds) return;
+    nativeAds.AdsConsent.gatherConsent()
       .catch(() => {})
       .finally(() => {
-        mobileAds()
+        nativeAds
+          .default()
           .initialize()
           .catch(() => {});
       });
