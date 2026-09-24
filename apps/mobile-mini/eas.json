@@ -9,18 +9,27 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_CLOUD_BACKEND_URL": "https://stocknegozia-cloud-backend.onrender.com"
       }
     },
     "preview": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_CLOUD_BACKEND_URL": "https://stocknegozia-cloud-backend.onrender.com"
       }
     },
     "production": {
       "autoIncrement": true,
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_CLOUD_BACKEND_URL": "https://stocknegozia-cloud-backend.onrender.com"
       }
     }
   },

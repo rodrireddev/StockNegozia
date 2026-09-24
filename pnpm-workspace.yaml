@@ -10,11 +10,19 @@ allowBuilds:
   sharp: true
 
 minimumReleaseAgeExclude:
-  - '@expo/cli@57.0.25'
-  - '@expo/router-server@57.0.10'
-  - babel-preset-expo@57.0.12
-  - expo@57.0.23
+  - '@expo/cli@57.0.25 || 57.0.27'
+  - '@expo/router-server@57.0.10 || 57.0.11'
+  - babel-preset-expo@57.0.12 || 57.0.13
+  - expo@57.0.23 || 57.0.25
   - react-native-google-mobile-ads@17.1.0
+  - expo-modules-core@57.0.19
+  - expo-modules-jsi@57.1.1
+  - '@expo/ui@57.0.20'
+  - expo-glass-effect@57.0.4
+  - expo-image-picker@57.0.20
+  - expo-linking@57.0.11
+  - expo-router@57.0.23
+  - expo-sharing@57.0.22
 
 # better-sqlite3 (usado solo por apps/backend, el backend legacy que no está en render.yaml)
 # queda fuera de esta lista a propósito: Render corre un install de TODO el workspace antes de
