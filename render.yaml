@@ -26,7 +26,13 @@ services:
     # paquetes compartidos que este servicio necesita (`validation`, `api-contracts`, `shared`,
     # ver `turbo.json`: `build` depende de `^build`), algo que un `pnpm --filter` suelto no
     # garantiza en una máquina de CI limpia sin esos `dist/` ya generados.
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm turbo run build --filter=@stocknegozia/cloud-backend
+    #
+    # `pnpm install --filter @stocknegozia/cloud-backend...` (no un install sin filtro) — instalar
+    # todo el monorepo hacía que este build dependiera de `better-sqlite3` (de `apps/backend`, que
+    # este servicio ni usa) compilando nativo en cada deploy; verificado localmente que el install
+    # con este filtro tarda 12s en vez de más de un minuto, y en `stocknegozia-landing`/
+    # `stocknegozia-admin-panel` evita ese compile por completo (ahí ni falta, ver más abajo).
+    buildCommand: corepack enable && pnpm install --filter @stocknegozia/cloud-backend... --frozen-lockfile && pnpm turbo run build --filter=@stocknegozia/cloud-backend
     startCommand: pnpm --filter @stocknegozia/cloud-backend start:prod
     healthCheckPath: /health
     envVars:
@@ -62,7 +68,7 @@ services:
   - type: web
     name: stocknegozia-admin-panel
     runtime: static
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm turbo run build --filter=@stocknegozia/admin-panel
+    buildCommand: corepack enable && pnpm install --filter @stocknegozia/admin-panel... --frozen-lockfile && pnpm turbo run build --filter=@stocknegozia/admin-panel
     staticPublishPath: ./apps/admin-panel/dist
     envVars:
       # URL de stocknegozia-cloud-backend (paso 2 de la nota de arriba) — Vite la incrusta en el
@@ -79,5 +85,5 @@ services:
   - type: web
     name: stocknegozia-landing
     runtime: static
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm turbo run build --filter=@stocknegozia/landing
+    buildCommand: corepack enable && pnpm install --filter @stocknegozia/landing... --frozen-lockfile && pnpm turbo run build --filter=@stocknegozia/landing
     staticPublishPath: ./apps/landing/dist
