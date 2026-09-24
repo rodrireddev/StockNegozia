@@ -1,0 +1,161 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import LegalHeader from "../components/LegalHeader.astro";
+import Footer from "../components/Footer.astro";
+
+const title = "Política de Privacidad — StockNegozia";
+const description =
+  "Qué datos recolecta StockNegozia (escritorio y StockNegozia Mini), para qué se usan y cómo pedir que se borren.";
+const lastUpdated = "24 de septiembre de 2026";
+const contactEmail = "rdevtoledo@gmail.com";
+---
+
+<BaseLayout title={title} description={description}>
+  <LegalHeader />
+  <main class="container-page max-w-3xl py-16">
+    <h1 class="text-3xl font-bold text-ink-900">Política de Privacidad</h1>
+    <p class="mt-2 text-sm text-ink-400">Última actualización: {lastUpdated}</p>
+
+    <div class="prose-legal mt-10 space-y-8 text-ink-600">
+      <section>
+        <p>
+          StockNegozia todavía no está constituido como una razón social/empresa formal — este
+          documento lo publica el desarrollador responsable del producto. Cualquier consulta sobre
+          esta política, o para ejercer cualquiera de los derechos descriptos acá, escribinos a
+          <a href={`mailto:${contactEmail}`} class="text-brand-600 hover:underline">{contactEmail}</a>.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-ink-900">A qué aplica esta política</h2>
+        <p>
+          StockNegozia son en realidad dos productos separados, con manejo de datos muy distinto:
+        </p>
+        <ul class="mt-3 list-disc space-y-2 pl-5">
+          <li>
+            <strong>StockNegozia (escritorio)</strong>: gestiona productos, ventas, compras,
+            proveedores e inventario. Todos esos datos viven <strong>únicamente en tu
+            computadora</strong>, en una base de datos local — nunca se suben a ningún servidor
+            nuestro. No tiene cuenta, no tiene anuncios, no recolecta ni comparte nada con
+            terceros.
+          </li>
+          <li>
+            <strong>StockNegozia Mini (Android)</strong>: la versión móvil, con las mismas
+            funciones de productos/ventas/stock 100% locales en el teléfono, más una sección
+            opcional de cuenta ("Beneficios") con créditos y anuncios recompensados. El resto de
+            este documento describe en detalle qué pasa con los datos de esa sección opcional.
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-ink-900">Datos que nunca salen de tu dispositivo</h2>
+        <p>
+          Tus productos, ventas, compras, movimientos de stock, ajustes de caja, proveedores y las
+          fotos que le saques a tus productos se guardan solo en tu computadora o tu teléfono.
+          StockNegozia nunca los ve, nunca los sube a un servidor, y no los puede recuperar si
+          desinstalás la app sin haber hecho un backup manual (escritorio) — esto es así con o sin
+          cuenta creada.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-ink-900">
+          Datos que recolectamos si creás una cuenta en StockNegozia Mini
+        </h2>
+        <p>Crear cuenta es 100% opcional — la app funciona completa sin ella. Si la creás, guardamos:</p>
+        <ul class="mt-3 list-disc space-y-2 pl-5">
+          <li><strong>Email y contraseña</strong> — la contraseña nunca se guarda en texto plano, solo su hash (scrypt), imposible de revertir a la contraseña original.</li>
+          <li><strong>Tu código de referido y quién te invitó</strong>, si usaste uno al registrarte.</li>
+          <li>
+            <strong>Historial de créditos</strong> — cada vez que ganás o gastás créditos (ver un
+            anuncio, una misión diaria, un hito de racha, comprar un beneficio), con fecha y motivo.
+          </li>
+          <li><strong>Racha de uso</strong> y qué logros/misiones ya reclamaste, para no volver a otorgarlos dos veces.</li>
+        </ul>
+        <p class="mt-3">
+          Usamos estos datos únicamente para hacer funcionar el sistema de créditos/beneficios,
+          verificar tu email si lo pedís, y prevenir abuso (por ejemplo, alguien creando cuentas
+          falsas para autorreferirse). No vendemos ni compartimos estos datos con nadie.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-ink-900">Anuncios (Google AdMob)</h2>
+        <p>
+          Si elegís ver un anuncio recompensado para ganar créditos, usamos el SDK de Google AdMob
+          para mostrarlo. Google recolecta un identificador de publicidad de tu dispositivo y
+          señales de interacción con el anuncio para elegir qué mostrar y medir resultados — esto
+          lo hace Google, no nosotros, bajo su propia
+          <a href="https://policies.google.com/privacy" class="text-brand-600 hover:underline" target="_blank" rel="noopener noreferrer">
+            Política de Privacidad
+          </a>. Ver un anuncio es siempre una elección tuya — nunca aparece uno sin que lo pidas.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-ink-900">Permisos del teléfono</h2>
+        <p>
+          StockNegozia Mini pide permiso de <strong>cámara</strong> para escanear códigos de barra y,
+          si querés, sacarle una foto a un producto — esas fotos se guardan localmente en el
+          teléfono, igual que el resto de tus datos de productos, nunca se suben a ningún lado. No
+          pedimos ubicación, contactos, ni grabamos audio.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-ink-900">Qué no hacemos</h2>
+        <p>
+          No recolectamos ubicación, contactos, mensajes, ni historial de navegación. No usamos
+          ningún SDK de analítica o seguimiento de comportamiento fuera de lo que AdMob recolecta
+          para sus propios anuncios. No vendemos datos a nadie.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-ink-900">Borrar tu cuenta y tus datos</h2>
+        <p>
+          Podés eliminar tu cuenta y todo lo asociado (créditos, racha, referidos, historial)
+          cuando quieras, directo desde la app: <strong>Beneficios → Eliminar mi cuenta</strong>.
+          Es inmediato e irreversible. Si ya desinstalaste la app, podés pedir la baja igual desde
+          <a href="/eliminar-cuenta" class="text-brand-600 hover:underline">esta página</a>. No
+          retenemos ningún dato después de procesar el borrado.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-ink-900">Menores de edad</h2>
+        <p>
+          StockNegozia es una herramienta de gestión para comercios, no está dirigida a menores de
+          13 años y no recolectamos a sabiendas datos de menores.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-ink-900">Seguridad</h2>
+        <p>
+          Las contraseñas se guardan hasheadas (scrypt), nunca en texto plano. Los códigos de
+          verificación de email y de recuperación de contraseña se guardan hasheados (SHA-256) y
+          son de un solo uso.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-ink-900">Cambios a esta política</h2>
+        <p>
+          Si actualizamos esta política, vamos a cambiar la fecha de "última actualización" al
+          principio de esta página. Te recomendamos revisarla de vez en cuando.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-ink-900">Contacto</h2>
+        <p>
+          Para cualquier consulta sobre privacidad, o para ejercer tu derecho a acceder, corregir
+          o borrar tus datos: <a href={`mailto:${contactEmail}`} class="text-brand-600 hover:underline">{contactEmail}</a>.
+        </p>
+      </section>
+    </div>
+  </main>
+  <Footer />
+</BaseLayout>

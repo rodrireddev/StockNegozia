@@ -1,9 +1,9 @@
 import "dotenv/config";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { randomBytes, randomUUID, scryptSync } from "node:crypto";
 import { Pool } from "pg";
-import { adminUsers, creditConfigItems } from "./schema";
+import { adminUsers, adPlacements, creditConfigItems } from "./schema";
 
 /**
  * Carga inicial de datos, pensada para correrse una sola vez por entorno (`pnpm run db:seed`):
@@ -119,6 +119,24 @@ const SEED_CONFIG_ITEMS: SeedConfigItem[] = [
   },
 ];
 
+interface SeedAdPlacement {
+  key: string;
+  platform: "android" | "ios" | "desktop";
+  adNetwork: string;
+  adUnitId: string;
+}
+
+/**
+ * Ad units de PRUEBA oficiales de Google (los mismos que resuelve `TestIds.REWARDED` de
+ * `react-native-google-mobile-ads`) — reemplazar por los reales es editar estas dos filas desde
+ * el panel admin, nunca tocar código (doc §1bis). Sin fila para "desktop": el proveedor todavía no
+ * está confirmado (ver doc), no hay nada real que sembrar ahí todavía.
+ */
+const SEED_AD_PLACEMENTS: SeedAdPlacement[] = [
+  { key: "rewarded_credits", platform: "android", adNetwork: "admob", adUnitId: "ca-app-pub-3940256099942544/5224354917" },
+  { key: "rewarded_credits", platform: "ios", adNetwork: "admob", adUnitId: "ca-app-pub-3940256099942544/1712485313" },
+];
+
 async function main() {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) throw new Error("DATABASE_URL no está seteada");
@@ -164,6 +182,30 @@ async function main() {
     inserted++;
   }
   console.log(`[seed] credit_config_items: ${inserted} insertados, ${SEED_CONFIG_ITEMS.length - inserted} ya existían`);
+
+  let placementsInserted = 0;
+  for (const placement of SEED_AD_PLACEMENTS) {
+    const [existing] = await db
+      .select()
+      .from(adPlacements)
+      .where(and(eq(adPlacements.key, placement.key), eq(adPlacements.platform, placement.platform)));
+    if (existing) continue;
+
+    await db.insert(adPlacements).values({
+      id: randomUUID(),
+      key: placement.key,
+      platform: placement.platform,
+      adNetwork: placement.adNetwork,
+      adUnitId: placement.adUnitId,
+      enabled: true,
+      updatedAt: new Date(),
+      updatedByAdminId: null,
+    });
+    placementsInserted++;
+  }
+  console.log(
+    `[seed] ad_placements: ${placementsInserted} insertados, ${SEED_AD_PLACEMENTS.length - placementsInserted} ya existían`,
+  );
 
   await pool.end();
 }

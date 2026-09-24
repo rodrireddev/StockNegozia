@@ -18,7 +18,15 @@ const PG_POOL = Symbol("PG_POOL");
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
         const config = configService.get<ConfigType<typeof appConfig>>("app")!;
-        return new Pool({ connectionString: config.databaseUrl });
+        return new Pool({
+          connectionString: config.databaseUrl,
+          // Neon (el Postgres de producción, ver doc de deploy) exige SSL; el Postgres local de
+          // Docker (dev) no lo soporta — gatillado por `NODE_ENV`, no por parsear la connection
+          // string. `rejectUnauthorized: false` es el patrón estándar para node-postgres contra
+          // proveedores gestionados (Render/Neon/Heroku): evita fallos por cadenas de certificados
+          // intermedios sin agregar un CA propio, sin dejar de cifrar la conexión.
+          ssl: config.nodeEnv === "production" ? { rejectUnauthorized: false } : false,
+        });
       },
     },
     {

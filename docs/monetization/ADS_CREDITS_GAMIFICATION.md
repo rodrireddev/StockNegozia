@@ -122,14 +122,28 @@ sirven para `apps/desktop`** — investigado en detalle, no es una suposición:
   es terminación de la cuenta de AdSense.
 - **AdMob**: es explícitamente solo para apps móviles nativas (Android/iOS) y engines tipo
   Unity/Cocos. No tiene soporte para desktop/Electron en absoluto, ni siquiera con matices.
-- Referencia externa: BlueStacks (el caso que motivó esta pregunta) **no usa AdSense ni AdMob** —
-  monetiza con publicidad directa/promoción de juegos y su propia red de video ads.
+- **BlueStacks** (el caso que motivó esta investigación, Electron confirmado —
+  `BlueStacksServices.exe` es litealmente un proceso Electron): a diferencia de lo que este doc
+  decía antes, **sí carga dominios de ads de Google** (`pagead2.googlesyndication.com`,
+  `adservice.google.com` — confirmado por gists públicos de gente bloqueándolos vía hosts file).
+  Pero eso no prueba que sea seguro replicar: Google documenta que su script de detección de
+  contexto WebView/in-app **puede identificar el entorno incluso con un User-Agent
+  personalizado** — no hay garantía de que el anuncio renderice, y si renderiza, la política
+  escrita se sigue violando igual. La explicación más probable es una relación/tolerancia directa
+  con Google dado su escala (500M+ instalaciones), no un truco replicable sin riesgo por un equipo
+  chico sin ese respaldo.
+- **Microsoft Advertising SDK (HTML/JS)** — alternativa investigada y descartada para esta app:
+  es específicamente para apps **UWP** (Universal Windows Platform), empaquetadas y distribuidas
+  por la Microsoft Store vía Partner Center (Visual Studio + WinJS, ad unit pedido por mail a
+  Microsoft). `apps/desktop` es Electron con instalador propio, no UWP — usarlo exigiría
+  re-empaquetar y distribuir también por la Microsoft Store, un proyecto aparte, no agregar una
+  librería.
 
 **Candidatos evaluados para desktop:**
 
 | Candidato | Formato | Soporta Electron/desktop empaquetado | Bloqueante conocido |
 |---|---|---|---|
-| [AppLixir](https://www.applixir.com/) | Rewarded video, SDK web (script tag + JS) | Probable técnicamente (Electron = Chromium), no confirmado en sus términos — hablan de "web games/HTML5/dominio propio", no de apps empaquetadas | **Mínimo 5.000 DAU para integrar** (su FAQ) — muy por encima de los 20-100 comercios de Etapa 1 |
+| [AppLixir](https://www.applixir.com/) | Rewarded video, SDK web (script tag + JS) | **Confirmado en su [Terms of Service](https://www.applixir.com/terms-of-service/) real** (no en la copy de marketing): habla genéricamente de "your websites or applications", sin cláusula tipo AdSense que prohíba apps de escritorio/software empaquetado. Las únicas prohibiciones explícitas son de contenido (pornografía, discurso de odio), no de plataforma | **Mínimo 5.000 DAU para integrar** (su FAQ, no el ToS — es un umbral de onboarding, no una cláusula legal) — muy por encima de los 20-100 comercios de Etapa 1. Este bloqueante no se resuelve leyendo el contrato, solo alcanzando ese tráfico o negociándolo directamente |
 | [Playwire](https://www.playwire.com/desktop-app) | Rewarded video + display, header bidding | Tienen una línea de producto **específica para "desktop apps"** ("built from scratch" para ese entorno, no herramientas web forzadas) | No publican mínimo de tráfico ni eCPM — solo vía contacto de ventas. No mencionan Electron por nombre, hay que preguntar directamente |
 | Meta Audience Network | Rewarded video, banner, interstitial | **Descartado** — confirmado en su propio repo oficial (`facebook/FBAudienceNetwork`): "monetize your iOS and Android apps". Es mobile-only, sin excepción, igual que AdMob | N/A, no aplica a desktop |
 | Adsterra / PropellerAds | Popunder, push, social bar, algo de video | Aceptan "software" de forma más amplia que AdSense/AdMob, sin la restricción explícita de "no software applications" | No son rewarded-video-first (formatos más agresivos/intrusivos: popunders, push) — encajan mal con el principio rector del doc de no romper confianza del usuario por unos centavos de revenue; quedan como último recurso, no como primera opción |
@@ -145,20 +159,95 @@ poder dar un número de usuarios real desperdicia el primer contacto):
      Argentina/LatAm? ¿Tienen SSV (verificación server-side) para rewarded video, equivalente a la
      de AdMob?
 2. **AppLixir como alternativa** — `info@applixir.com` (único email público, no hay sales/support
-   separado) o +1 425-390-4167.
-   - Preguntar, en este orden: (a) ¿sus términos permiten el SDK dentro de una app de escritorio
-     empaquetada, no solo un sitio/juego HTML5 en dominio propio?; (b) si depende de un "dominio"
-     registrado, ¿cómo se registra una app sin URL pública?; (c) ¿el mínimo de 5.000 DAU es
-     negociable con tráfico menor pero consistente?; (d) ¿ofrecen SSV?; (e) eCPM real para
-     Argentina/LatAm (el $4–15 publicado es global, mismo motivo por el que la sección 1 corrige el
-     eCPM de AdMob con benchmark regional).
+   separado) o +1 425-390-4167. La duda contractual ya está resuelta (ver tabla — su ToS no
+   prohíbe apps empaquetadas), así que no hace falta escribirles solo para eso. Lo que sí sigue
+   sin respuesta y solo se resuelve hablando con ellos: (a) si el mínimo de 5.000 DAU es
+   negociable con tráfico menor pero consistente; (b) si depende de un "dominio" registrado, cómo
+   se registra una app sin URL pública; (c) si ofrecen SSV; (d) eCPM real para Argentina/LatAm (el
+   $4–15 publicado es global, mismo motivo por el que la sección 1 corrige el eCPM de AdMob con
+   benchmark regional).
 3. **Google Ad Manager (ex-DFP) como respaldo final** — tiene un camino de excepción fuera del
    molde estándar de AdSense, pero es enterprise: requiere aplicar y ser aprobado por Google, no es
    self-service, puede tardar semanas y suele pedir volumen mínimo también. No se investigó en
    profundidad porque no era la prioridad.
 
-**Mientras tanto**: `apps/desktop` no integra ningún network de ads de terceros. El schema del
-backend (`ad_placements`, ver sección 6) ya modela el campo de red como texto libre (no un enum
+**Autoservicio sin mínimo de tráfico, encontrado y descartado como reemplazo del rewarded — pero
+anotado como opción de banner pasivo**: [Adsterra](https://adsterra.com/) y
+[PropellerAds](https://propellerads.com/) aceptan publishers sin mínimo de tráfico ni llamada de
+ventas (registro directo, aceptan "apps" como fuente de tráfico válida, no solo sitios web) — el
+perfil "autoservicio + proceso legal" más parecido a AdSense que se encontró. **Pero** están
+armados para formatos agresivos (popunders, push, social bar, interstitials), no para un formato
+"rewarded" opt-in — no encajan como fuente de créditos sin romper el principio rector (nunca
+romper la confianza del usuario por unos centavos). Quedan anotados **solo como candidato para un
+banner pasivo de desktop** (ver opción de diseño abajo), nunca como reemplazo del rewarded ad de
+`mobile-mini`.
+
+### Opción de diseño anotada (sin implementar todavía): banner lateral en desktop, puramente pasivo
+
+Decisión tomada en conversación, pendiente de diseño visual y de elegir el network real (Adsterra/
+PropellerAds u otro) cuando se retome. Se evaluó y se descartó premiar por tiempo con el banner
+abierto (house ad o de terceros) — **decisión final: `apps/desktop` nunca es fuente de créditos,
+solo sink.** Ganar créditos sigue siendo exclusivo de `mobile-mini` (rewarded ads + racha +
+misiones + referidos, doc §1/§2); esto evita de raíz el problema de "tráfico incentivado" con
+cualquier network de terceros (Adsterra/PropellerAds lo prohíben explícitamente) y no obliga a
+recalibrar el balance pasivo de la sección 1.
+
+- **`apps/desktop` tiene espacio de sobra en la interfaz** para un banner lateral — display simple,
+  siempre visible, sin interacción del usuario, sin ningún crédito otorgado por verlo. Es revenue
+  directo del negocio, no parte del sistema de recompensas.
+- **"Sacarse los ads" ya es cross-platform sin cambios de schema**: `entitlements` (tipo
+  `remove_ads`, ver `apps/cloud-backend/src/database/schema/entitlements.ts`) está atado a
+  `userId`, no a una plataforma — comprar/ganar ese entitlement con créditos ganados en
+  `mobile-mini` quita el banner de desktop *y* lo que corresponda ahí, con la misma cuenta. No hace
+  falta un entitlement por plataforma.
+- [x] **Banner implementado** (sidebar derecho, `AdBanner`) — muestra el house ad activo
+  (`GET /ads/house-ad/active`, siempre público) con imagen/título/texto/botón, registra una sola
+  impresión por house ad mostrado (`useRef` para no duplicar en re-renders), y no renderiza nada
+  si no hay ninguno activo o el cloud-backend no responde — nunca un espacio roto en la pantalla
+  principal de venta. Nuevo cliente HTTP propio (`cloud-api-client.ts`) separado del que ya usa
+  `apps/desktop` contra el backend local (SQLite/LAN pairing) — son dos backends distintos.
+  - **Alcance de esta etapa, a propósito acotado**: `apps/desktop` no tiene ningún sistema de
+    cuenta cloud todavía (no hay login, JWT, ni forma de identificar qué comercio es) — así que
+    aunque `entitlements` (`remove_ads`) ya está atado a `userId` y no a plataforma (ver abajo), el
+    banner de desktop *todavía no puede consultar si el comercio ya lo pagó* con créditos ganados
+    en `mobile-mini`. Agregar login de cuenta cloud a `apps/desktop` es un feature aparte, más
+    grande, no hecho en esta pasada.
+  - **Todavía sin la red de Adsterra real** — no hay cuenta creada (alta humana, no automatizable)
+    y el schema ya está listo para el día que la haya: mismo patrón que `mobile-mini`, pedir
+    `GET /ads/placements/:key?platform=desktop` en vez de (o adicional a) el house ad. Ese
+    endpoint hoy exige cuenta (`AccountJwtGuard`) para android/ios — para desktop va a necesitar
+    quedar público o con un gate distinto, ya que desktop no tiene cuenta (ver punto anterior).
+  - Test de componente nuevo (`AdBanner.spec.tsx`): no renderiza nada sin house ad activo, no
+    renderiza nada si falla la consulta, muestra el house ad y registra la impresión una sola vez.
+    typecheck, lint, build de producción y los 149 tests (146 + 3 nuevos) en verde. No se pudo
+    verificar visualmente en la app Electron nativa desde este entorno (usa APIs de
+    `contextBridge` que no existen fuera de Electron) — mismo límite que el resto de piezas
+    Electron-específicas de esta sesión.
+- Falta: decidir si el precio en créditos de "sacarse ads" (doc §1: 150/30 días) sigue siendo el
+  mismo ahora que cubre dos superficies en vez de una, o si conviene ajustarlo desde el panel
+  admin una vez que haya datos — y todo lo de arriba (cuenta cloud en desktop, red real de
+  Adsterra).
+
+**Decisión: Adsterra sobre PropellerAds, para cuando se implemente el banner.** Comparado
+directo contra fuentes primarias (no marketing de terceros) al momento de decidir:
+
+| | Adsterra | PropellerAds |
+|---|---|---|
+| Formato banner pasivo | **Sí, de primera clase** — "Banners" aparece explícitamente en su [página de publishers](https://adsterra.com/publishers/) junto a Popunder/Social Bar/Native/Smartlink | Existe ("Native Banners", según blog posts), pero su [homepage actual](https://propellerads.com/) ya ni lo menciona — hoy se presentan ante todo como Push/Popunder/Interactive/Telegram Mini Apps, el perfil más agresivo/intrusivo de los dos |
+| Mínimo de tráfico | Ninguno, aprobación ~10 min (su propia página) | Ninguno, aprobación automática (fuentes secundarias coinciden) |
+| Cobrar desde Argentina | PayPal, Paxum, wire, cripto — mínimo **$5 vía Paxum** | PayPal, Payoneer, Skrill, wire, cripto — mínimo **$5** en la mayoría de los métodos |
+
+Ninguno publica términos específicos para Argentina (ambos dicen "depende del país en el
+dashboard"), así que en la práctica cobrar no es más fácil con uno que con otro — los dos
+resuelven la fricción típica de PayPal-en-Argentina con cripto/Paxum a igual mínimo. **El
+desempate real es el formato**: Adsterra lo ofrece como producto de primera línea, PropellerAds
+hoy se vende ante todo con formatos agresivos que el principio rector de este doc ya descartó
+para StockNegozia. Con esto, cuando se retome el banner, arrancar directo por Adsterra en vez de
+evaluar los dos de nuevo — PropellerAds queda anotado como alternativa si Adsterra no convence en
+la práctica (fill/eCPM real para Argentina, que solo se sabe registrándose y probando).
+
+**Mientras tanto**: `apps/desktop` no integra ningún network de ads de terceros todavía. El schema
+del backend (`ad_placements`, ver sección 6) ya modela el campo de red como texto libre (no un enum
 cerrado a admob/adsense) específicamente para no tener que migrar el schema cuando esto se
 resuelva — ver `apps/cloud-backend/src/database/schema/ad-placements.ts`.
 
@@ -190,24 +279,82 @@ La app funciona completo sin cuenta. La cuenta solo desbloquea: ledger de crédi
 server-side (anti-abuso real — local se puede resetear reinstalando), sync entre dispositivos,
 backup en la nube, nivel más alto, y el tablero de pedidos (sección 4).
 
-**Caso: usuario que ya venía usando la app local (con productos/ventas/racha) y se registra.**
-Es el mejor momento para pedirle que se registre, no el peor — ya invirtió tiempo y tiene algo real
-que no quiere perder (mismo principio de pérdida que el backup). Migración: al confirmar la cuenta,
-el cliente sube productos/ventas/stock/ledger de créditos/racha locales al backend en una sola
-pasada, etiquetados con el `user_id` nuevo. Nunca se borra lo local hasta confirmar que la subida
-terminó — si se corta la conexión, reintenta.
+**Decisión (implementada): racha y créditos son 100% cloud, detrás de cuenta — no existen
+localmente sin login.** Esto simplifica el "caso migración" del diseño original: no hay racha ni
+ledger de créditos locales que subir al registrarse (nunca se acumularon sin cuenta), así que no
+hace falta un endpoint de migración de esos datos. `products`/`sales`/`stock` siguen siendo 100%
+locales siempre, con o sin cuenta — esos nunca se suben al backend nuevo (ver sección 6, el
+backend nuevo solo es fuente de verdad de lo account-gated).
 
-**Disparador del CTA de registro** (OR de señales, no un solo número): ≥15-20 productos cargados,
-o ≥5 días de racha, o ≥20 ventas, o ≥30 créditos acumulados. Banner liviano y descartable la
-primera vez; en un hito alto (30 días de racha, 100 productos) sube de intensidad. Nunca bloquea
-nada, en ningún nivel.
+**Disparador del CTA de registro — implementado** (OR de señales, ajustado a lo que sí se trackea
+sin cuenta): ≥15-20 productos cargados, o ≥20 ventas — ambos ya existen en el SQLite local de
+`mobile-mini` independientemente de este sistema. Se sacan del disparador original "≥5 días de
+racha" y "≥30 créditos acumulados": esos conceptos ya no existen antes de tener cuenta.
+`useRegistrationPrompt` (dos escalones: 15/20 y 100/100 productos/ventas, cada uno con su propio
+"descartado" persistido — descartar el umbral bajo no silencia el alto) + `RegistrationPromptBanner`
+en `MoreScreen` (solo en dev, igual que "Beneficios"). Banner liviano y descartable, nunca bloquea
+nada, en ningún nivel. Typecheck/lint verdes; no probado en dispositivo.
 
-**Pendiente de decidir:** después de migrar, ¿el SQLite local pasa a ser caché del backend (sync
-offline-first) o el backend pasa a ser la única fuente de verdad? Decisión de arquitectura más
-grande, afecta también a `apps/mobile`. Para v1 alcanza con el caso simple (usuario registrándose
-por primera vez); mergear datos locales con una cuenta que ya existía en otro dispositivo queda
-para más adelante. Para LatAm, evaluar registro por teléfono/OTP (WhatsApp/SMS) en vez de email —
-muchos comerciantes chicos no revisan mail seguido.
+Para LatAm, evaluar a futuro registro por teléfono/OTP (WhatsApp/SMS) en vez de email — muchos
+comerciantes chicos no revisan mail seguido. No implementado todavía (email+password alcanza para
+v1, ver `apps/cloud-backend/src/accounts`).
+
+**Confirmación de email + recuperación de contraseña — implementado y probado end-to-end contra
+Postgres real.** Ambos comparten `account_tokens` (token de un solo uso, hasheado SHA-256 igual
+que `credentialHash` en apps/backend, nunca en texto plano; pedir uno nuevo invalida cualquier
+anterior sin usar del mismo propósito). **Proveedor real: Resend** (decidido) — `EmailService`
+(`apps/cloud-backend/src/common/email.service.ts`) manda de verdad si `RESEND_API_KEY` está
+seteada, y sigue logueando en vez de mandar si no lo está (mismo comportamiento de siempre en
+dev/test, cero fricción sin cuenta de Resend). Fuera de producción, el token también se devuelve
+en la respuesta (`devToken`) para poder probar el flujo completo sin leer logs del servidor.
+
+- `POST /accounts/verify-email/resend` (autenticado) + `POST /accounts/verify-email/confirm`
+  (público — el token es la autenticación). Se manda automáticamente al registrarse, sin bloquear
+  el registro si falla. `emailVerifiedAt` en `AccountMeDto`, `null` hasta confirmar — nunca
+  bloquea nada (doc "nunca bloquea nada, en ningún nivel").
+- `POST /accounts/password-reset/request` (siempre responde igual exista o no el email —
+  anti-enumeración, mismo criterio que `ApiAccessGuard` de apps/backend) + `POST
+  /accounts/password-reset/confirm` (deja logueado con la contraseña nueva, sin pedir login de
+  nuevo).
+- Probado de punta a punta: registro → `emailVerifiedAt: null` → confirmar con el token → pasa a
+  tener fecha. Pedir reset → confirmar con contraseña nueva → login con la vieja falla (401) →
+  login con la nueva funciona → reusar el mismo token de reset falla (400, ya consumido).
+- `mobile-mini`: `ForgotPasswordForm` (dos pasos: pedir código, pegarlo + contraseña nueva —
+  sin deep link todavía, el código se pega a mano) enlazado desde `LoginForm`;
+  `EmailVerificationReminder` (reenviar + confirmar) dentro de "Beneficios" cuando
+  `emailVerifiedAt` es `null`. Typecheck/lint verdes, no probado en dispositivo.
+
+### Logros — implementado y probado end-to-end, sin schema nuevo
+
+Agrega lo que ya estaba diseñado (setup quests + hitos de racha + referido + Cofounder) en un solo
+lugar para mostrarlo en "Beneficios" — no un catálogo nuevo, una vista sobre tablas que ya
+existían. El monto de cada setup quest sale de `credit_config_items` ("source.setup_quest"),
+balanceable desde el panel admin igual que todo lo demás — no queda ningún número hardcodeado.
+
+- `POST /gamification/setup-quests/:questKey/claim` — el cliente lo llama cada vez que pasa la
+  acción (ej. cada venta, no solo la primera); el backend decide si es la primera vez
+  (idempotente por la constraint `unique(userId, questKey)` que ya existía). **`first_scan` y
+  `profile_complete` ahora conectados también** — `first_scan` se dispara desde los tres
+  consumidores del scanner compartido (`ProductsScreen`/`SalesScreen`/`PurchasesScreen`, en el
+  handler `onDetected` de cada uno, no dentro de `ProductScanner` — ese componente sigue sin
+  conocer nada de negocio ni de cuentas, mismo criterio de diseño ya documentado) apenas se lee un
+  código, sin importar si matchea un producto o no — el logro es "usaste el scanner", no "el
+  escaneo encontró algo". `profile_complete` se dispara al guardar el nombre del negocio en
+  Ajustes (`SettingsScreen`, `BusinessNameCard`) — el único dato de perfil que existe hoy en
+  `mobile-mini` — solo al ponerlo, nunca al borrarlo.
+- `GET /accounts/me/achievements` — junta setup quests + hitos de racha + primer referido
+  validado + Cofounder, en orden. Etiquetas en código (no en DB): agregar un logro nuevo es una
+  entrada nueva en el mapa, nunca una migración. Sin niveles (Bronce/Plata/Oro): esos todavía no
+  tienen lógica de cálculo real (Etapa 2, doc §5) — listarlos confundiría más de lo que suma.
+- **Gap que quedó corregido de paso**: `POST /gamification/activity` (racha) nunca estaba conectado
+  desde `mobile-mini` — sin esto, ningún hito de racha se iba a disparar nunca en uso real. Ahora
+  se llama desde `useCreateSale` y `useAdjustStock` (venta y movimiento de stock, doc §2), siempre
+  fire-and-forget (nunca bloquea la venta/ajuste, cualquier error se descarta silenciosamente).
+- Probado de punta a punta contra Postgres real: reclamar `first_product` dos veces (segunda vez
+  `alreadyClaimed: true`, no duplica créditos), quest key inválida rechazada (400), racha hasta
+  día 3 con el hito apareciendo en el listado agregado junto al quest. `mobile-mini`: typecheck,
+  lint y los 28 tests existentes en verde (sin regresiones en `useCreateProduct`/`useCreateSale`/
+  `useAdjustStock`, que ya tenían tests).
 
 ## 4. Créditos → financiar desarrollo de features
 
@@ -398,9 +545,56 @@ niveles):
   `credit_config_items` (nada hardcodeado), balanceables desde el panel admin ya construido.
   Probado end-to-end contra Postgres real: registro con bienvenida, racha hasta día 3 con hito +
   validación de referido (invitador e invitado acreditados correctamente), idempotencia
-  confirmada (llamar `activity` dos veces el mismo día no duplica créditos). Pendiente: migración
-  de datos locales de una cuenta que ya venía usando la app sin registrarse (doc §3, caso
-  "usuario existente se registra") — no implementado todavía, es un endpoint aparte.
+  confirmada (llamar `activity` dos veces el mismo día no duplica créditos).
+- [x] "Migración" de un comercio que ya venía usando `mobile-mini` sin cuenta (doc §3, caso
+  "usuario existente se registra") — **resuelto, y resultó ser más chico de lo que parecía**: no
+  hay racha ni ledger de créditos locales que migrar (decisión ya tomada en la sección 3, ambos
+  son 100% cloud desde el día uno). Lo que sí faltaba: `first_product`/`first_sale` (setup quests)
+  se reclaman en el momento de crear/vender (`useCreateProduct`/`useCreateSale`) — alguien que ya
+  tenía productos/ventas *antes* de registrarse nunca disparó ese claim, y si no vuelve a crear
+  nada después de tener cuenta, perdía esos créditos para siempre (no por nada que hizo mal, solo
+  por el orden en que pasaron las cosas). `backfillSetupQuestsFromLocalData()`
+  (`gamificationTriggers.ts`) revisa el SQLite local (¿hay algún producto? ¿alguna venta?) y
+  reclama lo que ya corresponda; se llama una vez desde `AccountContext.applySession` (después de
+  cualquier login/registro exitoso), fire-and-forget, idempotente en el backend. **Actualizado**:
+  ahora también repara `profile_complete` (¿ya hay nombre de negocio guardado?) — `first_scan`
+  sigue afuera a propósito, un escaneo no deja registro persistente que se pueda mirar
+  retroactivamente. typecheck/lint/28 tests en verde; no probado en dispositivo real.
+- [x] Misiones diarias, entitlements (comprar backup/sacarse-ads con créditos) y rewarded ad
+  claim — los tres huecos reales que quedaban ("de todo el sistema, hoy el único camino que
+  otorga créditos sería bienvenida+racha+quests+referidos" ya no aplica, están los tres):
+  - `GET /gamification/daily-mission/today` + `POST /gamification/daily-mission/claim` —
+    rotación determinística por fecha (mismo día calendario = misma misión para todos), el
+    progreso (3 ventas, 5 stock actualizado) se cuenta 100% local en `mobile-mini` (esos datos
+    nunca llegan al backend), el servidor solo confía y aplica el tope de 1/día.
+  - `GET /credits/me/entitlements` + `POST /credits/me/entitlements/:type/purchase`
+    (`cloud_backup`/`remove_ads`) — chequea saldo, descuenta, extiende `expiresAt` en vez de
+    resetearlo (comprar antes de vencer suma, no desperdicia). No está atado a plataforma: cubre
+    desktop y mobile-mini con la misma cuenta.
+  - `POST /gamification/rewarded-ad/claim` — créditos decrecientes (3/2/1), tope diario y
+    cooldown, todo leído de `credit_config_items`. **⚠️ Interino y confía en el cliente, sin SSV
+    todavía** (`RewardedAdsService`, comentario explícito en el código) — aceptable solo mientras
+    se use el ad unit de prueba de AdMob; hay que reemplazarlo antes de conectar credenciales
+    reales, o cualquiera con un cliente modificado se autootorga créditos.
+  - Probado end-to-end contra Postgres real: misión reclamada dos veces (segunda `alreadyClaimed`,
+    no duplica), rewarded ad con la secuencia 3→2→1 y el 4to rechazado por tope diario (bajando el
+    cooldown a 0 desde el panel admin para la prueba, después restaurado), compra de entitlement
+    con saldo insuficiente rechazada (400) y exitosa con extensión correcta del vencimiento (dos
+    compras seguidas suman 60 días, no resetean a 30). typecheck/build/lint verdes, sin cambios de
+    schema (las tres tablas ya existían).
+- [x] Los tres de arriba, conectados en `mobile-mini` (antes solo existían en el backend):
+  - `useRewardedAd` ahora llama a `claimRewardedAd()` al terminar de ver el anuncio y muestra el
+    resultado real (créditos acreditados, o por qué no — tope diario/cooldown) en vez del reward
+    crudo que reporta el SDK de AdMob (que en el ad unit de prueba es un número fijo sin relación
+    con nuestra economía).
+  - `DailyMissionCard` en "Beneficios" — el progreso (`useDailyMissionProgress`) se cuenta 100%
+    local (ventas de hoy vía `salesRepository`, o productos con `stock_movements` tipo
+    `ADJUSTMENT` de hoy vía `stockMovementsRepository`, según cuál sea la misión del día) y avisa
+    solo al backend cuando se cumple — mismo patrón de confianza que ya usan los setup quests.
+    "Hoy" es el día calendario del dispositivo, no UTC (lo que un comerciante entiende como hoy).
+  - typecheck, lint y los 28 tests existentes en verde. No se pudo probar en dispositivo real (ni
+    el SDK de AdMob ni el conteo local de ventas/stock son simulables por curl) — solo lo del lado
+    backend quedó verificado end-to-end en el punto anterior.
 - [x] Schema de ads definido (sin módulo NestJS todavía — solo entidades): `ad_placements` +
   `ad_placement_revisions` (qué ad unit/network usa cada placement por plataforma, con
   kill-switch y auditoría), `ad_reward_callbacks` (idempotencia de SSV de AdMob),
@@ -408,3 +602,195 @@ niveles):
   `apps/cloud-backend/src/database/schema/`. **Pausado para desktop** — ver sección 1bis:
   ningún network de terceros confirmado todavía para Electron, no escribir código de integración
   hasta resolver esa consulta.
+- [x] Módulo `AdsModule` sobre ese schema: admin CRUD (`AdPlacementsController`/
+  `HouseAdsController`, detrás de `AdminJwtGuard`, con historial de revisiones para placements) +
+  consumo de cliente (`AdsClientController`: `GET /ads/placements/:key?platform=`, detrás de
+  `AccountJwtGuard`; `GET /ads/house-ad/active` y `POST /ads/house-ad/:id/impression`, públicos).
+  Probado end-to-end contra Postgres real: kill-switch de un placement, historial de revisiones,
+  creación de house ad + consumo del activo por prioridad + conteo de impresión.
+  - **Bug de DI encontrado y arreglado**: `AdsModule` es el único módulo que importa
+    `AccountAuthModule` y `AdminAuthModule` a la vez. Ambos re-exportaban el `JwtModule` crudo de
+    `@nestjs/jwt`, y como Nest reconstruye `AccountJwtGuard`/`AdminJwtGuard` dentro de cada módulo
+    consumidor (por venir referenciados por clase en `@UseGuards`), la resolución de `JwtService`
+    quedaba ambigua ahí y terminaba usando el secreto de admin para verificar tokens de cuenta —
+    401 "Token de cuenta inválido o expirado" con un JWT de cuenta perfectamente válido (mismo
+    token que sí funcionaba en `/accounts/me`). Fix permanente: cada auth module ahora expone un
+    token de inyección propio (`ACCOUNT_JWT_SERVICE` / `ADMIN_JWT_SERVICE`, ver
+    `account-auth.constants.ts`/`admin-auth.constants.ts`) en vez de re-exportar `JwtService` bajo
+    el token compartido de la clase — así no puede volver a chocar si otro módulo futuro también
+    necesita ambos guards. `AccountJwtGuard` además ahora loguea (`Logger.warn`, no genérico) el
+    motivo real de cualquier rechazo, útil para diagnosticar esto sin volver a instrumentar código.
+- [x] `mobile-mini` conectado a `GET /ads/placements/rewarded_credits?platform=` (`ads.api.ts`
+  nuevo): `useRewardedAd` pide el ad unit real al backend apenas hay cuenta y lo usa para
+  `RewardedAd.createForAdRequest`; si la request falla (sin red, sesión vencida) o el placement
+  está deshabilitado (kill switch), se queda con `TestIds.REWARDED` como fallback — nunca deja al
+  usuario sin poder ver un anuncio solo porque el backend esté caído. Reemplazar el ad unit de
+  prueba sembrado en `ad_placements` por uno real de una cuenta de AdMob propia pasa a ser una
+  edición desde el panel admin, no un cambio de código. typecheck/lint/28 tests en verde; no se
+  pudo probar en dispositivo real (mismo motivo que el resto de la integración AdMob).
+- [x] **SSV (Server-Side Verification) real de AdMob, implementado** — `AdsModule` nuevo:
+  `GET /ads/reward-callback` (público, sin `AccountJwtGuard`: lo llama el servidor de AdMob, no un
+  cliente nuestro). Verificado contra la documentación oficial de Google
+  ([Android](https://developers.google.com/admob/android/ssv)), no asumido — la firma real de
+  Google es ECDSA+SHA256+DER (confirmado además por el tipo de clave pública real que devuelve
+  `verifier-keys.json`: es EC, no RSA, a pesar de que algún ejemplo de terceros encontrado dice
+  RSA). `AdRewardCallbackService` (`apps/cloud-backend/src/ads/`):
+  1. Reconstruye el contenido firmado desde el query string *crudo* (nunca reserializado — un
+     re-encode podría no coincidir byte a byte con lo que Google firmó).
+  2. Trae las claves públicas de `https://www.gstatic.com/admob/reward/verifier-keys.json`
+     (cacheadas 6hs — Google: "no más de 24hs").
+  3. Verifica la firma ECDSA; si no matchea, 401 y se descarta.
+  4. `transaction_id` es la clave de idempotencia (Google reintenta hasta 5 veces si la respuesta
+     se pierde) — `ad_reward_callbacks.transactionId` (unique) evita acreditar dos veces.
+  5. Llama a `RewardedAdsService.claim(userId)` — el mismo método que ya usaba el claim interino
+     del cliente, para no duplicar la lógica de tope/cooldown/monto decreciente (3/2/1). Ahora
+     devuelve también `ledgerEntryId` (interno, nunca al cliente) para poder auditar el callback
+     contra la fila de `credit_ledger` que acreditó.
+  - `mobile-mini`: `useRewardedAd` ya pasa `serverSideVerificationOptions: { userId: me.id }` al
+    pedir el anuncio (`RewardedAd.createForAdRequest`) — así el callback, cuando llegue, va a traer
+    el `user_id` correcto. **Sin efecto todavía**: el ad unit de prueba de Google no tiene SSV
+    configurado en ningún lado, Google nunca va a llamar a este endpoint hasta que haya una cuenta
+    de AdMob real con un ad unit propio con su "Callback URL" (AdMob dashboard) apuntando acá.
+  - Probado: la verificación de firma (ECDSA/DER) contra un par de claves EC generado localmente
+    (firma válida verifica OK, contenido alterado y clave equivocada se rechazan correctamente);
+    los dos caminos de error del endpoint real (query mal formada → 400, `key_id` desconocida →
+    401, esto último confirma que el fetch real a `verifier-keys.json` de Google funciona).
+    **No se pudo probar el camino feliz completo end-to-end** porque no existe (ni puede existir
+    fuera de Google) la clave privada real — eso solo se puede probar con una cuenta de AdMob real
+    y tráfico real.
+  - **Pendiente, a propósito no hecho todavía**: el claim interino del cliente
+    (`POST /gamification/rewarded-ad/claim`, llamado directo por `mobile-mini` sin esperar SSV)
+    sigue activo — apagarlo ahora rompería el único camino que hoy otorga créditos (el de prueba).
+    El día que haya credenciales reales de AdMob con SSV configurado, ese claim directo tiene que
+    dejar de acreditar (dejarlo solo como feedback visual, o gatillar la acreditación real solo
+    desde el callback) — de lo contrario un cliente modificado se autootorga créditos igual que
+    hoy. typecheck/lint verdes en ambos lados (cloud-backend no tiene tests unitarios todavía,
+    mismo criterio que el resto del backend: verificado con curl/scripts contra Postgres real).
+- [x] **UI de `apps/admin-panel` para `ad_placements`/`house_ads`** — hasta ahora ambos solo se
+  habían probado por curl/PowerShell, sin pantalla real. Mismo patrón que ya existía para
+  `credit-config` (React Query + Zustand + shadcn, `features/<dominio>/{api,hooks,components,pages}`):
+  - **Ad placements** (`AdPlacementsPage`): tabla con key/plataforma/red/ad unit ID/estado, editar
+    (red, ad unit ID, kill switch, nota) y ver historial de revisiones (diff previo→nuevo por campo).
+  - **House ads** (`HouseAdsPage`): tabla con prioridad/estado/impresiones, crear y editar (mismo
+    diálogo para ambos casos, sin endpoint de borrado — no hacía falta para el alcance de v1).
+  - Como ahora hay tres páginas (antes solo credit-config), se agregó `AdminLayout` con nav
+    compartida (Créditos / Ad placements / House ads) + botón de salir único — antes vivía inline en
+    `CreditConfigPage`.
+  - **Dos bugs reales encontrados y arreglados probando en el navegador de verdad, no solo con
+    curl** (ninguno relacionado con lo nuevo del panel, ambos preexistentes):
+    1. `apiPost` del cliente del panel (`lib/api-client.ts`) nunca mandaba el header de
+       autenticación — no se había notado porque el único uso hasta ahora era el login (sin sesión
+       todavía). Rompía crear un house ad nuevo.
+    2. `HouseAdsService.create()`/`update()` (`apps/cloud-backend`) devolvían `void` en vez del DTO
+       creado/actualizado — el controller mandaba `201`/`200` con body vacío, y el cliente
+       reventaba al intentar parsearlo como JSON ("Unexpected end of JSON input"). Ahora ambos
+       reconsultan la fila (con el join de `updatedByAdminEmail`/`impressionCount`) y devuelven el
+       `HouseAdDto` completo, mismo patrón que ya usaba `AdPlacementsService.update()`.
+  - Probado de punta a punta en el navegador real (no solo curl): login, nav entre las tres
+    páginas, apagar/prender un placement (kill switch) y ver el cambio reflejado al instante,
+    historial de revisiones con el diff correcto, crear un house ad nuevo y editarlo. typecheck +
+    build de producción (`tsc && vite build`) + lint en verde.
+- [x] **Requisitos reales de Google Play para publicar `mobile-mini`** — investigados contra la
+  documentación oficial (no supuestos), no solo "escribir las políticas" como se pidió al
+  principio: encontrar y resolver esto fue parte del trabajo, no un anexo.
+  - **Borrado de cuenta** (política de Google Play — obligatoria, no opcional, para cualquier app
+    con cuentas): `DELETE /accounts/me` nuevo (`apps/cloud-backend`), pide la contraseña de nuevo
+    (irreversible), borra en una transacción todo lo que pertenece al usuario en
+    `credit_ledger`/`streak_milestone_claims`/`setup_quest_completions`/
+    `daily_mission_completions`/`rewarded_ad_views`/`entitlements`/`account_tokens`/
+    `ad_reward_callbacks`/`house_ad_impressions`/`referrals`/`feature_votes`/`feature_requests`, y
+    al usuario mismo — si otro usuario fue invitado por el que se borra, su `referredByUserId`
+    pasa a `null` en vez de romper la referencia. Conectado en `mobile-mini` (Beneficios →
+    "Eliminar mi cuenta", modal que pide contraseña) y con un link web
+    (`apps/landing/src/pages/eliminar-cuenta.astro`) para quien ya desinstaló la app — Google exige
+    los dos caminos, no alcanza con uno solo. Probado end-to-end contra Postgres real: password
+    incorrecta rechazada (401, cuenta intacta), borrado exitoso (204), cuenta y todas sus filas
+    desaparecen, y el caso de referido (A invita a B, se borra A) deja a B intacto sin romper la FK.
+  - **Consentimiento de anuncios (UMP)** — exigido por Google/AdMob (EEA/UK y cada vez más
+    aplicado en general), no estaba implementado. `AdsConsent.gatherConsent()` corre antes de
+    `mobileAds().initialize()` en `src/app/_layout.tsx` (el SDK de la propia librería expone la API
+    de UMP de Google) — pide/muestra el formulario de consentimiento si corresponde antes de
+    inicializar ads. Se agregó también "Opciones de privacidad de anuncios" en Beneficios
+    (`useAdsPrivacyOptions`, `AdsConsent.showPrivacyOptionsForm()`), visible solo para los usuarios
+    donde Google exige poder revisarlo después.
+  - **Política de Privacidad** y **Términos de Servicio** publicados en `apps/landing`
+    (`/privacidad`, `/terminos`) — redactados después de auditar el código real (qué tabla guarda
+    qué, qué permisos pide `app.json`, qué SDKs de terceros hay), no con texto genérico de
+    plantilla. Explican la diferencia entre `apps/desktop` (100% local, sin cuenta) y
+    `mobile-mini` (cuenta opcional, con AdMob). Contacto: rdevtoledo@gmail.com — sin razón
+    social/entidad legal formal todavía.
+  - **Data Safety de Play Console**: respuestas de referencia en
+    `docs/legal/PLAY_CONSOLE_DATA_SAFETY.md`, mapeadas contra la taxonomía oficial de Google (no
+    inventada) — email/user IDs recolectados y no compartidos, advertising ID recolectado Y
+    compartido con Google (AdMob), fotos de producto NO cuentan como "recolectadas" porque nunca
+    salen del dispositivo (definición de Google), nada de ubicación/contactos/analítica propia.
+  - **Nota sobre el dominio**: `apps/landing` todavía apunta a `stocknegozia.app` como placeholder
+    (`astro.config.mjs`, con un TODO ya existente) — las URLs de Privacidad/Términos/Eliminar
+    cuenta no van a estar realmente accesibles para Google hasta que el dominio sea real y
+    `apps/landing` esté deployado (mismo punto pendiente que el resto del deploy).
+  - typecheck/lint/build/28 tests en verde en `mobile-mini`; `astro check` + build en verde en
+    `apps/landing`. No se pudo probar el consentimiento UMP en un dispositivo real (mismo límite de
+    siempre con AdMob).
+- [x] **Deploy prep de `apps/cloud-backend`/`apps/admin-panel`/`apps/landing` — configuración
+  lista, todavía sin deployar** (a propósito, ver instrucción explícita de no deployar todavía):
+  - **Bug real encontrado**: el backend ignoraba por completo el `PORT` que Render (y la mayoría
+    de los PaaS) inyectan solos, escuchando siempre en `CLOUD_BACKEND_PORT` — en Render esto rompe
+    el deploy directo (el healthcheck le pega al puerto que Render espera, no al que el proceso
+    realmente usa). Arreglado: `PORT` gana si está seteada
+    (`cloudBackendEnvSchema`/`configuration.ts`), sin tocar el comportamiento local. Probado en
+    caliente: sin `PORT` sigue en 38200 como siempre; con `PORT=5555` escucha ahí.
+  - **SSL para Neon**: `database.module.ts` ahora pasa `ssl: { rejectUnauthorized: false }` al
+    `Pool` de `pg` cuando `NODE_ENV=production` (Neon lo exige; el Postgres local de Docker no lo
+    soporta) — gatillado por `NODE_ENV`, no por parsear la connection string. Sin cambio de
+    comportamiento en dev/test.
+  - **`render.yaml`** (Blueprint, raíz del repo) con los tres servicios: `cloud-backend` (web
+    service, healthcheck en `/health`, plan free), `admin-panel` y `landing` (static sites, con
+    rewrite a `/index.html` en admin-panel por ser SPA de react-router). Todos los `buildCommand`
+    usan `pnpm turbo run build --filter=...` (no `pnpm --filter` suelto) para que Turbo compile
+    primero `validation`/`api-contracts`/`shared` — verificado ejecutando los tres comandos
+    exactos del Blueprint en este entorno, no solo leyéndolos. Variables sensibles como
+    `sync: false` (las completa quien haga el alta en el dashboard de Render) o
+    `generateValue: true` (Render genera `ADMIN_JWT_SECRET`/`ACCOUNT_JWT_SECRET` solo). Documentado
+    en el propio archivo el problema de huevo-gallina del primer deploy (la URL de cada servicio
+    recién se conoce después de crearlo) y el orden sugerido para resolverlo.
+  - typecheck + lint de los 12-14 paquetes del monorepo en verde (`pnpm turbo run
+    typecheck`/`lint`, sin scope a un paquete) — confirma que estos cambios no rompieron nada más.
+  - **Sigue sin deployar** — falta que el usuario cree las cuentas de Render/Neon y el dominio
+    real; esto solo deja la configuración lista para que ese paso sea mecánico.
+- [x] **Pantalla de compra de entitlements en `mobile-mini`** — el backend (backup en la nube /
+  sacarse ads) ya estaba probado por curl desde antes, pero no existía ninguna pantalla real para
+  que el comercio gastara sus créditos ahí.
+  - **Endpoint nuevo**: `GET /credits/me/entitlements/catalog` (`apps/cloud-backend`) — junta el
+    costo actual de cada tipo (siempre leído de `credit_config_items`, nunca hardcodeado) con el
+    estado real de ese entitlement para el usuario (`expiresAt: null` = no comprado). Se agregaron
+    `EntitlementCatalogItemDto`/`PurchaseEntitlementResult` a `api-contracts` (antes el tipo de
+    retorno de `purchase()` era un inline sin nombre).
+  - **`EntitlementsScreen`** nueva en `mobile-mini` (ruta `/benefits/entitlements`, botón "Canjear
+    beneficios" desde la tarjeta de saldo en Beneficios): lista los dos beneficios con
+    nombre/descripción/costo, muestra "Activo hasta el [fecha]" si ya está comprado (con opción de
+    extender 30 días más, sin resetear lo que quedaba), o "Te faltan N créditos" si no alcanza el
+    saldo — nunca bloquea el botón, el intento igual muestra el error real del backend si
+    corresponde.
+  - Probado end-to-end contra Postgres real: catálogo recién registrado (ambos sin comprar, costos
+    160/150 correctos), compra exitosa (bajando temporalmente el costo a 5 créditos para la
+    prueba, restaurado después) y el catálogo reflejando el `expiresAt` nuevo inmediatamente
+    después de comprar.
+  - typecheck + lint de los 14 paquetes del monorepo en verde, 28 tests de `mobile-mini` sin
+    regresiones. No se pudo probar en dispositivo real (mismo límite de siempre).
+- [x] **Proveedor de email real conectado: Resend** — `EmailService` ahora manda de verdad
+  (`resend.emails.send`, texto + HTML simple) cuando `RESEND_API_KEY` está seteada; sin esa
+  variable sigue logueando exactamente como antes, cero cambio de comportamiento en dev/test. Los
+  errores del envío nunca relanzan — mismo criterio ya usado en `AccountsService` ("nunca bloquea
+  nada"). Remitente default `onboarding@resend.dev` (dominio de prueba de Resend, funciona sin
+  verificar dominio propio) hasta tener uno propio verificado ahí. Agregado a `render.yaml` como
+  variable opcional (`sync: false`). Probado end-to-end: sin `RESEND_API_KEY`, el registro sigue
+  logueando el código de verificación igual que siempre (no se pudo probar el envío real sin una
+  cuenta de Resend, que el usuario tiene que crear). typecheck + lint de los 24 tasks del monorepo
+  en verde.
+- [x] **`first_scan`/`profile_complete` conectados** — el último hueco de gamification que
+  quedaba sin disparador real en `mobile-mini`, ver detalle en la sección de Logros más arriba.
+  `first_scan` en los tres consumidores del scanner (`ProductsScreen`/`SalesScreen`/
+  `PurchasesScreen`), `profile_complete` al guardar el nombre del negocio en Ajustes — ambos
+  también sumados a `backfillSetupQuestsFromLocalData()` donde tiene sentido (`profile_complete`
+  sí se puede reparar retroactivamente mirando `AsyncStorage`; `first_scan` no, un escaneo no deja
+  rastro persistente). typecheck/lint/28 tests en verde.

@@ -1,5 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, asc, eq, gte, sql } from "drizzle-orm";
 import { DRIZZLE_CLIENT } from "../database/database.constants";
 import type { Database } from "../database/database.types";
 import { referrals } from "../database/schema";
@@ -38,6 +38,17 @@ export class ReferralsRepository {
         ),
       );
     return Number(rows[0]?.count ?? 0);
+  }
+
+  /** Para el logro "trajiste a alguien" — la primera vez que este usuario validó a un invitado. */
+  async findFirstValidatedByReferrer(referrerUserId: string) {
+    const [row] = await this.db
+      .select()
+      .from(referrals)
+      .where(and(eq(referrals.referrerUserId, referrerUserId), eq(referrals.status, "validated")))
+      .orderBy(asc(referrals.validatedAt))
+      .limit(1);
+    return row;
   }
 
   /** El invitado no llegó a día 3 de racha dentro de la primera semana (doc §1, "éxito" = real). */

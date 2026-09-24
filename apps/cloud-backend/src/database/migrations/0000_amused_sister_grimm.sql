@@ -1,4 +1,5 @@
 CREATE TYPE "public"."user_level" AS ENUM('bronze', 'silver', 'gold', 'pro');--> statement-breakpoint
+CREATE TYPE "public"."account_token_purpose" AS ENUM('email_verification', 'password_reset');--> statement-breakpoint
 CREATE TYPE "public"."credit_reason" AS ENUM('welcome_bonus', 'setup_quest', 'streak_milestone', 'daily_mission', 'rewarded_ad', 'referral_bonus', 'cofounder_grant', 'export_report', 'cloud_backup_subscription', 'remove_ads_subscription', 'feature_request_create', 'feature_request_vote', 'admin_adjustment');--> statement-breakpoint
 CREATE TYPE "public"."setup_quest_key" AS ENUM('first_product', 'first_sale', 'first_scan', 'profile_complete');--> statement-breakpoint
 CREATE TYPE "public"."daily_mission_key" AS ENUM('register_3_sales', 'update_5_products_stock');--> statement-breakpoint
@@ -14,6 +15,7 @@ CREATE TABLE "users" (
 	"phone" text,
 	"display_name" text,
 	"password_hash" text,
+	"email_verified_at" timestamp,
 	"level" "user_level" DEFAULT 'bronze' NOT NULL,
 	"current_streak" integer DEFAULT 0 NOT NULL,
 	"longest_streak" integer DEFAULT 0 NOT NULL,
@@ -28,6 +30,17 @@ CREATE TABLE "users" (
 	CONSTRAINT "users_phone_unique" UNIQUE("phone"),
 	CONSTRAINT "users_referral_code_unique" UNIQUE("referral_code"),
 	CONSTRAINT "users_cofounder_number_unique" UNIQUE("cofounder_number")
+);
+--> statement-breakpoint
+CREATE TABLE "account_tokens" (
+	"id" uuid PRIMARY KEY NOT NULL,
+	"user_id" uuid NOT NULL,
+	"purpose" "account_token_purpose" NOT NULL,
+	"token_hash" text NOT NULL,
+	"expires_at" timestamp NOT NULL,
+	"consumed_at" timestamp,
+	"created_at" timestamp NOT NULL,
+	CONSTRAINT "account_tokens_token_hash_unique" UNIQUE("token_hash")
 );
 --> statement-breakpoint
 CREATE TABLE "credit_ledger" (
@@ -214,6 +227,7 @@ CREATE TABLE "house_ad_impressions" (
 );
 --> statement-breakpoint
 ALTER TABLE "users" ADD CONSTRAINT "users_referred_by_user_id_users_id_fk" FOREIGN KEY ("referred_by_user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "account_tokens" ADD CONSTRAINT "account_tokens_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "credit_ledger" ADD CONSTRAINT "credit_ledger_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "streak_milestone_claims" ADD CONSTRAINT "streak_milestone_claims_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "setup_quest_completions" ADD CONSTRAINT "setup_quest_completions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint

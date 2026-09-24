@@ -14,6 +14,7 @@ import {
 } from "lucide-react-native";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { Card } from "@/components/Card";
+import { RegistrationPromptBanner } from "@/features/benefits/components/RegistrationPromptBanner";
 import { useTheme } from "@/theme/useTheme";
 import { minTouchTarget, spacing, typography } from "@/theme/tokens";
 
@@ -61,6 +62,7 @@ export function MoreScreen() {
       <Text style={[typography.title, { color: colors.foreground, marginBottom: spacing.md }]}>
         Más
       </Text>
+      {__DEV__ && <RegistrationPromptBanner />}
       <View style={styles.list}>
         {ITEMS.map((item) => (
           <Pressable key={item.label} onPress={() => router.push(item.href)}>

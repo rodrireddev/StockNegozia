@@ -6,7 +6,9 @@ function loadConfig() {
 
   return {
     nodeEnv: env.NODE_ENV,
-    port: env.CLOUD_BACKEND_PORT,
+    // `PORT` (Render/Heroku-style) gana sobre `CLOUD_BACKEND_PORT` si está seteada — ver el
+    // comentario en `cloudBackendEnvSchema`.
+    port: env.PORT ?? env.CLOUD_BACKEND_PORT,
     databaseUrl: env.DATABASE_URL,
     adminJwtSecret: env.ADMIN_JWT_SECRET,
     accountJwtSecret: env.ACCOUNT_JWT_SECRET,
@@ -16,6 +18,8 @@ function loadConfig() {
           .map((origin) => origin.trim())
           .filter((origin) => origin.length > 0)
       : [],
+    resendApiKey: env.RESEND_API_KEY,
+    resendFromEmail: env.RESEND_FROM_EMAIL,
   };
 }
 

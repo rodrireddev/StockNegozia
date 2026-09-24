@@ -1,5 +1,6 @@
 import { CanActivate, ExecutionContext, Inject, Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
+import { ADMIN_JWT_SERVICE } from "./admin-auth.constants";
 import type { AdminJwtPayload } from "./admin-auth.service";
 
 /** Poblado por este guard sobre la request cuando el JWT es válido. */
@@ -24,7 +25,7 @@ function extractBearerToken(header: string | string[] | undefined): string | und
  */
 @Injectable()
 export class AdminJwtGuard implements CanActivate {
-  constructor(@Inject(JwtService) private readonly jwtService: JwtService) {}
+  constructor(@Inject(ADMIN_JWT_SERVICE) private readonly jwtService: JwtService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<RequestWithAdmin>();

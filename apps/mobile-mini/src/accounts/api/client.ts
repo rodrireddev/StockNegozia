@@ -31,6 +31,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!response.ok) {
     throw new Error(await extractErrorMessage(response, path));
   }
+  if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }
 
@@ -50,4 +51,8 @@ export function apiGet<T>(path: string): Promise<T> {
 
 export function apiPost<T>(path: string, body?: unknown): Promise<T> {
   return request<T>(path, { method: "POST", body: body !== undefined ? JSON.stringify(body) : undefined });
+}
+
+export function apiDelete<T>(path: string, body?: unknown): Promise<T> {
+  return request<T>(path, { method: "DELETE", body: body !== undefined ? JSON.stringify(body) : undefined });
 }

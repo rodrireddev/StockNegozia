@@ -1,8 +1,9 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { AdBanner } from "@/features/ads/components/AdBanner";
+import { useMe } from "@/features/devices/hooks/useMe";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
-import { useMe } from "@/features/devices/hooks/useMe";
 
 const navItems = [
   { to: "/", label: "Panel", end: true },
@@ -69,6 +70,7 @@ export function MainLayout() {
       <main className="flex-1 overflow-y-auto p-6">
         <Outlet />
       </main>
+      <AdBanner />
     </div>
   );
 }

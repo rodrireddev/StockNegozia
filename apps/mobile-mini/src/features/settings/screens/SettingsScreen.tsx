@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Check } from "lucide-react-native";
+import { useAccount } from "@/accounts/AccountContext";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { TextField } from "@/components/TextField";
+import { fireSetupQuestClaim } from "@/features/benefits/gamificationTriggers";
 import { useThemeMode, type ThemeMode } from "@/theme/ThemeContext";
 import { minTouchTarget, radius, spacing, typography } from "@/theme/tokens";
 import { useBusinessName } from "../hooks/useBusinessName";
@@ -26,6 +28,7 @@ const THEME_MODE_OPTIONS: { mode: ThemeMode; label: string }[] = [
  */
 function BusinessNameCard() {
   const { colors } = useThemeMode();
+  const { status: accountStatus } = useAccount();
   const businessName = useBusinessName();
   const [value, setValue] = useState("");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -39,6 +42,11 @@ function BusinessNameCard() {
     const trimmed = value.trim();
     await businessName.save(trimmed.length > 0 ? trimmed : null);
     setSuccessMessage("Nombre del negocio actualizado.");
+    // "Perfil completo" (doc §1, setup quest "profile_complete") = cargó el nombre del negocio —
+    // el único dato de perfil que existe en esta app. Solo al ponerlo, nunca al borrarlo.
+    if (trimmed.length > 0 && accountStatus === "authenticated") {
+      fireSetupQuestClaim("profile_complete");
+    }
   }
 
   return (

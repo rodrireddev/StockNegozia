@@ -1,0 +1,83 @@
+# Render Blueprint — despliega apps/cloud-backend, apps/admin-panel y apps/landing.
+#
+# Preparado para cuando se decida deployar (ver docs/monetization/ADS_CREDITS_GAMIFICATION.md,
+# sección 6/7) — no dispara ningún deploy por sí solo. Para usarlo: conectar el repo en
+# https://dashboard.render.com/blueprints, Render lee este archivo y crea los tres servicios,
+# pidiendo valores para cada `sync: false` durante el alta.
+#
+# Postgres: NO se define acá un servicio de base de datos — el doc ya definió Neon (no el Postgres
+# gestionado de Render) como proveedor, así que `DATABASE_URL` es una variable manual (sync: false)
+# apuntando a la connection string real de Neon. Las migraciones corren solas al bootear el
+# backend (`database.module.ts`, `migrate()` dentro del provider de Drizzle) — no hay un paso de
+# deploy aparte para eso.
+#
+# Los dos "sync: false" de las URLs (`CORS_ALLOWED_ORIGINS`, `VITE_CLOUD_BACKEND_URL`) tienen un
+# problema de huevo-gallina en el primer deploy: la URL de cada servicio recién se conoce después
+# de crearlo. Orden sugerido: 1) deployar cloud-backend, copiar su URL; 2) deployar admin-panel con
+# esa URL en `VITE_CLOUD_BACKEND_URL`; 3) volver a cloud-backend y poner la URL de admin-panel en
+# `CORS_ALLOWED_ORIGINS`; 4) redeploy de cloud-backend (Render lo hace solo al guardar el env var).
+
+services:
+  - type: web
+    name: stocknegozia-cloud-backend
+    runtime: node
+    plan: free
+    # `turbo run build` (no `pnpm --filter ... build` directo) — Turbo compila primero los
+    # paquetes compartidos que este servicio necesita (`validation`, `api-contracts`, `shared`,
+    # ver `turbo.json`: `build` depende de `^build`), algo que un `pnpm --filter` suelto no
+    # garantiza en una máquina de CI limpia sin esos `dist/` ya generados.
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm turbo run build --filter=@stocknegozia/cloud-backend
+    startCommand: pnpm --filter @stocknegozia/cloud-backend start:prod
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      # Connection string de Neon (con `?sslmode=require`) — la SSL real la fuerza igual
+      # `database.module.ts` cuando NODE_ENV=production, sslmode en la URL es solo informativo acá.
+      - key: DATABASE_URL
+        sync: false
+      # Render puede generar un secreto random de una — nunca el mismo valor que ACCOUNT_JWT_SECRET.
+      - key: ADMIN_JWT_SECRET
+        generateValue: true
+      - key: ACCOUNT_JWT_SECRET
+        generateValue: true
+      # URL de admin-panel una vez deployado (paso 3 de la nota de arriba) — sin esto, el panel no
+      # puede llamar a la API (CORS bloquea todo por default, ver main.ts).
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      # Opcionales — dejar vacías en el alta si todavía no se quiere sembrar un admin/config inicial.
+      - key: ADMIN_SEED_EMAIL
+        sync: false
+      - key: ADMIN_SEED_PASSWORD
+        sync: false
+      # Opcional — sin esto, los emails de verificación/reset se loguean en vez de mandarse de
+      # verdad (no rompe nada, solo no llegan). Conseguir en https://resend.com/api-keys.
+      - key: RESEND_API_KEY
+        sync: false
+
+  - type: web
+    name: stocknegozia-admin-panel
+    runtime: static
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm turbo run build --filter=@stocknegozia/admin-panel
+    staticPublishPath: ./apps/admin-panel/dist
+    envVars:
+      # URL de stocknegozia-cloud-backend (paso 2 de la nota de arriba) — Vite la incrusta en el
+      # bundle en build time, así que cambiarla después exige un redeploy, no alcanza con editar el
+      # env var solo.
+      - key: VITE_CLOUD_BACKEND_URL
+        sync: false
+    routes:
+      # SPA con react-router (BrowserRouter) — sin esto, refrescar en /ad-placements da 404.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+  - type: web
+    name: stocknegozia-landing
+    runtime: static
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm turbo run build --filter=@stocknegozia/landing
+    staticPublishPath: ./apps/landing/dist

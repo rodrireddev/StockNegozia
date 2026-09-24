@@ -22,6 +22,10 @@ export const users = pgTable("users", {
   phone: text("phone").unique(),
   displayName: text("display_name"),
   passwordHash: text("password_hash"),
+  // `null` = todavía no confirmó el email (ver `account_tokens`, purpose "email_verification").
+  // No bloquea nada de la app — doc "nunca bloquea nada, en ningún nivel" — es solo informativo
+  // para el usuario y para anti-abuso (ej. antes de habilitar notificaciones por mail).
+  emailVerifiedAt: timestamp("email_verified_at", { mode: "date" }),
 
   level: userLevelEnum("level").notNull().default("bronze"),
 

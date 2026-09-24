@@ -36,7 +36,7 @@ export async function apiGet<T>(path: string): Promise<T> {
 export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
   const response = await fetch(`${cloudBackendBaseUrl}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   return handleResponse<T>(response, path);

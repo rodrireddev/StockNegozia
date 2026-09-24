@@ -16,6 +16,10 @@ export class StreakMilestoneClaimsRepository {
     return row;
   }
 
+  async findAllByUser(userId: string) {
+    return this.db.select().from(streakMilestoneClaims).where(eq(streakMilestoneClaims.userId, userId));
+  }
+
   async insert(data: { id: string; userId: string; milestoneDay: number; creditsAwarded: number }) {
     await this.db.insert(streakMilestoneClaims).values({ ...data, claimedAt: new Date() });
   }

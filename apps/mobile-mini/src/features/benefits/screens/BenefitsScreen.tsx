@@ -1,13 +1,20 @@
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { useRouter, type Href } from "expo-router";
 import { useAccount } from "@/accounts/AccountContext";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { LoadingState } from "@/components/LoadingState";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { DeleteAccountModal } from "@/features/accounts/components/DeleteAccountModal";
+import { EmailVerificationReminder } from "@/features/accounts/components/EmailVerificationReminder";
+import { ForgotPasswordForm } from "@/features/accounts/components/ForgotPasswordForm";
 import { LoginForm } from "@/features/accounts/components/LoginForm";
 import { RegisterForm } from "@/features/accounts/components/RegisterForm";
+import { useAdsPrivacyOptions } from "@/features/ads/hooks/useAdsPrivacyOptions";
 import { useRewardedAd } from "@/features/ads/hooks/useRewardedAd";
+import { AchievementsList } from "@/features/benefits/components/AchievementsList";
+import { DailyMissionCard } from "@/features/benefits/components/DailyMissionCard";
 import { OnboardingRecapButton } from "@/features/onboarding/components/OnboardingRecapButton";
 import { spacing, typography } from "@/theme/tokens";
 import { useTheme } from "@/theme/useTheme";
@@ -28,7 +35,7 @@ const STATUS_LABEL: Record<string, string> = {
 export function BenefitsScreen() {
   const { colors } = useTheme();
   const { status, me } = useAccount();
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [mode, setMode] = useState<"login" | "register" | "forgot">("login");
 
   if (status === "bootstrapping") {
     return (
@@ -49,30 +56,44 @@ export function BenefitsScreen() {
           más — nunca hace falta para vender o cargar stock.
         </Text>
         <Card>
-          {mode === "login" ? (
-            <LoginForm onSwitchToRegister={() => setMode("register")} />
-          ) : (
-            <RegisterForm onSwitchToLogin={() => setMode("login")} />
+          {mode === "login" && (
+            <LoginForm
+              onSwitchToRegister={() => setMode("register")}
+              onForgotPassword={() => setMode("forgot")}
+            />
           )}
+          {mode === "register" && <RegisterForm onSwitchToLogin={() => setMode("login")} />}
+          {mode === "forgot" && <ForgotPasswordForm onDone={() => setMode("login")} />}
         </Card>
         <OnboardingRecapButton />
       </ScreenContainer>
     );
   }
 
-  return <AuthenticatedBenefits creditBalance={me.creditBalance} referralCode={me.referralCode} />;
+  return (
+    <AuthenticatedBenefits
+      creditBalance={me.creditBalance}
+      referralCode={me.referralCode}
+      emailVerifiedAt={me.emailVerifiedAt}
+    />
+  );
 }
 
 function AuthenticatedBenefits({
   creditBalance,
   referralCode,
+  emailVerifiedAt,
 }: {
   creditBalance: number;
   referralCode: string;
+  emailVerifiedAt: string | null;
 }) {
   const { colors } = useTheme();
+  const router = useRouter();
   const { signOut, refetchMe } = useAccount();
-  const { status, lastReward, error, load, show } = useRewardedAd();
+  const { status, lastClaim, error, load, show } = useRewardedAd();
+  const adsPrivacyOptions = useAdsPrivacyOptions();
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   return (
     <ScreenContainer>
@@ -80,29 +101,46 @@ function AuthenticatedBenefits({
         Beneficios
       </Text>
 
+      {!emailVerifiedAt && <EmailVerificationReminder />}
+
       <Card style={styles.card}>
         <Text style={[typography.caption, { color: colors.mutedForeground }]}>Tu saldo</Text>
         <Text style={[typography.title, { color: colors.foreground }]}>{creditBalance} créditos</Text>
         <Text style={[typography.caption, { color: colors.mutedForeground }]}>
           Código de referido: {referralCode}
         </Text>
+        <Button
+          label="Canjear beneficios"
+          variant="secondary"
+          // `as Href`: expo-router recién agrega esta ruta al union tipado después de que el dev
+          // server la vea una vez (no corrió acá) — mismo criterio que `MoreScreen.tsx`.
+          onPress={() => router.push("/benefits/entitlements" as Href)}
+        />
       </Card>
 
+      <DailyMissionCard />
+      <AchievementsList />
+
       <Card style={styles.card}>
-        <Text style={[typography.bodyStrong, { color: colors.foreground }]}>
-          Ver un anuncio (modelo de prueba)
-        </Text>
+        <Text style={[typography.bodyStrong, { color: colors.foreground }]}>Ver un anuncio</Text>
         <Text style={[typography.caption, { color: colors.mutedForeground }]}>
-          Ad unit de prueba de AdMob — todavía no acredita créditos reales, solo prueba que el SDK
-          carga y muestra el anuncio.
+          Ad unit de prueba de AdMob (todavía sin cuenta propia) — pero los créditos que acredita
+          ya son reales, con el mismo tope diario y cooldown que va a tener en producción.
         </Text>
         <Text style={[typography.caption, { color: colors.foreground }]}>
           Estado: {STATUS_LABEL[status] ?? status}
         </Text>
         {error && <Text style={[typography.caption, { color: colors.danger }]}>{error}</Text>}
-        {lastReward && (
+        {lastClaim && lastClaim.granted && (
+          <Text style={[typography.caption, { color: colors.success }]}>
+            +{lastClaim.creditsAwarded} créditos acreditados
+          </Text>
+        )}
+        {lastClaim && !lastClaim.granted && (
           <Text style={[typography.caption, { color: colors.mutedForeground }]}>
-            Última recompensa (de prueba): {lastReward.amount} {lastReward.type}
+            {lastClaim.reason === "daily_cap"
+              ? "Ya llegaste al tope de anuncios de hoy."
+              : "Todavía no pasó el tiempo de espera entre anuncios."}
           </Text>
         )}
         <View style={styles.actions}>
@@ -115,6 +153,13 @@ function AuthenticatedBenefits({
           />
           <Button label="Mostrar anuncio" onPress={show} disabled={status !== "loaded"} />
         </View>
+        {adsPrivacyOptions.visible && (
+          <Button
+            label="Opciones de privacidad de anuncios"
+            variant="ghost"
+            onPress={adsPrivacyOptions.open}
+          />
+        )}
       </Card>
 
       <View style={styles.actions}>
@@ -122,6 +167,11 @@ function AuthenticatedBenefits({
         <OnboardingRecapButton />
         <Button label="Cerrar sesión" variant="ghost" onPress={signOut} />
       </View>
+
+      <View style={styles.dangerZone}>
+        <Button label="Eliminar mi cuenta" variant="ghost" onPress={() => setDeleteModalOpen(true)} />
+      </View>
+      <DeleteAccountModal visible={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} />
     </ScreenContainer>
   );
 }
@@ -129,4 +179,5 @@ function AuthenticatedBenefits({
 const styles = StyleSheet.create({
   card: { gap: spacing.xs, marginBottom: spacing.md },
   actions: { gap: spacing.sm, marginTop: spacing.sm },
+  dangerZone: { marginTop: spacing.xl },
 });

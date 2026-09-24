@@ -3,7 +3,9 @@ import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { Package } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import type { ProductQueryInput } from "@stocknegozia/validation";
+import { useAccount } from "@/accounts/AccountContext";
 import { fetchProductByCode } from "@/data/products";
+import { fireSetupQuestClaim } from "@/features/benefits/gamificationTriggers";
 import { useProducts } from "@/features/products/hooks/useProducts";
 import { useCategories } from "@/features/products/hooks/useCategories";
 import { ProductListItem } from "@/features/products/components/ProductListItem";
@@ -38,6 +40,7 @@ const DEFAULT_FILTERS: ProductFiltersState = {
 export function ProductsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { status: accountStatus } = useAccount();
   const { isTablet } = useDeviceSize();
   const [filters, setFilters] = useState<ProductFiltersState>(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
@@ -49,6 +52,9 @@ export function ProductsScreen() {
   const { data: categories = [] } = useCategories();
 
   async function handleScanDetected(result: ScanResult) {
+    // Idempotente en el backend — el logro es "usaste el scanner", no depende de si el código
+    // matcheó un producto (doc §1, setup quest "first_scan").
+    if (accountStatus === "authenticated") fireSetupQuestClaim("first_scan");
     setScannerOpen(false);
     setScanError(null);
     setScanNotFound(null);

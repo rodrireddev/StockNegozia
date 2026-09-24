@@ -7,7 +7,13 @@ import { useAccount } from "@/accounts/AccountContext";
 import { useTheme } from "@/theme/useTheme";
 import { spacing, typography } from "@/theme/tokens";
 
-export function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
+export function LoginForm({
+  onSwitchToRegister,
+  onForgotPassword,
+}: {
+  onSwitchToRegister: () => void;
+  onForgotPassword: () => void;
+}) {
   const { colors } = useTheme();
   const { login } = useAccount();
   const [email, setEmail] = useState("");
@@ -51,6 +57,7 @@ export function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => vo
       />
       {error ? <Text style={[typography.caption, { color: colors.danger }]}>{error}</Text> : null}
       <Button label="Ingresar" onPress={handleSubmit} loading={submitting} />
+      <Button label="Olvidé mi contraseña" variant="ghost" onPress={onForgotPassword} disabled={submitting} />
       <Button label="Crear cuenta" variant="ghost" onPress={onSwitchToRegister} disabled={submitting} />
     </View>
   );

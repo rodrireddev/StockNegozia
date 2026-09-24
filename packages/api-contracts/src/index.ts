@@ -11,4 +11,6 @@ export * from "./profits/profit.contract";
 export * from "./cash-adjustments/cash-adjustment.contract";
 export * from "./admin/admin-auth.contract";
 export * from "./admin/credit-config.contract";
+export * from "./admin/ad-placements.contract";
+export * from "./admin/house-ads.contract";
 export * from "./accounts/account.contract";

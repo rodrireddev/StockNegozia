@@ -7,9 +7,16 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { AccountMeDto } from "@stocknegozia/api-contracts";
-import type { AccountLoginInput, AccountRegisterInput } from "@stocknegozia/validation";
-import { getMe, login as loginRequest, register as registerRequest } from "./api/accounts.api";
+import type { AccountAuthResult, AccountMeDto } from "@stocknegozia/api-contracts";
+import type { AccountLoginInput, AccountRegisterInput, PasswordResetConfirmInput } from "@stocknegozia/validation";
+import { backfillSetupQuestsFromLocalData } from "@/features/benefits/gamificationTriggers";
+import {
+  confirmPasswordReset as confirmPasswordResetRequest,
+  deleteAccount as deleteAccountRequest,
+  getMe,
+  login as loginRequest,
+  register as registerRequest,
+} from "./api/accounts.api";
 import { NetworkError, AuthRequiredError } from "./api/errors";
 import { secureSessionStore } from "./SecureSessionStore";
 
@@ -21,8 +28,12 @@ export interface AccountContextValue {
   me: AccountMeDto | null;
   register: (input: AccountRegisterInput) => Promise<void>;
   login: (input: AccountLoginInput) => Promise<void>;
+  /** Reset de contraseña confirmado — el backend ya emitió una sesión nueva, solo hay que aplicarla. */
+  completePasswordReset: (input: PasswordResetConfirmInput) => Promise<void>;
   signOut: () => Promise<void>;
-  /** Para refrescar el saldo después de mirar un anuncio o completar una acción. */
+  /** Borrado de cuenta (política de Google Play) — irreversible, pide la contraseña de nuevo. */
+  deleteAccount: (password: string) => Promise<void>;
+  /** Para refrescar el saldo/estado (después de un anuncio, o de confirmar el email). */
   refetchMe: () => Promise<void>;
 }
 
@@ -74,23 +85,39 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const register = useCallback(async (input: AccountRegisterInput) => {
-    const result = await registerRequest(input);
+  const applySession = useCallback(async (result: AccountAuthResult) => {
     await secureSessionStore.setAccessToken(result.accessToken);
     const meDto = await getMe();
     setMe(meDto);
     setStatus("authenticated");
+    // Fire-and-forget — repara el caso de un comercio que ya tenía productos/ventas locales
+    // antes de esta sesión (doc §3, "caso: usuario existente se registra"). Nunca bloquea el login.
+    void backfillSetupQuestsFromLocalData();
   }, []);
 
-  const login = useCallback(async (input: AccountLoginInput) => {
-    const result = await loginRequest(input);
-    await secureSessionStore.setAccessToken(result.accessToken);
-    const meDto = await getMe();
-    setMe(meDto);
-    setStatus("authenticated");
-  }, []);
+  const register = useCallback(
+    async (input: AccountRegisterInput) => applySession(await registerRequest(input)),
+    [applySession],
+  );
+
+  const login = useCallback(
+    async (input: AccountLoginInput) => applySession(await loginRequest(input)),
+    [applySession],
+  );
+
+  const completePasswordReset = useCallback(
+    async (input: PasswordResetConfirmInput) => applySession(await confirmPasswordResetRequest(input)),
+    [applySession],
+  );
 
   const signOut = useCallback(async () => {
+    await secureSessionStore.clearAccessToken();
+    setMe(null);
+    setStatus("unauthenticated");
+  }, []);
+
+  const deleteAccount = useCallback(async (password: string) => {
+    await deleteAccountRequest({ password });
     await secureSessionStore.clearAccessToken();
     setMe(null);
     setStatus("unauthenticated");
@@ -111,8 +138,8 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<AccountContextValue>(
-    () => ({ status, me, register, login, signOut, refetchMe }),
-    [status, me, register, login, signOut, refetchMe],
+    () => ({ status, me, register, login, completePasswordReset, signOut, deleteAccount, refetchMe }),
+    [status, me, register, login, completePasswordReset, signOut, deleteAccount, refetchMe],
   );
 
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>;

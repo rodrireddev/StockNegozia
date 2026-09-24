@@ -1,6 +1,7 @@
 {
   "extends": "@stocknegozia/config/typescript/react.json",
   "compilerOptions": {
+    "types": ["vite/client"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["renderer/src/*"]

@@ -1,5 +1,6 @@
-import { CanActivate, ExecutionContext, Inject, Injectable, UnauthorizedException } from "@nestjs/common";
+import { CanActivate, ExecutionContext, Inject, Injectable, Logger, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
+import { ACCOUNT_JWT_SERVICE } from "./account-auth.constants";
 
 export interface AccountJwtPayload {
   sub: string;
@@ -27,7 +28,9 @@ function extractBearerToken(header: string | string[] | undefined): string | und
  */
 @Injectable()
 export class AccountJwtGuard implements CanActivate {
-  constructor(@Inject(JwtService) private readonly jwtService: JwtService) {}
+  private readonly logger = new Logger(AccountJwtGuard.name);
+
+  constructor(@Inject(ACCOUNT_JWT_SERVICE) private readonly jwtService: JwtService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<RequestWithAccount>();
@@ -40,7 +43,9 @@ export class AccountJwtGuard implements CanActivate {
       const payload = await this.jwtService.verifyAsync<AccountJwtPayload>(token);
       request.account = { id: payload.sub, email: payload.email };
       return true;
-    } catch {
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Rechazado: ${reason}`);
       throw new UnauthorizedException("Token de cuenta inválido o expirado");
     }
   }

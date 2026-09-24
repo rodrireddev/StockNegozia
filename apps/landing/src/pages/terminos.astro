@@ -1,0 +1,134 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import LegalHeader from "../components/LegalHeader.astro";
+import Footer from "../components/Footer.astro";
+
+const title = "Términos de Servicio — StockNegozia";
+const description = "Condiciones de uso de StockNegozia y StockNegozia Mini, incluido el sistema de créditos.";
+const lastUpdated = "24 de septiembre de 2026";
+const contactEmail = "rdevtoledo@gmail.com";
+---
+
+<BaseLayout title={title} description={description}>
+  <LegalHeader />
+  <main class="container-page max-w-3xl py-16">
+    <h1 class="text-3xl font-bold text-ink-900">Términos de Servicio</h1>
+    <p class="mt-2 text-sm text-ink-400">Última actualización: {lastUpdated}</p>
+
+    <div class="prose-legal mt-10 space-y-8 text-ink-600">
+      <section>
+        <p>
+          Al usar StockNegozia (escritorio) o StockNegozia Mini (Android) aceptás estos términos.
+          StockNegozia todavía no está constituido como una razón social/empresa formal — lo opera
+          el desarrollador responsable del producto, contactable en
+          <a href={`mailto:${contactEmail}`} class="text-brand-600 hover:underline">{contactEmail}</a>.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-ink-900">El servicio</h2>
+        <p>
+          StockNegozia es una herramienta de gestión de stock, ventas y compras pensada para
+          comercios chicos. Las funciones core (productos, ventas, inventario, proveedores) son
+          gratis y no requieren cuenta. StockNegozia Mini además ofrece, de forma completamente
+          opcional, una cuenta con un sistema de créditos ganables viendo anuncios o usando la app
+          con regularidad, canjeables por beneficios como backup en la nube.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-ink-900">Tu cuenta</h2>
+        <p>
+          Sos responsable de mantener segura tu contraseña. Un email/persona puede tener una sola
+          cuenta — usar varias cuentas para autorreferirse o abusar del sistema de créditos viola
+          estos términos y puede resultar en la pérdida de los créditos obtenidos así, o en la
+          suspensión de la cuenta.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-ink-900">Los créditos no son dinero</h2>
+        <p>
+          Los créditos de StockNegozia Mini son una unidad interna del producto, no una moneda ni
+          un instrumento financiero: no tienen valor en efectivo, no se pueden retirar, cambiar por
+          dinero real ni transferir a otra cuenta. Los montos que se ganan/gastan por cada acción
+          (ver un anuncio, una misión, un hito de racha, un beneficio) pueden cambiar con
+          actualizaciones de la app para mantener el sistema balanceado — cualquier saldo que ya
+          tengas se respeta, solo cambian los montos de acciones futuras.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-ink-900">Anuncios recompensados</h2>
+        <p>
+          Ver un anuncio para ganar créditos es siempre voluntario, con un tope diario y un tiempo
+          de espera entre anuncios. Nos reservamos el derecho de ajustar esos topes, o de revocar
+          créditos obtenidos de forma fraudulenta (por ejemplo, con una app o dispositivo
+          modificado para simular haber visto un anuncio sin verlo de verdad).
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-ink-900">Cofounder Pack (próximamente)</h2>
+        <p>
+          El Cofounder Pack es un pago único, limitado a 100 cupos, comprado a través de Google
+          Play Billing — StockNegozia nunca ve ni almacena tu información de pago, eso lo procesa
+          Google directamente. Los reembolsos se rigen por la política de reembolsos de Google
+          Play, no por nosotros.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-ink-900">Tus datos locales son tu responsabilidad</h2>
+        <p>
+          Productos, ventas, compras y stock viven únicamente en tu dispositivo. Si desinstalás la
+          app, cambiás de teléfono/computadora, o el dispositivo se rompe sin haber hecho un
+          backup, esos datos se pierden — StockNegozia no los tiene guardados en ningún lado para
+          recuperarlos. El backup en la nube (uno de los beneficios canjeables por créditos) es
+          opcional y se ofrece "tal cual", sin garantía de disponibilidad permanente.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-ink-900">Eliminar tu cuenta</h2>
+        <p>
+          Podés eliminar tu cuenta cuando quieras desde la app o desde
+          <a href="/eliminar-cuenta" class="text-brand-600 hover:underline">esta página</a>. También
+          podemos suspender o eliminar una cuenta que viole estos términos (fraude, abuso del
+          sistema de créditos, comportamiento que dañe a otros usuarios).
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-ink-900">Sin garantías</h2>
+        <p>
+          StockNegozia se ofrece "tal cual", sin garantía de funcionamiento ininterrumpido o libre
+          de errores. En la medida permitida por la ley, no somos responsables por pérdidas
+          indirectas derivadas del uso de la app (por ejemplo, pérdida de datos locales por no
+          hacer backup).
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-ink-900">Ley aplicable</h2>
+        <p>Estos términos se rigen por las leyes de la República Argentina.</p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-ink-900">Cambios a estos términos</h2>
+        <p>
+          Si los actualizamos, vamos a cambiar la fecha de "última actualización" al principio de
+          esta página.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-ink-900">Contacto</h2>
+        <p>
+          <a href={`mailto:${contactEmail}`} class="text-brand-600 hover:underline">{contactEmail}</a>
+        </p>
+      </section>
+    </div>
+  </main>
+  <Footer />
+</BaseLayout>

@@ -1,0 +1,15 @@
+---
+// Header propio para páginas de contenido (privacidad/términos/eliminar cuenta) — el `Header`
+// de la landing es transparente pensado para flotar sobre el hero oscuro de `index.astro`, acá
+// el fondo es blanco así que el texto blanco de ese header sería invisible.
+---
+
+<header class="border-b border-ink-100">
+  <div class="container-page flex items-center justify-between py-5">
+    <a href="/" class="flex items-center gap-2">
+      <img src="/branding/logo.png" alt="StockNegozia" width="28" height="28" class="h-7 w-7" />
+      <span class="text-base font-semibold text-ink-900">StockNegozia</span>
+    </a>
+    <a href="/" class="text-sm font-medium text-ink-600 hover:text-ink-900">&larr; Volver al inicio</a>
+  </div>
+</header>

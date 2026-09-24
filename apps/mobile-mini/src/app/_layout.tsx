@@ -4,7 +4,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
-import mobileAds from "react-native-google-mobile-ads";
+import mobileAds, { AdsConsent } from "react-native-google-mobile-ads";
 import { AccountProvider } from "@/accounts/AccountContext";
 import { db } from "@/database/client";
 import migrations from "@/database/migrations/migrations";
@@ -51,10 +51,18 @@ function RootNavigator() {
 
   // No bloquea el splash ni el resto del arranque — un rewarded ad recién hace falta cuando el
   // usuario entra a pedir uno (prototipo, doc ADS_CREDITS_GAMIFICATION.md), no en cada apertura.
+  // `AdsConsent.gatherConsent()` (UMP) tiene que resolver ANTES de inicializar el SDK de ads —
+  // pide/muestra el formulario de consentimiento si corresponde (ej. usuarios en EEA/UK), doc de
+  // Google: nunca hay que inicializar ni pedir anuncios antes de eso. Si falla (sin red, etc.) se
+  // sigue igual — no hay nada más que reintentar acá, y sin esto tampoco había anuncios antes.
   useEffect(() => {
-    mobileAds()
-      .initialize()
-      .catch(() => {});
+    AdsConsent.gatherConsent()
+      .catch(() => {})
+      .finally(() => {
+        mobileAds()
+          .initialize()
+          .catch(() => {});
+      });
   }, []);
 
   if (bootstrapping) return null;

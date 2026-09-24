@@ -3,7 +3,7 @@ import type { CreditLedgerEntryDto } from "@stocknegozia/api-contracts";
 import { randomUUID } from "node:crypto";
 import { CreditsRepository } from "./credits.repository";
 
-type CreditReason = Parameters<CreditsRepository["insert"]>[0]["reason"];
+export type CreditReason = Parameters<CreditsRepository["insert"]>[0]["reason"];
 
 export interface GrantCreditsOptions {
   reasonMetadata?: Record<string, unknown>;

@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { ShoppingCart } from "lucide-react-native";
 import type { ProductDto } from "@stocknegozia/api-contracts";
 import { resolveScanMatch } from "@stocknegozia/shared";
+import { useAccount } from "@/accounts/AccountContext";
 import { fetchProductByCode, fetchProducts } from "@/data/products";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
@@ -12,6 +13,7 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { Select } from "@/components/Select";
 import { TextField } from "@/components/TextField";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { fireSetupQuestClaim } from "@/features/benefits/gamificationTriggers";
 import { useProducts } from "@/features/products/hooks/useProducts";
 import { ProductListItem } from "@/features/products/components/ProductListItem";
 import { ProductScanner, type ScanFeedback } from "@/features/scanner/ProductScanner";
@@ -30,6 +32,7 @@ const SUPPLIER_REQUIRED_MESSAGE = "Seleccioná un proveedor antes de confirmar l
 
 export function PurchasesScreen() {
   const { colors } = useTheme();
+  const { status: accountStatus } = useAccount();
   const [supplierId, setSupplierId] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [scanError, setScanError] = useState<string | null>(null);
@@ -93,6 +96,9 @@ export function PurchasesScreen() {
    * justamente lo que `ProductScanner` necesita para re-animar el aviso en cada escaneo.
    */
   async function handleScanDetected(result: ScanResult) {
+    // Idempotente en el backend — el logro es "usaste el scanner", no depende de si el código
+    // matcheó un producto (doc §1, setup quest "first_scan").
+    if (accountStatus === "authenticated") fireSetupQuestClaim("first_scan");
     try {
       const product = await fetchProductByCode(result.code);
       cart.addItem(product);

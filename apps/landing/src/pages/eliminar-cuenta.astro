@@ -1,0 +1,80 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import LegalHeader from "../components/LegalHeader.astro";
+import Footer from "../components/Footer.astro";
+
+const title = "Eliminar tu cuenta — StockNegozia Mini";
+const description = "Cómo eliminar tu cuenta de StockNegozia Mini y qué pasa con tus datos.";
+const contactEmail = "rdevtoledo@gmail.com";
+const subject = encodeURIComponent("Eliminar mi cuenta — StockNegozia Mini");
+const body = encodeURIComponent(
+  "Hola, quiero eliminar mi cuenta de StockNegozia Mini.\n\nEmail de la cuenta: \n",
+);
+---
+
+<BaseLayout title={title} description={description}>
+  <LegalHeader />
+  <main class="container-page max-w-2xl py-16">
+    <h1 class="text-3xl font-bold text-ink-900">Eliminar tu cuenta</h1>
+
+    <div class="prose-legal mt-8 space-y-8 text-ink-600">
+      <section>
+        <p>
+          Esto es solo sobre la cuenta opcional de <strong>StockNegozia Mini</strong> (créditos,
+          racha, referidos) — tus productos, ventas y stock viven en tu dispositivo y no se tocan
+          con esto, sigas o no teniendo cuenta.
+        </p>
+      </section>
+
+      <section class="rounded-xl border border-ink-100 bg-ink-50 p-6">
+        <h2 class="text-lg font-semibold text-ink-900">Opción 1 — Desde la app (inmediato)</h2>
+        <p class="mt-2">
+          Abrí StockNegozia Mini → <strong>Más → Beneficios → Eliminar mi cuenta</strong>. Te va a
+          pedir tu contraseña para confirmar. Se borra al instante y no se puede deshacer.
+        </p>
+      </section>
+
+      <section class="rounded-xl border border-ink-100 bg-ink-50 p-6">
+        <h2 class="text-lg font-semibold text-ink-900">
+          Opción 2 — Si ya desinstalaste la app
+        </h2>
+        <p class="mt-2">
+          Mandanos un mail desde la dirección con la que te registraste, pidiendo la baja de tu
+          cuenta:
+        </p>
+        <a
+          href={`mailto:${contactEmail}?subject=${subject}&body=${body}`}
+          class="btn-primary mt-4 inline-flex bg-brand-600 text-white hover:bg-brand-500"
+        >
+          Escribir a {contactEmail}
+        </a>
+        <p class="mt-3 text-sm text-ink-400">
+          Procesamos estas solicitudes manualmente — puede tardar hasta 30 días hábiles en
+          confirmarse.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-ink-900">Qué se borra</h2>
+        <ul class="mt-3 list-disc space-y-2 pl-5">
+          <li>Tu email y contraseña.</li>
+          <li>Todo tu historial de créditos (ganados y gastados).</li>
+          <li>Tu racha, logros y misiones reclamadas.</li>
+          <li>Tu código de referido y la relación con quien invitaste o te invitó.</li>
+          <li>Cualquier beneficio comprado (backup en la nube, sacarse ads).</li>
+        </ul>
+        <p class="mt-3">
+          No retenemos ningún dato después de procesar el borrado. Esto no afecta a tus productos,
+          ventas ni stock — esos siguen en tu dispositivo, con o sin cuenta.
+        </p>
+      </section>
+
+      <section>
+        <p class="text-sm text-ink-400">
+          Ver también la <a href="/privacidad" class="text-brand-600 hover:underline">Política de Privacidad</a>.
+        </p>
+      </section>
+    </div>
+  </main>
+  <Footer />
+</BaseLayout>
