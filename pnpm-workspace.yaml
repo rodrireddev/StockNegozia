@@ -3,7 +3,7 @@ packages:
   - "packages/*"
 
 allowBuilds:
-  better-sqlite3: true
+  better-sqlite3: false
   electron: true
   electron-winstaller: true
   esbuild: true
@@ -16,8 +16,12 @@ minimumReleaseAgeExclude:
   - expo@57.0.23
   - react-native-google-mobile-ads@17.1.0
 
+# better-sqlite3 (usado solo por apps/backend, el backend legacy que no está en render.yaml)
+# queda fuera de esta lista a propósito: Render corre un install de TODO el workspace antes de
+# cualquier buildCommand (no respeta --filter), y en su imagen (Node 26 sobre glibc del build
+# image) no hay binario prebuilt para better-sqlite3 y el compile nativo con node-gyp falla,
+# tumbando el deploy de cloud-backend/admin-panel/landing aunque ninguno de los tres lo use.
 onlyBuiltDependencies:
-  - better-sqlite3
   - electron
   - electron-winstaller
   - esbuild
