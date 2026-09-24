@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter, type Href } from "expo-router";
 import { useAccount } from "@/accounts/AccountContext";
 import { Button } from "@/components/Button";
@@ -49,24 +49,26 @@ export function BenefitsScreen() {
   if (status === "unauthenticated" || !me) {
     return (
       <ScreenContainer>
-        <Text style={[typography.title, { color: colors.foreground, marginBottom: spacing.md }]}>
-          Beneficios
-        </Text>
-        <Text style={[typography.body, { color: colors.mutedForeground, marginBottom: spacing.lg }]}>
-          Creá una cuenta gratis para juntar créditos y desbloquear backup en la nube, reportes y
-          más — nunca hace falta para vender o cargar stock.
-        </Text>
-        <Card>
-          {mode === "login" && (
-            <LoginForm
-              onSwitchToRegister={() => setMode("register")}
-              onForgotPassword={() => setMode("forgot")}
-            />
-          )}
-          {mode === "register" && <RegisterForm onSwitchToLogin={() => setMode("login")} />}
-          {mode === "forgot" && <ForgotPasswordForm onDone={() => setMode("login")} />}
-        </Card>
-        <OnboardingRecapButton />
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+          <Text style={[typography.title, { color: colors.foreground, marginBottom: spacing.md }]}>
+            Beneficios
+          </Text>
+          <Text style={[typography.body, { color: colors.mutedForeground, marginBottom: spacing.lg }]}>
+            Creá una cuenta gratis para juntar créditos y desbloquear backup en la nube, reportes y
+            más — nunca hace falta para vender o cargar stock.
+          </Text>
+          <Card>
+            {mode === "login" && (
+              <LoginForm
+                onSwitchToRegister={() => setMode("register")}
+                onForgotPassword={() => setMode("forgot")}
+              />
+            )}
+            {mode === "register" && <RegisterForm onSwitchToLogin={() => setMode("login")} />}
+            {mode === "forgot" && <ForgotPasswordForm onDone={() => setMode("login")} />}
+          </Card>
+          <OnboardingRecapButton />
+        </ScrollView>
       </ScreenContainer>
     );
   }
@@ -98,6 +100,7 @@ function AuthenticatedBenefits({
 
   return (
     <ScreenContainer>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
       <Text style={[typography.title, { color: colors.foreground, marginBottom: spacing.md }]}>
         Beneficios
       </Text>
@@ -182,12 +185,14 @@ function AuthenticatedBenefits({
       <View style={styles.dangerZone}>
         <Button label="Eliminar mi cuenta" variant="ghost" onPress={() => setDeleteModalOpen(true)} />
       </View>
+      </ScrollView>
       <DeleteAccountModal visible={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} />
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollContent: { paddingBottom: spacing.xxl },
   card: { gap: spacing.xs, marginBottom: spacing.md },
   actions: { gap: spacing.sm, marginTop: spacing.sm },
   dangerZone: { marginTop: spacing.xl },
