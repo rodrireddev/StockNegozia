@@ -18,8 +18,8 @@ function loadConfig() {
           .map((origin) => origin.trim())
           .filter((origin) => origin.length > 0)
       : [],
-    resendApiKey: env.RESEND_API_KEY,
-    resendFromEmail: env.RESEND_FROM_EMAIL,
+    sendgridApiKey: env.SENDGRID_API_KEY,
+    sendgridFromEmail: env.SENDGRID_FROM_EMAIL,
   };
 }
 
