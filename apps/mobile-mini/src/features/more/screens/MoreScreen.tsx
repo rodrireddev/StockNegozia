@@ -31,24 +31,16 @@ const ITEMS: MoreItem[] = [
   { href: "/profits", label: "Ganancias", description: "Historial y gráfico de ganancias", icon: TrendingUp },
   { href: "/cash-adjustments", label: "Ajustes de caja", description: "Retiros e ingresos de caja", icon: Wallet },
   { href: "/suppliers", label: "Proveedores", description: "Ver, agregar y editar proveedores", icon: Truck },
+  {
+    // `as Href`: expo-router recién agrega esta ruta al union tipado de `typedRoutes` después de
+    // que el dev server la vea una vez — cast puntual, no un patrón a repetir.
+    href: "/benefits" as Href,
+    label: "Beneficios",
+    description: "Cuenta, créditos y anuncios",
+    icon: Sparkles,
+  },
   { href: "/settings", label: "Ajustes", description: "Este dispositivo y cerrar sesión", icon: Settings },
 ];
-
-/**
- * Solo en dev: cuenta + créditos + rewarded ads (doc ADS_CREDITS_GAMIFICATION.md) — todavía usa el
- * ad unit de prueba de AdMob y no hay `apps/cloud-backend` deployado a producción, no debería
- * aparecer en un build para comerciantes reales todavía.
- */
-if (__DEV__) {
-  ITEMS.push({
-    // `as Href`: expo-router recién agrega esta ruta al union tipado de `typedRoutes` después de
-    // que el dev server la vea una vez (no corrió acá) — cast puntual, no un patrón a repetir.
-    href: "/benefits" as Href,
-    label: "Beneficios (preview)",
-    description: "Cuenta, créditos y anuncios de prueba",
-    icon: Sparkles,
-  });
-}
 
 /** Hub de teléfono para las secciones que no entran en la barra inferior (`Productos`/`Ventas`/
  *  `Más`) — en tablet estas mismas secciones están directamente en el riel lateral, ver
@@ -62,7 +54,7 @@ export function MoreScreen() {
       <Text style={[typography.title, { color: colors.foreground, marginBottom: spacing.md }]}>
         Más
       </Text>
-      {__DEV__ && <RegistrationPromptBanner />}
+      <RegistrationPromptBanner />
       <View style={styles.list}>
         {ITEMS.map((item) => (
           <Pressable key={item.label} onPress={() => router.push(item.href)}>
