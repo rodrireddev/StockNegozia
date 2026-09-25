@@ -23,10 +23,16 @@ const STATUS_LABEL: Record<string, string> = {
   unavailable: "No disponible en esta build",
   idle: "Sin cargar",
   loading: "Cargando anuncio…",
-  loaded: "Listo para mostrar",
   showing: "Mostrando…",
   error: "Error",
 };
+
+/** "90" -> "1:30" — para la cuenta regresiva del cooldown en el botón. */
+function formatCountdown(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
 
 /**
  * Beneficios (doc §3, cuenta opcional) — único lugar de la app donde se pide login, y solo para
@@ -94,7 +100,7 @@ function AuthenticatedBenefits({
   const { colors } = useTheme();
   const router = useRouter();
   const { signOut, refetchMe } = useAccount();
-  const { status, lastClaim, error, load, show } = useRewardedAd();
+  const { status, lastClaim, error, eligible, ineligibleReason, secondsUntilEligible, watch } = useRewardedAd();
   const adsPrivacyOptions = useAdsPrivacyOptions();
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
@@ -157,13 +163,17 @@ function AuthenticatedBenefits({
             )}
             <View style={styles.actions}>
               <Button
-                label="Cargar anuncio"
-                variant="secondary"
-                onPress={load}
-                disabled={status === "loading" || status === "showing"}
-                loading={status === "loading"}
+                label={
+                  !eligible && ineligibleReason === "daily_cap"
+                    ? "Ya viste el máximo de hoy"
+                    : !eligible && secondsUntilEligible !== null
+                      ? `Disponible en ${formatCountdown(secondsUntilEligible)}`
+                      : "Ver anuncio"
+                }
+                onPress={watch}
+                disabled={!eligible || status === "loading" || status === "showing"}
+                loading={status === "loading" || status === "showing"}
               />
-              <Button label="Mostrar anuncio" onPress={show} disabled={status !== "loaded"} />
             </View>
             {adsPrivacyOptions.visible && (
               <Button

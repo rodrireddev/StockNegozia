@@ -4,6 +4,7 @@ import type {
   DailyMissionTodayDto,
   RecordActivityResult,
   RewardedAdClaimResult,
+  RewardedAdStatusDto,
   SetupQuestClaimResult,
 } from "@stocknegozia/api-contracts";
 import { AccountJwtGuard, type RequestWithAccount } from "../accounts/account-jwt.guard";
@@ -53,6 +54,16 @@ export class GamificationController {
   @Post("daily-mission/claim")
   claimDailyMission(@Req() request: RequestWithAccount): Promise<DailyMissionClaimResult> {
     return this.dailyMissionsService.claim(request.account!.id);
+  }
+
+  /**
+   * El cliente llama esto ANTES de cargar el anuncio, para deshabilitar el botón (con cuenta
+   * regresiva) si todavía está en cooldown o ya llegó al tope del día — evita hacerle cargar y ver
+   * un anuncio completo para recién ahí enterarse de que no le iba a acreditar nada.
+   */
+  @Get("rewarded-ad/status")
+  getRewardedAdStatus(@Req() request: RequestWithAccount): Promise<RewardedAdStatusDto> {
+    return this.rewardedAdsService.getStatus(request.account!.id);
   }
 
   /**

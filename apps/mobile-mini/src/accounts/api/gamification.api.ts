@@ -4,6 +4,7 @@ import type {
   DailyMissionTodayDto,
   RecordActivityResult,
   RewardedAdClaimResult,
+  RewardedAdStatusDto,
   SetupQuestClaimResult,
 } from "@stocknegozia/api-contracts";
 import { apiGet, apiPost } from "./client";
@@ -26,6 +27,10 @@ export function claimDailyMission(): Promise<DailyMissionClaimResult> {
 
 export function claimRewardedAd(): Promise<RewardedAdClaimResult> {
   return apiPost<RewardedAdClaimResult>("/gamification/rewarded-ad/claim");
+}
+
+export function getRewardedAdStatus(): Promise<RewardedAdStatusDto> {
+  return apiGet<RewardedAdStatusDto>("/gamification/rewarded-ad/status");
 }
 
 export function listAchievements(): Promise<AchievementDto[]> {

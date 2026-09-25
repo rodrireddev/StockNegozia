@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import type { RewardedAd } from "react-native-google-mobile-ads";
-import type { RewardedAdClaimResult } from "@stocknegozia/api-contracts";
+import type { RewardedAdClaimResult, RewardedAdStatusDto } from "@stocknegozia/api-contracts";
 import { useAccount } from "@/accounts/AccountContext";
 import { getAdPlacement } from "@/accounts/api/ads.api";
-import { claimRewardedAd } from "@/accounts/api/gamification.api";
+import { claimRewardedAd, getRewardedAdStatus } from "@/accounts/api/gamification.api";
 import { getNativeAdsModule } from "../nativeAdsModule";
 
 const REWARDED_AD_PLACEMENT_KEY = "rewarded_credits";
@@ -18,29 +18,28 @@ const REWARDED_AD_PLACEMENT_KEY = "rewarded_credits";
  */
 export const REWARDED_AD_UNIT_ID = "ca-app-pub-3940256099942544/5224354917";
 
-/** `unavailable` = corriendo en Expo Go u otro entorno sin el módulo nativo (ver `nativeAdsModule.ts`). */
-export type RewardedAdStatus = "unavailable" | "idle" | "loading" | "loaded" | "showing" | "error";
+/**
+ * `unavailable` = corriendo en Expo Go u otro entorno sin el módulo nativo (ver `nativeAdsModule.ts`).
+ * Ya no existe un estado público "loaded": apenas el SDK confirma que el anuncio cargó, se muestra
+ * solo — un único botón "Ver anuncio" en vez de "Cargar" + "Mostrar" por separado.
+ */
+export type RewardedAdStatus = "unavailable" | "idle" | "loading" | "showing" | "error";
 
 export interface UseRewardedAdResult {
   status: RewardedAdStatus;
   /** Resultado real del backend tras la última vista completa — `null` hasta la primera. */
   lastClaim: RewardedAdClaimResult | null;
   error: string | null;
-  /** Pide un anuncio nuevo al ad network — llamarlo apenas se muestra la pantalla que ofrece el reward. */
-  load: () => void;
-  /** Solo funciona si `status === "loaded"`. */
-  show: () => void;
+  /** `false` mientras está en cooldown o ya llegó al tope del día — el botón debe deshabilitarse. */
+  eligible: boolean;
+  /** Motivo de `eligible: false` — `null` si es elegible o todavía no se supo (primer render). */
+  ineligibleReason: string | null;
+  /** Cuenta regresiva en segundos hasta que termine el cooldown — `null` si no aplica. */
+  secondsUntilEligible: number | null;
+  /** Carga el anuncio y lo muestra apenas esté listo — un solo botón, un solo paso. */
+  watch: () => void;
 }
 
-/**
- * Wrapper sobre `RewardedAd` de `react-native-google-mobile-ads` + el claim real contra
- * `apps/cloud-backend` (`POST /gamification/rewarded-ad/claim`). El `reward` que reporta el SDK de
- * AdMob (`RewardedAdEventType.EARNED_REWARD`) es solo la señal de "terminó de verlo" — el monto
- * real en créditos lo decide el backend (`credit_config_items`), nunca el valor que devuelve
- * AdMob (que en el ad unit de prueba es un número fijo sin relación con nuestra economía). ⚠️ El
- * claim en sí todavía confía en el cliente, sin SSV — ver el comentario en
- * `RewardedAdsService` del backend.
- */
 export function useRewardedAd(): UseRewardedAdResult {
   const nativeAds = getNativeAdsModule();
   const { status: accountStatus, me, refetchMe } = useAccount();
@@ -48,7 +47,19 @@ export function useRewardedAd(): UseRewardedAdResult {
   const [lastClaim, setLastClaim] = useState<RewardedAdClaimResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [adUnitId, setAdUnitId] = useState<string>(REWARDED_AD_UNIT_ID);
+  const [eligibility, setEligibility] = useState<RewardedAdStatusDto | null>(null);
+  const [secondsUntilEligible, setSecondsUntilEligible] = useState<number | null>(null);
   const adRef = useRef<RewardedAd | null>(null);
+  const pendingShowRef = useRef(false);
+
+  const refetchEligibility = useCallback(() => {
+    if (accountStatus !== "authenticated") return;
+    getRewardedAdStatus()
+      .then(setEligibility)
+      // Sin red o sesión vencida — no bloqueamos el botón por esto, el backend igual valida en el
+      // claim real; solo perdemos la cuenta regresiva anticipada.
+      .catch(() => {});
+  }, [accountStatus]);
 
   // Pide el ad unit real al backend (tabla `ad_placements`) apenas hay cuenta — si no responde o
   // el placement está deshabilitado (kill switch), se queda con `REWARDED_AD_UNIT_ID` de prueba.
@@ -64,6 +75,36 @@ export function useRewardedAd(): UseRewardedAdResult {
       });
   }, [accountStatus]);
 
+  useEffect(refetchEligibility, [refetchEligibility]);
+
+  // Cuenta regresiva local mientras haya un `nextEligibleAt` en el futuro — al llegar a 0 vuelve a
+  // preguntarle al backend (evita quedarse desincronizado si un admin cambió el cooldown mientras
+  // tanto).
+  useEffect(() => {
+    if (eligibility?.reason !== "cooldown" || !eligibility.nextEligibleAt) {
+      setSecondsUntilEligible(null);
+      return;
+    }
+
+    const nextEligibleAt = new Date(eligibility.nextEligibleAt).getTime();
+    const tick = () => {
+      const remaining = Math.ceil((nextEligibleAt - Date.now()) / 1000);
+      if (remaining <= 0) {
+        setSecondsUntilEligible(null);
+        refetchEligibility();
+        return false;
+      }
+      setSecondsUntilEligible(remaining);
+      return true;
+    };
+
+    if (!tick()) return;
+    const interval = setInterval(() => {
+      if (!tick()) clearInterval(interval);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [eligibility, refetchEligibility]);
+
   useEffect(() => {
     if (!nativeAds) return; // Expo Go — no hay módulo nativo con el que crear un RewardedAd.
 
@@ -77,7 +118,12 @@ export function useRewardedAd(): UseRewardedAdResult {
     adRef.current = ad;
 
     const unsubscribeLoaded = ad.addAdEventListener(nativeAds.RewardedAdEventType.LOADED, () => {
-      setStatus("loaded");
+      // Un solo botón "Ver anuncio": apenas el SDK confirma que cargó, se muestra directo — el
+      // usuario nunca ve un estado intermedio de "listo, ahora tocá para verlo".
+      if (!pendingShowRef.current) return;
+      pendingShowRef.current = false;
+      setStatus("showing");
+      ad.show();
     });
     const unsubscribeEarned = ad.addAdEventListener(nativeAds.RewardedAdEventType.EARNED_REWARD, () => {
       // El SDK ya confirmó que se vio completo — recién ahí tiene sentido pedirle al backend que
@@ -87,6 +133,7 @@ export function useRewardedAd(): UseRewardedAdResult {
         .then((result) => {
           setLastClaim(result);
           if (result.granted) void refetchMe();
+          refetchEligibility();
         })
         .catch((err) => setError(err instanceof Error ? err.message : "No se pudo acreditar"));
     });
@@ -96,6 +143,7 @@ export function useRewardedAd(): UseRewardedAdResult {
       setStatus("idle");
     });
     const unsubscribeError = ad.addAdEventListener(nativeAds.AdEventType.ERROR, (adError: Error) => {
+      pendingShowRef.current = false;
       setStatus("error");
       setError(adError.message);
     });
@@ -106,20 +154,24 @@ export function useRewardedAd(): UseRewardedAdResult {
       unsubscribeClosed();
       unsubscribeError();
     };
-  }, [nativeAds, adUnitId, accountStatus, me, refetchMe]);
+  }, [nativeAds, adUnitId, accountStatus, me, refetchMe, refetchEligibility]);
 
-  const load = useCallback(() => {
-    if (!nativeAds) return;
+  const watch = useCallback(() => {
+    if (!nativeAds || status === "loading" || status === "showing") return;
+    if (eligibility && !eligibility.eligible) return; // botón ya debería estar deshabilitado
     setError(null);
     setStatus("loading");
+    pendingShowRef.current = true;
     adRef.current?.load();
-  }, [nativeAds]);
+  }, [nativeAds, status, eligibility]);
 
-  const show = useCallback(() => {
-    if (!nativeAds || status !== "loaded") return;
-    setStatus("showing");
-    adRef.current?.show();
-  }, [nativeAds, status]);
-
-  return { status, lastClaim, error, load, show };
+  return {
+    status,
+    lastClaim,
+    error,
+    eligible: eligibility?.eligible ?? true,
+    ineligibleReason: eligibility?.eligible === false ? (eligibility.reason ?? null) : null,
+    secondsUntilEligible,
+    watch,
+  };
 }

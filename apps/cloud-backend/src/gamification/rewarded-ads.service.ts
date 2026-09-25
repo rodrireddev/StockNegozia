@@ -1,9 +1,18 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { RewardedAdClaimResult } from "@stocknegozia/api-contracts";
+import type { RewardedAdClaimResult, RewardedAdStatusDto } from "@stocknegozia/api-contracts";
 import { randomUUID } from "node:crypto";
 import { CreditConfigService } from "../credit-config/credit-config.service";
 import { CreditsService } from "../credits/credits.service";
 import { RewardedAdViewsRepository } from "./rewarded-ad-views.repository";
+
+interface Eligibility {
+  eligible: boolean;
+  reason?: "daily_cap" | "cooldown";
+  nextEligibleAt?: Date;
+  remainingToday: number;
+  /** Reutilizado por `claim()` para no volver a pedir lo mismo — no forma parte de ningún DTO. */
+  countToday: number;
+}
 
 /** Créditos decrecientes por vista del día (doc §1: "3 / 2 / 1 decreciente"). */
 const CREDIT_CONFIG_KEY_BY_SEQUENCE: Record<number, string> = {
@@ -41,7 +50,12 @@ export class RewardedAdsService {
     @Inject(CreditConfigService) private readonly creditConfigService: CreditConfigService,
   ) {}
 
-  async claim(userId: string): Promise<RewardedAdClaimOutcome> {
+  /**
+   * Mismo cálculo de tope/cooldown que usa `claim()` para decidir si acredita — extraído para que
+   * `GET /gamification/rewarded-ad/status` pueda contestar lo mismo de solo lectura, sin insertar
+   * nada. `claim()` la llama primero y solo sigue si `eligible` da `true`.
+   */
+  private async getEligibility(userId: string): Promise<Eligibility> {
     const [countToday, maxPerDay, cooldownMinutes, latest] = await Promise.all([
       this.repository.countToday(userId),
       this.creditConfigService.getValueByKey("cap.rewarded_ad_max_per_day"),
@@ -49,18 +63,34 @@ export class RewardedAdsService {
       this.repository.findLatestByUser(userId),
     ]);
 
+    const remainingToday = Math.max(0, maxPerDay - countToday);
+
     if (countToday >= maxPerDay) {
-      return { granted: false, creditsAwarded: 0, reason: "daily_cap" };
+      return { eligible: false, reason: "daily_cap", remainingToday, countToday };
     }
 
     if (latest) {
-      const minutesSinceLastView = (Date.now() - latest.viewedAt.getTime()) / 60_000;
-      if (minutesSinceLastView < cooldownMinutes) {
-        return { granted: false, creditsAwarded: 0, reason: "cooldown" };
+      const nextEligibleAt = new Date(latest.viewedAt.getTime() + cooldownMinutes * 60_000);
+      if (nextEligibleAt.getTime() > Date.now()) {
+        return { eligible: false, reason: "cooldown", nextEligibleAt, remainingToday, countToday };
       }
     }
 
-    const sequenceInDay = countToday + 1;
+    return { eligible: true, remainingToday, countToday };
+  }
+
+  async getStatus(userId: string): Promise<RewardedAdStatusDto> {
+    const { eligible, reason, nextEligibleAt, remainingToday } = await this.getEligibility(userId);
+    return { eligible, reason, nextEligibleAt: nextEligibleAt?.toISOString(), remainingToday };
+  }
+
+  async claim(userId: string): Promise<RewardedAdClaimOutcome> {
+    const eligibility = await this.getEligibility(userId);
+    if (!eligibility.eligible) {
+      return { granted: false, creditsAwarded: 0, reason: eligibility.reason };
+    }
+
+    const sequenceInDay = eligibility.countToday + 1;
     const creditConfigKey = CREDIT_CONFIG_KEY_BY_SEQUENCE[sequenceInDay] ?? CREDIT_CONFIG_KEY_BY_SEQUENCE[3]!;
     const amount = await this.creditConfigService.getValueByKey(creditConfigKey);
 

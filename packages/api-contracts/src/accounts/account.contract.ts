@@ -109,6 +109,22 @@ export interface RewardedAdClaimResult {
   reason?: string;
 }
 
+/**
+ * Respuesta de `GET /gamification/rewarded-ad/status` — mismo cálculo de tope/cooldown que
+ * `claim()`, pero de solo lectura, para que el cliente pueda deshabilitar el botón de "Ver
+ * anuncio" (y mostrar la cuenta regresiva) ANTES de gastar tiempo cargando/mostrando un anuncio
+ * que el backend igual va a rechazar.
+ */
+export interface RewardedAdStatusDto {
+  eligible: boolean;
+  /** Presente solo si `eligible` es `false` — "daily_cap" o "cooldown". */
+  reason?: string;
+  /** ISO — cuándo termina el cooldown actual. Solo presente si `reason === "cooldown"`. */
+  nextEligibleAt?: string;
+  /** Cuántos anuncios más puede ver hoy (0 si ya llegó al tope). */
+  remainingToday: number;
+}
+
 export type AchievementCategory = "setup_quest" | "streak_milestone" | "referral" | "cofounder";
 
 /** Una fila de `GET /accounts/me/achievements` — logro ya desbloqueado, listo para mostrar. */
