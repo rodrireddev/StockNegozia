@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter, type Href } from "expo-router";
+import logo from "../../../../assets/images/splash-icon.png";
 import { useAccount } from "@/accounts/AccountContext";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
@@ -19,15 +20,7 @@ import { OnboardingRecapButton } from "@/features/onboarding/components/Onboardi
 import { spacing, typography } from "@/theme/tokens";
 import { useTheme } from "@/theme/useTheme";
 
-const STATUS_LABEL: Record<string, string> = {
-  unavailable: "No disponible en esta build",
-  idle: "Sin cargar",
-  loading: "Cargando anuncio…",
-  showing: "Mostrando…",
-  error: "Error",
-};
-
-/** "90" -> "1:30" — para la cuenta regresiva del cooldown en el botón. */
+/** "90" -> "1:30" — para la cuenta regresiva antes del próximo anuncio disponible. */
 function formatCountdown(totalSeconds: number): string {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
@@ -56,6 +49,7 @@ export function BenefitsScreen() {
     return (
       <ScreenContainer>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+          <Image source={logo} style={styles.logo} resizeMode="contain" />
           <Text style={[typography.title, { color: colors.foreground, marginBottom: spacing.md }]}>
             Beneficios
           </Text>
@@ -121,7 +115,8 @@ function AuthenticatedBenefits({
         </Text>
         <Button
           label="Canjear beneficios"
-          variant="secondary"
+          // `variant` default (primary): "secondary" queda del mismo color que el fondo de
+          // `Card` (`colors.secondary`), el botón se perdía visualmente contra la tarjeta.
           // `as Href`: expo-router recién agrega esta ruta al union tipado después de que el dev
           // server la vea una vez (no corrió acá) — mismo criterio que `MoreScreen.tsx`.
           onPress={() => router.push("/benefits/entitlements" as Href)}
@@ -132,23 +127,21 @@ function AuthenticatedBenefits({
       <AchievementsList />
 
       <Card style={styles.card}>
-        <Text style={[typography.bodyStrong, { color: colors.foreground }]}>Ver un anuncio</Text>
+        <Text style={[typography.bodyStrong, { color: colors.foreground }]}>Ganá créditos gratis</Text>
         {status === "unavailable" ? (
           <Text style={[typography.caption, { color: colors.mutedForeground }]}>
-            Los anuncios necesitan una build nativa (dev client) — en Expo Go esta parte no está
-            disponible, el resto de la app funciona igual.
+            Por ahora no podemos mostrarte anuncios acá — el resto de la app funciona igual.
           </Text>
         ) : (
           <>
             <Text style={[typography.caption, { color: colors.mutedForeground }]}>
-              Ad unit de prueba de AdMob (todavía sin cuenta propia) — pero los créditos que
-              acredita ya son reales, con el mismo tope diario y cooldown que va a tener en
-              producción.
+              Mirá un anuncio corto y sumá créditos a tu cuenta.
             </Text>
-            <Text style={[typography.caption, { color: colors.foreground }]}>
-              Estado: {STATUS_LABEL[status] ?? status}
-            </Text>
-            {error && <Text style={[typography.caption, { color: colors.danger }]}>{error}</Text>}
+            {error && (
+              <Text style={[typography.caption, { color: colors.danger }]}>
+                No se pudo mostrar el anuncio. Probá de nuevo en unos minutos.
+              </Text>
+            )}
             {lastClaim && lastClaim.granted && (
               <Text style={[typography.caption, { color: colors.success }]}>
                 +{lastClaim.creditsAwarded} créditos acreditados
@@ -203,6 +196,7 @@ function AuthenticatedBenefits({
 
 const styles = StyleSheet.create({
   scrollContent: { paddingBottom: spacing.xxl },
+  logo: { width: 88, height: 88, alignSelf: "center", marginBottom: spacing.md },
   card: { gap: spacing.xs, marginBottom: spacing.md },
   actions: { gap: spacing.sm, marginTop: spacing.sm },
   dangerZone: { marginTop: spacing.xl },
