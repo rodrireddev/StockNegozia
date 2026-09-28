@@ -29,6 +29,10 @@ export const cloudBackendEnvSchema = z.object({
   // El email que se verificó como "Single Sender" en SendGrid — tiene que ser exactamente ese,
   // SendGrid rechaza el envío si el remitente no está verificado.
   SENDGRID_FROM_EMAIL: z.string().optional(),
+  // Secret key de Cloudflare Turnstile (captcha de register/password-reset/login) — opcional a
+  // propósito, mismo criterio que SENDGRID_API_KEY: sin esto, `TurnstileService` omite la
+  // verificación fuera de producción (dev local sin cuenta de Cloudflare) y falla en producción.
+  TURNSTILE_SECRET_KEY: z.string().optional(),
 });
 
 export type CloudBackendEnv = z.infer<typeof cloudBackendEnvSchema>;

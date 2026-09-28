@@ -17,3 +17,4 @@ export * from "./ad-placement-revisions";
 export * from "./ad-reward-callbacks";
 export * from "./house-ads";
 export * from "./house-ad-impressions";
+export * from "./login-failed-attempts";

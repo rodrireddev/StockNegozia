@@ -9,14 +9,22 @@ export const accountRegisterSchema = z.object({
   email: z.string({ required_error: "El email es obligatorio" }).trim().email("Email inválido"),
   password: z.string({ required_error: "La contraseña es obligatoria" }).min(8),
   referralCode: z.string().trim().min(1).optional(),
+  // Verificado siempre del lado del servidor contra la API de Cloudflare Turnstile — obligatorio
+  // en cada intento de registro (a diferencia del login, que solo lo exige tras varios fallos).
+  turnstileToken: z.string({ required_error: "Falta verificar el captcha" }).min(1, "Falta verificar el captcha"),
 });
 
 export type AccountRegisterInput = z.infer<typeof accountRegisterSchema>;
 
-/** Body de `POST /accounts/login`. */
+/**
+ * Body de `POST /accounts/login`. `turnstileToken` es opcional: el backend solo lo exige a partir
+ * del 5° login fallido consecutivo desde la misma IP (rate-limiting por abuso, no en cada login
+ * normal) — el cliente lo manda recién cuando una respuesta previa le avisó que hace falta.
+ */
 export const accountLoginSchema = z.object({
   email: z.string({ required_error: "El email es obligatorio" }).trim().email("Email inválido"),
   password: z.string({ required_error: "La contraseña es obligatoria" }).min(8),
+  turnstileToken: z.string().min(1).optional(),
 });
 
 export type AccountLoginInput = z.infer<typeof accountLoginSchema>;
@@ -28,9 +36,13 @@ export const emailVerificationConfirmSchema = z.object({
 
 export type EmailVerificationConfirmInput = z.infer<typeof emailVerificationConfirmSchema>;
 
-/** Body de `POST /accounts/password-reset/request`. */
+/**
+ * Body de `POST /accounts/password-reset/request`. `turnstileToken` obligatorio en cada intento
+ * (mismo criterio que el registro), verificado siempre del lado del servidor.
+ */
 export const passwordResetRequestSchema = z.object({
   email: z.string({ required_error: "El email es obligatorio" }).trim().email("Email inválido"),
+  turnstileToken: z.string({ required_error: "Falta verificar el captcha" }).min(1, "Falta verificar el captcha"),
 });
 
 export type PasswordResetRequestInput = z.infer<typeof passwordResetRequestSchema>;

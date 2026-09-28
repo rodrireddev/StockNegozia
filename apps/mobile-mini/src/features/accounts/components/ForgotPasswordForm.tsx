@@ -5,6 +5,7 @@ import { useAccount } from "@/accounts/AccountContext";
 import { requestPasswordReset } from "@/accounts/api/accounts.api";
 import { Button } from "@/components/Button";
 import { TextField } from "@/components/TextField";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { spacing, typography } from "@/theme/tokens";
 import { useTheme } from "@/theme/useTheme";
 
@@ -20,12 +21,14 @@ export function ForgotPasswordForm({ onDone }: { onDone: () => void }) {
   const [email, setEmail] = useState("");
   const [token, setToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileNonce, setTurnstileNonce] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
   async function handleRequest() {
-    const parsed = passwordResetRequestSchema.safeParse({ email });
+    const parsed = passwordResetRequestSchema.safeParse({ email, turnstileToken: turnstileToken ?? undefined });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? "Email inválido");
       return;
@@ -41,6 +44,9 @@ export function ForgotPasswordForm({ onDone }: { onDone: () => void }) {
       setError(err instanceof Error ? err.message : "No se pudo pedir el reset");
     } finally {
       setSubmitting(false);
+      // Token de un solo uso, consumido en el `siteverify` del backend en cada intento.
+      setTurnstileToken(null);
+      setTurnstileNonce((n) => n + 1);
     }
   }
 
@@ -73,6 +79,7 @@ export function ForgotPasswordForm({ onDone }: { onDone: () => void }) {
           keyboardType="email-address"
           autoComplete="email"
         />
+        <TurnstileWidget resetKey={turnstileNonce} onToken={setTurnstileToken} />
         {error ? <Text style={[typography.caption, { color: colors.danger }]}>{error}</Text> : null}
         <Button label="Mandar código" onPress={handleRequest} loading={submitting} />
         <Button label="Volver" variant="ghost" onPress={onDone} disabled={submitting} />

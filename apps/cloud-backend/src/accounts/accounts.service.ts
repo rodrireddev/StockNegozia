@@ -9,7 +9,9 @@ import { CreditConfigService } from "../credit-config/credit-config.service";
 import { CreditsService } from "../credits/credits.service";
 import { AccountJwtService } from "./account-jwt.service";
 import { AccountTokensService } from "./account-tokens.service";
+import { LoginAttemptsRepository } from "./login-attempts.repository";
 import { ReferralsRepository } from "./referrals.repository";
+import { TurnstileService } from "./turnstile.service";
 import { UsersRepository } from "./users.repository";
 
 const REFERRAL_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // sin 0/O/1/I, se confunden al leerlo en voz alta
@@ -18,6 +20,12 @@ const REFERRAL_CODE_LENGTH = 8;
 const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
 // Más corto que el de verificación: reset de contraseña es la acción más sensible de las dos.
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
+
+// A partir de cuántos fallos consecutivos por IP se empieza a exigir Turnstile en el login (ver
+// doc del PR: rate-limiting por abuso, no en cada login normal).
+const LOGIN_CAPTCHA_FAILURE_THRESHOLD = 5;
+const LOGIN_ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
+const CAPTCHA_INVALID_MESSAGE = "No pudimos verificar que sos una persona. Probá de nuevo.";
 
 @Injectable()
 export class AccountsService {
@@ -33,6 +41,8 @@ export class AccountsService {
     @Inject(AccountTokensService) private readonly accountTokensService: AccountTokensService,
     @Inject(EmailService) private readonly emailService: EmailService,
     @Inject(ConfigService) private readonly configService: ConfigService,
+    @Inject(TurnstileService) private readonly turnstileService: TurnstileService,
+    @Inject(LoginAttemptsRepository) private readonly loginAttemptsRepository: LoginAttemptsRepository,
   ) {}
 
   /**
@@ -40,11 +50,13 @@ export class AccountsService {
    * "ya venía usando la app local y se registra" (migrar productos/ventas/ledger local) es un
    * endpoint aparte, todavía no implementado.
    */
-  async register(input: {
-    email: string;
-    password: string;
-    referralCode?: string;
-  }): Promise<AccountAuthResult> {
+  async register(
+    input: { email: string; password: string; referralCode?: string; turnstileToken: string },
+    ip: string | undefined,
+  ): Promise<AccountAuthResult> {
+    const verified = await this.turnstileService.verify(input.turnstileToken, ip);
+    if (!verified) throw new BadRequestException(CAPTCHA_INVALID_MESSAGE);
+
     const existing = await this.usersRepository.findByEmail(input.email);
     if (existing) throw new ConflictException("Ya existe una cuenta con ese email");
 
@@ -87,11 +99,39 @@ export class AccountsService {
     return this.issueToken(user.id, user.email!);
   }
 
-  async login(email: string, password: string): Promise<AccountAuthResult> {
+  /**
+   * Sin captcha en el uso normal — recién lo exige a partir del 5° fallo consecutivo por IP en los
+   * últimos 15 min (`LOGIN_CAPTCHA_FAILURE_THRESHOLD`), para no pedirle Turnstile a cada login
+   * legítimo. El contador se limpia en cuanto la IP loguea bien una vez.
+   */
+  async login(email: string, password: string, ip: string | undefined, turnstileToken?: string): Promise<AccountAuthResult> {
+    if (ip) {
+      const recentFailures = await this.loginAttemptsRepository.countSince(
+        ip,
+        new Date(Date.now() - LOGIN_ATTEMPT_WINDOW_MS),
+      );
+      if (recentFailures >= LOGIN_CAPTCHA_FAILURE_THRESHOLD) {
+        if (!turnstileToken) {
+          throw new BadRequestException({
+            statusCode: 400,
+            code: "CAPTCHA_REQUIRED",
+            message: "Demasiados intentos fallidos. Resolvé el captcha para continuar.",
+          });
+        }
+        const verified = await this.turnstileService.verify(turnstileToken, ip);
+        if (!verified) {
+          throw new BadRequestException({ statusCode: 400, code: "CAPTCHA_REQUIRED", message: CAPTCHA_INVALID_MESSAGE });
+        }
+      }
+    }
+
     const user = await this.usersRepository.findByEmail(email);
     if (!user || !user.passwordHash || !this.passwordService.verify(password, user.passwordHash)) {
+      if (ip) await this.loginAttemptsRepository.recordFailure(ip);
       throw new UnauthorizedException("Email o contraseña inválidos");
     }
+
+    if (ip) await this.loginAttemptsRepository.clearFailures(ip);
     return this.issueToken(user.id, user.email!);
   }
 
@@ -146,9 +186,14 @@ export class AccountsService {
   /**
    * `POST /accounts/password-reset/request` — SIEMPRE responde igual, exista o no el email
    * (anti-enumeración, mismo criterio que `ApiAccessGuard` de apps/backend: nunca revelar si una
-   * cuenta existe a partir de la respuesta).
+   * cuenta existe a partir de la respuesta). Turnstile obligatorio en cada intento, verificado
+   * antes de tocar esa lógica: un captcha inválido sí puede rechazarse distinto sin filtrar nada
+   * sobre el email (el rechazo pasa igual para cualquier email).
    */
-  async requestPasswordReset(email: string): Promise<{ devToken?: string }> {
+  async requestPasswordReset(email: string, turnstileToken: string, ip: string | undefined): Promise<{ devToken?: string }> {
+    const verified = await this.turnstileService.verify(turnstileToken, ip);
+    if (!verified) throw new BadRequestException(CAPTCHA_INVALID_MESSAGE);
+
     const user = await this.usersRepository.findByEmail(email);
     if (!user) return {};
 

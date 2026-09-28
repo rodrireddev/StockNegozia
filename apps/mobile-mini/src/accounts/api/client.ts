@@ -1,5 +1,5 @@
 import { secureSessionStore } from "../SecureSessionStore";
-import { AuthRequiredError, NetworkError } from "./errors";
+import { ApiError, AuthRequiredError, NetworkError } from "./errors";
 
 /**
  * `EXPO_PUBLIC_*` — Expo inlinea estas variables en build time (ver
@@ -29,20 +29,24 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new AuthRequiredError();
   }
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response, path));
+    const { message, code } = await extractError(response, path);
+    throw new ApiError(message, code);
   }
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }
 
-async function extractErrorMessage(response: Response, path: string): Promise<string> {
+async function extractError(response: Response, path: string): Promise<{ message: string; code?: string }> {
   try {
-    const body = (await response.json()) as { message?: unknown };
-    if (typeof body.message === "string") return body.message;
+    const body = (await response.json()) as { message?: unknown; code?: unknown };
+    return {
+      message: typeof body.message === "string" ? body.message : `Request to ${path} failed with status ${response.status}`,
+      code: typeof body.code === "string" ? body.code : undefined,
+    };
   } catch {
     // el cuerpo no era JSON — se usa el mensaje genérico
+    return { message: `Request to ${path} failed with status ${response.status}` };
   }
-  return `Request to ${path} failed with status ${response.status}`;
 }
 
 export function apiGet<T>(path: string): Promise<T> {

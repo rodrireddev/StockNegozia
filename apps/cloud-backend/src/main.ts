@@ -25,6 +25,11 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const config = configService.get<ConfigType<typeof appConfig>>("app")!;
 
+  // Render pone al backend detrás de un único proxy de borde — sin esto, `req.ip` (usado para el
+  // rate-limit de login y el `remoteip` que se manda a Cloudflare Turnstile) devuelve la IP interna
+  // del proxy en vez de la del cliente real. `1` confía solo en ese primer hop, no en toda la cadena.
+  app.getHttpAdapter().getInstance().set("trust proxy", 1);
+
   // Allowlist explícita (panel de administración, futuros clientes) — mismo patrón que
   // apps/backend, sin el caso especial de LAN que no aplica a un backend multi-tenant por
   // internet.

@@ -338,6 +338,33 @@ la respuesta (`devToken`) para poder probar el flujo completo sin leer logs del 
   `EmailVerificationReminder` (reenviar + confirmar) dentro de "Beneficios" cuando
   `emailVerifiedAt` es `null`. Typecheck/lint verdes, no probado en dispositivo.
 
+**Cloudflare Turnstile (captcha) en register / password-reset / login — implementado.** Registro y
+`password-reset/request` piden Turnstile en cada intento; login solo lo exige a partir del 5°
+intento fallido consecutivo desde la misma IP en los últimos 15 minutos (rate-limiting por abuso,
+no en cada login normal) — se limpia apenas esa IP loguea bien una vez. El token del cliente nunca
+alcanza por sí solo: `TurnstileService` (`apps/cloud-backend/src/accounts/turnstile.service.ts`)
+siempre lo re-verifica contra `https://challenges.cloudflare.com/turnstile/v0/siteverify` del lado
+del servidor antes de ejecutar cualquier lógica del endpoint. El contador de fallos vive en
+Postgres (`login_failed_attempts`, `LoginAttemptsRepository`) y no en memoria — el proceso de
+Render puede reiniciarse (free tier) y perdería el contador justo cuando más importa.
+
+- `TURNSTILE_SECRET_KEY` opcional (mismo criterio que `SENDGRID_API_KEY`): sin ella, la
+  verificación se omite fuera de producción (con un warning) para no obligar a nadie a dar de alta
+  una cuenta de Cloudflare para correr el backend local; en producción, sin la key, el endpoint
+  falla en vez de aceptar cualquier token.
+- `main.ts` ahora hace `app.set("trust proxy", 1)` — sin esto, `req.ip` devolvía la IP interna del
+  proxy de Render en vez de la del cliente real, tanto para el rate-limit por IP como para el
+  `remoteip` que se manda a Cloudflare.
+- `mobile-mini`: `TurnstileWidget` (`react-native-webview`, nueva dependencia) embebe el challenge
+  web de Turnstile — no existe SDK nativo de RN. `RegisterForm`/`ForgotPasswordForm` lo muestran
+  siempre; `LoginForm` arranca sin mostrarlo y recién lo renderiza si el backend responde
+  `CAPTCHA_REQUIRED` (nuevo `ApiError.code` en `apps/mobile-mini/src/accounts/api/errors.ts`).
+- Probado contra Postgres real: registro sin `turnstileToken` rechazado por Zod (400), registro con
+  token válido (verificación omitida en dev) completa el flujo de punta a punta. **No probado**: el
+  WebView en un dispositivo/emulador real (necesita rebuild nativo tras agregar
+  `react-native-webview`), ni el rate-limit de login contra la tabla nueva — la migración
+  (`0001_glossy_sunset_bain.sql`) se generó pero no se aplicó todavía (pendiente `db:migrate`).
+
 ### Logros — implementado y probado end-to-end, sin schema nuevo
 
 Agrega lo que ya estaba diseñado (setup quests + hitos de racha + referido + Cofounder) en un solo

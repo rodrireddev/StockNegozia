@@ -18,6 +18,13 @@ import { AccountJwtGuard, type RequestWithAccount } from "./account-jwt.guard";
 import { AccountsService } from "./accounts.service";
 import { ZodValidationPipe } from "../common/pipes/zod-validation.pipe";
 
+/** IP del cliente (ya resuelta por Express vía `trust proxy`, ver `main.ts`) — para Turnstile y el
+ *  rate-limit de login por IP. Mismo criterio que `RequestWithAccount`: interfaz mínima en vez de
+ *  depender de los tipos de `express`. */
+interface RequestWithIp {
+  ip?: string;
+}
+
 @Controller("accounts")
 export class AccountsController {
   constructor(@Inject(AccountsService) private readonly accountsService: AccountsService) {}
@@ -25,15 +32,17 @@ export class AccountsController {
   @Post("register")
   register(
     @Body(new ZodValidationPipe(accountRegisterSchema)) body: AccountRegisterInput,
+    @Req() request: RequestWithIp,
   ): Promise<AccountAuthResult> {
-    return this.accountsService.register(body);
+    return this.accountsService.register(body, request.ip);
   }
 
   @Post("login")
   login(
     @Body(new ZodValidationPipe(accountLoginSchema)) body: AccountLoginInput,
+    @Req() request: RequestWithIp,
   ): Promise<AccountAuthResult> {
-    return this.accountsService.login(body.email, body.password);
+    return this.accountsService.login(body.email, body.password, request.ip, body.turnstileToken);
   }
 
   @UseGuards(AccountJwtGuard)
@@ -71,8 +80,9 @@ export class AccountsController {
   @Post("password-reset/request")
   requestPasswordReset(
     @Body(new ZodValidationPipe(passwordResetRequestSchema)) body: PasswordResetRequestInput,
+    @Req() request: RequestWithIp,
   ): Promise<DevOnlyTokenResult> {
-    return this.accountsService.requestPasswordReset(body.email);
+    return this.accountsService.requestPasswordReset(body.email, body.turnstileToken, request.ip);
   }
 
   @Post("password-reset/confirm")

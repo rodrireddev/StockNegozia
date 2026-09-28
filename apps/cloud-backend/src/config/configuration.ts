@@ -20,6 +20,7 @@ function loadConfig() {
       : [],
     sendgridApiKey: env.SENDGRID_API_KEY,
     sendgridFromEmail: env.SENDGRID_FROM_EMAIL,
+    turnstileSecretKey: env.TURNSTILE_SECRET_KEY,
   };
 }
 
