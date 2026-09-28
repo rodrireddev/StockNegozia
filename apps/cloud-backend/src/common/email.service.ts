@@ -34,6 +34,13 @@ export class EmailService {
         ? createTransport({
             service: "gmail",
             auth: { user: config.gmailUser, pass: config.gmailAppPassword },
+            // Sin esto, si el puerto SMTP saliente está bloqueado o filtrado por el hosting (común
+            // en PaaS — a diferencia de una API HTTP como Resend/SendGrid, que usan 443, siempre
+            // abierto), `sendMail` puede quedarse esperando para siempre en vez de fallar: nunca
+            // rechaza, nunca resuelve. 10s alcanza de sobra para un handshake SMTP real.
+            connectionTimeout: 10_000,
+            greetingTimeout: 10_000,
+            socketTimeout: 10_000,
           })
         : null;
   }

@@ -153,7 +153,10 @@ export class AccountsService {
     if (!user) return {};
 
     const rawToken = await this.accountTokensService.issue(user.id, "password_reset", PASSWORD_RESET_TTL_MS);
-    await this.emailService.send({
+    // Sin `await` a propósito — mandar el email es best-effort (`EmailService.send` ya nunca tira,
+    // pero el SMTP real puede tardar varios segundos), no algo que el cliente tenga que esperar
+    // para recibir una respuesta (doc "nunca bloquea nada, en ningún nivel").
+    void this.emailService.send({
       to: email,
       subject: "Recuperar tu contraseña de StockNegozia",
       body: `Usá este código para elegir una contraseña nueva (vence en 1 hora): ${rawToken}`,
@@ -172,7 +175,8 @@ export class AccountsService {
 
   private async sendVerificationEmail(userId: string, email: string): Promise<{ devToken?: string }> {
     const rawToken = await this.accountTokensService.issue(userId, "email_verification", EMAIL_VERIFICATION_TTL_MS);
-    await this.emailService.send({
+    // Sin `await` a propósito — ver el mismo comentario en `requestPasswordReset`.
+    void this.emailService.send({
       to: email,
       subject: "Confirmá tu email de StockNegozia",
       body: `Usá este código para confirmar tu cuenta (vence en 24 horas): ${rawToken}`,
