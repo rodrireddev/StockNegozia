@@ -1026,10 +1026,73 @@ niveles):
     también en el código sin tocar, antes de este cambio — no es una regresión). typecheck + lint
     en verde en los 5 paquetes tocados (`backend`, `desktop`, `mobile`, `validation`,
     `api-contracts`) vía `pnpm turbo run typecheck lint`.
-  - **No se pudo probar** (mismo límite de siempre con Electron/React Native desde este entorno):
+  - **No se pudo probar desde este entorno** (mismo límite de siempre con Electron/React Native):
     el flujo real en la app Electron nativa (usa `contextBridge`, no disponible fuera de Electron —
     mismo límite ya documentado para `AdBanner`), y todo lo que depende del SDK nativo de AdMob en
     un dispositivo real (`useRewardedAd` de `apps/mobile`, mismo límite que `mobile-mini` siempre
     tuvo). El JWT de cuenta cloud en `apps/desktop` no tiene refresh token (mismo modelo simple que
     `mobile-mini`): al vencer, `AccountContext` cae a `unauthenticated` en el próximo llamado y hay
     que volver a loguearse — comportamiento esperado, no un bug.
+  - **Pendiente de testear a mano, en la app real (checklist para la próxima ronda)** — nada de
+    esto se probó todavía fuera de Vitest/Supertest:
+    - **`apps/desktop`**:
+      - Registro real: el widget de Turnstile (script de Cloudflare, `localhost` como hostname
+        configurado) tiene que renderizar y resolver el challenge de verdad dentro de la ventana de
+        Electron — es la primera vez que se prueba contra las credenciales reales (antes, sin
+        `TURNSTILE_SECRET_KEY` seteada, la verificación se saltaba). Confirmar que un registro con
+        token válido complete el flujo, y que uno sin token (o con el challenge sin resolver)
+        muestre el error del backend, no una pantalla rota.
+      - Login: 5 intentos fallidos seguidos desde la misma IP tienen que disparar
+        `CAPTCHA_REQUIRED` y recién ahí aparecer `TurnstileWidget` (arranca oculto) — confirmar que
+        loguearse bien después de eso limpia el contador (mismo criterio que ya vale para
+        `mobile-mini`).
+      - Con sesión iniciada: `BenefitsPage` muestra saldo/racha/código de referido/objetivos
+        activos/logros reales de la cuenta usada — y en ningún estado (cargando, con datos, sin
+        datos) aparece un botón de anuncio en ningún lado de la pantalla.
+      - Cerrar sesión desde desktop y, con `apps/mobile` emparejado y con la app abierta, confirmar
+        que la entrada "Beneficios" desaparece del menú "Más" sin necesidad de reabrir la app
+        (dentro del intervalo de poll de `useCloudAccountStatus`).
+      - Reiniciar `apps/desktop` con una sesión ya guardada (login previo) — confirmar que
+        `BenefitsPage` arranca autenticada sin pedir login de nuevo, y que un `apps/mobile`
+        emparejado que se conecta recién en ese momento YA ve "Beneficios" (prueba de que el JWT se
+        reempuja al backend recién arrancado antes de que cualquier mobile pueda preguntar).
+    - **`apps/mobile`**:
+      - Requiere un **dev client** (build nativo), no alcanza con Expo Go —
+        `react-native-google-mobile-ads` es un módulo nativo nuevo acá (recién agregado en esta
+        pasada), mismo requisito que ya tenía `mobile-mini` para probar ads.
+      - Emparejar con un desktop **sin** sesión cloud — confirmar que "Beneficios" no aparece en
+        "Más" en absoluto (no que esté ahí deshabilitado).
+      - Loguear el desktop emparejado — confirmar que "Beneficios" aparece en mobile sin tener que
+        volver a emparejar ni reiniciar la app.
+      - Dentro de "Beneficios": saldo mostrado coincide con el que ve `apps/desktop` para la misma
+        cuenta; la lista de objetivos activos coincide también (mismo endpoint reenviado).
+      - Ver un anuncio de prueba completo: confirmar que `claimRewardedAd()` (vía el proxy, nunca
+        directo a cloud-backend) acredita créditos, que el mensaje "+N créditos" se muestra, y que
+        — sin recargar nada manual — el siguiente `refetchMe`/apertura de `BenefitsPage` en
+        `apps/desktop` para esa misma cuenta ya refleja el saldo nuevo (doc, requisito 6: "alcanza
+        con que desktop pueda volver a pedir su propio estado a cloud-backend").
+      - Tope diario / cooldown: mirar anuncios hasta el tope y confirmar que el botón pasa a "Ya
+        viste el máximo de hoy" (o la cuenta regresiva de cooldown), sin permitir seguir viendo.
+      - Consentimiento UMP (`AdsConsent.gatherConsent()`): confirmar que no rompe el arranque de la
+        app en una región que no lo exige, y — si hay forma de simular EEA/UK — que el formulario
+        aparece antes de que se pida cualquier anuncio.
+      - Confirmar en el código en vivo (no solo revisión) que en ningún punto de `apps/mobile`
+        aparece un formulario de login/registro — ni siquiera como fallback de error.
+    - **`apps/mobile-mini`** (no se tocó código acá, pero cambió el comportamiento real de
+      producción): con `TURNSTILE_SECRET_KEY` ahora cargada de verdad en Render, **es la primera
+      vez que el registro/login/password-reset de `mobile-mini` se van a verificar contra
+      Cloudflare de verdad en producción** — hasta ahora, según lo ya documentado más arriba, todo
+      lo probado fue con la verificación salteada (sin la key seteada). Probar en un dispositivo
+      real (no solo Expo Go, por el `WebView` de `TurnstileWidget`):
+      - Registro nuevo completo, con el challenge de Turnstile resolviéndose de verdad dentro del
+        `WebView`.
+      - Login con captcha (5 fallos seguidos) con el mismo widget.
+      - Pedido de reset de contraseña (también exige `turnstileToken` siempre, no solo tras fallos).
+      - Si algo fallaba silenciosamente por depender de la verificación salteada, este es el
+        momento en que aparecería — revisar logs de `apps/cloud-backend` ante cualquier 400/401
+        inesperado en estos tres flujos.
+      - Cruce entre apps (mismo backend de cuentas, no hay nada que lo impida): loguear en
+        `mobile-mini` con la misma cuenta que se registró/logueó desde `apps/desktop` en esta
+        pasada, y confirmar que saldo/racha/logros son exactamente los mismos — son la misma fila
+        de `users`, así que tendría que ser automático, pero nunca se probó cruzado entre tres apps
+        a la vez.
