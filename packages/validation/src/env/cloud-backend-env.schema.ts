@@ -18,13 +18,16 @@ export const cloudBackendEnvSchema = z.object({
   // Orígenes adicionales permitidos por CORS (panel de administración, futuros clientes), separados
   // por coma — mismo patrón que `backendEnvSchema.CORS_ALLOWED_ORIGINS`.
   CORS_ALLOWED_ORIGINS: z.string().optional(),
-  // Proveedor de email real (Resend) — opcional a propósito: sin esto, `EmailService` sigue
-  // logueando en vez de mandar (mismo comportamiento que siempre tuvo en dev, doc
-  // ADS_CREDITS_GAMIFICATION.md §3). Conectar Resend de verdad es solo setear esta variable.
-  RESEND_API_KEY: z.string().optional(),
-  // `onboarding@resend.dev` (el remitente de prueba de Resend, funciona sin verificar dominio
-  // propio) hasta que haya un dominio real verificado en Resend.
-  RESEND_FROM_EMAIL: z.string().default("StockNegozia <onboarding@resend.dev>"),
+  // Proveedor de email real (SendGrid, no Resend) — opcional a propósito: sin esto, `EmailService`
+  // sigue logueando en vez de mandar (mismo comportamiento que siempre tuvo en dev, doc
+  // ADS_CREDITS_GAMIFICATION.md §3). Resend exige un dominio propio verificado para mandar a
+  // cualquier destinatario (sin dominio, solo deja mandar a la casilla dueña de la cuenta) — sin
+  // presupuesto para comprar uno todavía, SendGrid sí permite verificar un solo email existente
+  // ("Single Sender Verification") y mandar a cualquiera desde ahí.
+  SENDGRID_API_KEY: z.string().optional(),
+  // El email que se verificó como "Single Sender" en SendGrid — tiene que ser exactamente ese,
+  // SendGrid rechaza el envío si el remitente no está verificado.
+  SENDGRID_FROM_EMAIL: z.string().optional(),
 });
 
 export type CloudBackendEnv = z.infer<typeof cloudBackendEnvSchema>;

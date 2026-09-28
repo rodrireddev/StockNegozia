@@ -66,9 +66,14 @@ services:
         sync: false
       - key: ADMIN_SEED_PASSWORD
         sync: false
-      # Opcional — sin esto, los emails de verificación/reset se loguean en vez de mandarse de
-      # verdad (no rompe nada, solo no llegan). Conseguir en https://resend.com/api-keys.
-      - key: RESEND_API_KEY
+      # Opcionales — sin esto, los emails de verificación/reset se loguean en vez de mandarse de
+      # verdad (no rompe nada, solo no llegan). SendGrid, no Resend: Resend exige dominio propio
+      # verificado para mandar a cualquiera, SendGrid deja verificar un solo email existente
+      # ("Single Sender Verification" en app.sendgrid.com) sin necesitar dominio.
+      # `SENDGRID_FROM_EMAIL` tiene que ser exactamente ese email verificado.
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: SENDGRID_FROM_EMAIL
         sync: false
 
   - type: web
