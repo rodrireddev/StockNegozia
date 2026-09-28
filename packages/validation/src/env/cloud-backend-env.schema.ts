@@ -18,16 +18,21 @@ export const cloudBackendEnvSchema = z.object({
   // Orígenes adicionales permitidos por CORS (panel de administración, futuros clientes), separados
   // por coma — mismo patrón que `backendEnvSchema.CORS_ALLOWED_ORIGINS`.
   CORS_ALLOWED_ORIGINS: z.string().optional(),
-  // Proveedor de email real (SMTP de Gmail, no Resend/SendGrid) — opcional a propósito: sin esto,
-  // `EmailService` sigue logueando en vez de mandar (mismo comportamiento que siempre tuvo en dev,
-  // doc ADS_CREDITS_GAMIFICATION.md §3). Resend y SendGrid mandan desde SUS servidores diciendo
-  // "soy gmail.com" (SPF/DKIM no alineado, sin dominio propio no hay forma de arreglar eso) — Gmail
-  // lo trata como spoofing y lo manda a spam, confirmado en producción. Mandar por el SMTP real de
-  // Gmail evita el problema de raíz: el mensaje sale genuinamente de la infraestructura de Google.
+  // Proveedor de email real: API REST de Gmail por HTTPS (OAuth2) — no SMTP, no Resend/SendGrid.
+  // Opcional a propósito: sin esto, `EmailService` sigue logueando en vez de mandar (mismo
+  // comportamiento que siempre tuvo en dev, doc ADS_CREDITS_GAMIFICATION.md §3). El SMTP real de
+  // Gmail (probado antes que esto) queda bloqueado por Render en el plan free (puertos 25/465/587,
+  // ver el changelog de Render sobre esto) — la API REST usa el puerto 443 (HTTPS normal), que
+  // nunca se bloquea, y el mensaje sigue saliendo genuinamente de la infraestructura de Google
+  // (mismo motivo original: Resend/SendGrid no pueden alinear SPF/DKIM para un remitente @gmail.com
+  // sin dominio propio, y eso caía a spam).
   GMAIL_USER: z.string().optional(),
-  // Contraseña de aplicación (myaccount.google.com/apppasswords, no la contraseña real de la
-  // cuenta) — necesita 2FA activado en esa cuenta de Gmail.
-  GMAIL_APP_PASSWORD: z.string().optional(),
+  // Credenciales OAuth2 de un proyecto de Google Cloud (console.cloud.google.com) con la Gmail API
+  // habilitada — `GMAIL_REFRESH_TOKEN` se consigue una sola vez hacienda el consentimiento OAuth
+  // con scope `https://www.googleapis.com/auth/gmail.send` para la cuenta de `GMAIL_USER`.
+  GMAIL_CLIENT_ID: z.string().optional(),
+  GMAIL_CLIENT_SECRET: z.string().optional(),
+  GMAIL_REFRESH_TOKEN: z.string().optional(),
 });
 
 export type CloudBackendEnv = z.infer<typeof cloudBackendEnvSchema>;

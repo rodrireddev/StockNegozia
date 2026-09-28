@@ -369,9 +369,6 @@ importers:
       drizzle-orm:
         specifier: ^0.38.3
         version: 0.38.4(@types/better-sqlite3@7.6.13)(@types/pg@8.23.1)(@types/react@19.3.0)(better-sqlite3@11.10.0)(expo-sqlite@57.0.3(expo@57.0.25)(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0))(pg@8.23.0)(react@19.3.0)
-      nodemailer:
-        specifier: ^7.0.9
-        version: 7.0.13
       pg:
         specifier: ^8.13.1
         version: 8.23.0
@@ -397,9 +394,6 @@ importers:
       '@types/node':
         specifier: ^22.10.5
         version: 22.20.2
-      '@types/nodemailer':
-        specifier: ^7.0.4
-        version: 7.0.12
       '@types/pg':
         specifier: ^8.11.10
         version: 8.23.1
@@ -4211,9 +4205,6 @@ packages:
 
   '@types/node@24.13.5':
     resolution: {integrity: sha512-TXyindR+lBr22aJIdMQzCFHPHR6cR4js838mRDCSz5hOKWZvZwsXSSiXDmjRj4iJmgl+sR9O+1mkoVBSMadNug==}
-
-  '@types/nodemailer@7.0.12':
-    resolution: {integrity: sha512-80vKwiIsVSyFA1rRovH59jNPLBOuc6dRZIHEu40gXTkBkZnQv8vog1xSGEb9j5q/tdMAs5ivvDR2pLTU0hGHXA==}
 
   '@types/pdfkit@0.17.6':
     resolution: {integrity: sha512-tIwzxk2uWKp0Cq9JIluQXJid77lYhF52EsIOwhsMF4iWLA6YneoBR1xVKYYdAysHuepUB0OX4tdwMiUDdGKmig==}
@@ -8044,10 +8035,6 @@ packages:
   node-releases@2.0.55:
     resolution: {integrity: sha512-mIrE/Cw9y+9Au6dS5vDKDhQza9YvG6w+ZrS6X+ZzA7yFW/soAeaups4Qzn1bL6g5FVy8WtP79+0j82oPIbqRjQ==}
     engines: {node: '>=18'}
-
-  nodemailer@7.0.13:
-    resolution: {integrity: sha512-PNDFSJdP+KFgdsG3ZzMXCgquO7I6McjY2vlqILjtJd0hy8wEvtugS9xKRF2NWlPNGxvLCXlTNIae4serI7dinw==}
-    engines: {node: '>=6.0.0'}
 
   nopt@9.0.0:
     resolution: {integrity: sha512-Zhq3a+yFKrYwSBluL4H9XP3m3y5uvQkB/09CwDruCiRmR/UJYnn9W4R48ry0uGC70aeTPKLynBtscP9efFFcPw==}
@@ -14416,10 +14403,6 @@ snapshots:
     dependencies:
       undici-types: 7.18.2
 
-  '@types/nodemailer@7.0.12':
-    dependencies:
-      '@types/node': 22.20.2
-
   '@types/pdfkit@0.17.6':
     dependencies:
       '@types/node': 22.20.2
@@ -19841,8 +19824,6 @@ snapshots:
   node-mock-http@1.0.5: {}
 
   node-releases@2.0.55: {}
-
-  nodemailer@7.0.13: {}
 
   nopt@9.0.0:
     dependencies:

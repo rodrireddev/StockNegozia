@@ -302,19 +302,36 @@ v1, ver `apps/cloud-backend/src/accounts`).
 **Confirmación de email + recuperación de contraseña — implementado y probado end-to-end contra
 Postgres real.** Ambos comparten `account_tokens` (token de un solo uso, hasheado SHA-256 igual
 que `credentialHash` en apps/backend, nunca en texto plano; pedir uno nuevo invalida cualquier
-anterior sin usar del mismo propósito). **Proveedor real: SMTP de Gmail — pasó por Resend y
-SendGrid antes de llegar acá.** Resend exige un dominio propio verificado para mandar a cualquier
-destinatario (sin dominio, solo deja mandar a la casilla dueña de la cuenta, descubierto al probar
-el registro con un email real). Se migró a SendGrid ("Single Sender Verification", sin dominio) y
-el envío funcionó, pero llegaba a spam: sin dominio propio no hay forma de alinear SPF/DKIM para un
-remitente `@gmail.com` mandado desde los servidores de un tercero, y Gmail lo trata como spoofing.
-La solución real: autenticarse contra `smtp.gmail.com` con una cuenta de Gmail de verdad (paquete
-`nodemailer`) — el mensaje sale genuinamente de la infraestructura de Google, no de un tercero que
-dice serlo, así que no depende de configurar nada en un dominio que no se tiene. `EmailService`
-(`apps/cloud-backend/src/common/email.service.ts`) manda de verdad si `GMAIL_USER`/
-`GMAIL_APP_PASSWORD` están seteadas (contraseña de aplicación, no la real — requiere 2FA activado
-en esa cuenta), y sigue logueando en vez de mandar si no (mismo comportamiento de siempre en
-dev/test). Fuera de producción, el token también se devuelve en la respuesta (`devToken`) para
+anterior sin usar del mismo propósito). **Proveedor real: API REST de Gmail (OAuth2) — pasó por
+Resend, SendGrid y el SMTP real de Gmail antes de llegar acá.** Resend exige un dominio propio
+verificado para mandar a cualquier destinatario (sin dominio, solo deja mandar a la casilla dueña
+de la cuenta, descubierto al probar el registro con un email real). Se migró a SendGrid ("Single
+Sender Verification", sin dominio) y el envío funcionó, pero llegaba a spam: sin dominio propio no
+hay forma de alinear SPF/DKIM para un remitente `@gmail.com` mandado desde los servidores de un
+tercero, y Gmail lo trata como spoofing. Se migró a `smtp.gmail.com` con una cuenta de Gmail de
+verdad (`nodemailer`) — evitaba el spam (el mensaje sale genuinamente de la infraestructura de
+Google), pero Render bloquea el tráfico saliente a los puertos SMTP (25/465/587) en el plan free
+desde sep-2025 (ver su changelog), así que la conexión daba timeout siempre, sin importar el
+puerto. Solución final: la **API REST de Gmail** (`gmail.googleapis.com`) — HTTPS normal, puerto
+443, nunca bloqueado, mismo beneficio que el SMTP real sin depender de qué puertos deje pasar el
+hosting. `EmailService` (`apps/cloud-backend/src/common/email.service.ts`) arma el mensaje RFC 2822
+a mano (`fetch`, sin agregar un SDK) y manda de verdad si `GMAIL_USER`/`GMAIL_CLIENT_ID`/
+`GMAIL_CLIENT_SECRET`/`GMAIL_REFRESH_TOKEN` están seteadas, y sigue logueando en vez de mandar si no
+(mismo comportamiento de siempre en dev/test). Cómo conseguir esas credenciales (una sola vez, por
+cuenta de Gmail):
+1. Crear un proyecto en [console.cloud.google.com](https://console.cloud.google.com/), habilitar
+   la "Gmail API" (menú APIs & Services → Library).
+2. Configurar la pantalla de consentimiento OAuth (APIs & Services → OAuth consent screen) — tipo
+   "External" alcanza, no hace falta verificación de Google para uso propio con pocos usuarios.
+3. Crear credenciales OAuth 2.0 Client ID (APIs & Services → Credentials → Create Credentials →
+   OAuth client ID → "Web application"), con `https://developers.google.com/oauthplayground` como
+   URI de redirección autorizada — de ahí salen `GMAIL_CLIENT_ID`/`GMAIL_CLIENT_SECRET`.
+4. En [OAuth 2.0 Playground](https://developers.google.com/oauthplayground/), engranaje (⚙️) →
+   marcar "Use your own OAuth credentials" y pegar el Client ID/Secret del paso anterior. Elegir el
+   scope `https://www.googleapis.com/auth/gmail.send`, autorizar con la cuenta de `GMAIL_USER`, y
+   en el paso 2 del Playground tocar "Exchange authorization code for tokens" — el "Refresh token"
+   que aparece ahí es `GMAIL_REFRESH_TOKEN` (no expira, se usa para pedir access tokens nuevos en
+   cada envío). Fuera de producción, el token también se devuelve en la respuesta (`devToken`) para
 poder probar el flujo completo sin leer logs del servidor.
 
 - `POST /accounts/verify-email/resend` (autenticado) + `POST /accounts/verify-email/confirm`
@@ -786,21 +803,32 @@ niveles):
     después de comprar.
   - typecheck + lint de los 14 paquetes del monorepo en verde, 28 tests de `mobile-mini` sin
     regresiones. No se pudo probar en dispositivo real (mismo límite de siempre).
-- [x] **Proveedor de email real: Resend → SendGrid → SMTP de Gmail (nodemailer).** Primer intento
-  con Resend (`resend.emails.send`, remitente `onboarding@resend.dev`) funcionó en el deploy real,
-  pero probar el registro con un email de verdad reveló la restricción real: sin dominio propio
-  verificado en Resend, solo deja mandar a la casilla dueña de la cuenta, a cualquier otro
-  destinatario lo rechaza. Se migró a SendGrid ("Single Sender Verification", sin dominio) — mandó
-  bien, pero cayó a spam en Gmail: sin dominio propio no hay forma de alinear SPF/DKIM para un
-  remitente `@gmail.com` mandado desde los servidores de SendGrid, Gmail lo trata como spoofing.
-  Se migró de nuevo, esta vez al SMTP real de Gmail (`nodemailer` + `createTransport({service:
-  "gmail"})`, autenticado con una contraseña de aplicación) — el mensaje sale genuinamente de la
-  infraestructura de Google, no de un tercero que dice serlo, así que no depende de un dominio que
-  no se tiene. `EmailService` manda de verdad cuando `GMAIL_USER`/`GMAIL_APP_PASSWORD` están
-  seteadas; sin esas variables sigue logueando exactamente como antes, cero cambio de
-  comportamiento en dev/test. Los errores del envío nunca relanzan — mismo criterio ya usado en
-  `AccountsService` ("nunca bloquea nada"). Agregado a `render.yaml` como variables opcionales
-  (`sync: false`). typecheck + lint + build en verde.
+- [x] **Proveedor de email real: Resend → SendGrid → SMTP de Gmail → API REST de Gmail.** Primer
+  intento con Resend (`resend.emails.send`, remitente `onboarding@resend.dev`) funcionó en el
+  deploy real, pero probar el registro con un email de verdad reveló la restricción real: sin
+  dominio propio verificado en Resend, solo deja mandar a la casilla dueña de la cuenta, a
+  cualquier otro destinatario lo rechaza. Se migró a SendGrid ("Single Sender Verification", sin
+  dominio) — mandó bien, pero cayó a spam en Gmail: sin dominio propio no hay forma de alinear
+  SPF/DKIM para un remitente `@gmail.com` mandado desde los servidores de SendGrid, Gmail lo trata
+  como spoofing. Se migró al SMTP real de Gmail (`nodemailer` + `createTransport({service:
+  "gmail"})`, contraseña de aplicación) — evitaba el spam, pero dio "Connection timeout" en
+  producción: Render bloquea los puertos SMTP salientes (25/465/587) en el plan free desde
+  sep-2025, confirmado con su changelog oficial; se probó también el puerto 587 (STARTTLS en vez
+  de TLS implícito) por si el bloqueo era específico del 465, mismo resultado — el plan free
+  bloquea SMTP entero, no un puerto puntual. Solución final: la **API REST de Gmail**
+  (`gmail.googleapis.com/gmail/v1/users/me/messages/send`, autenticada por OAuth2) en vez de
+  SMTP — HTTPS normal por el puerto 443, nunca bloqueado, mismo beneficio de autenticidad que el
+  SMTP real sin depender de qué puertos deje pasar el hosting. Se sacó `nodemailer` (ya no hace
+  falta, es un cliente SMTP) y se armó el mensaje RFC 2822 a mano con `fetch` — un solo endpoint no
+  justifica agregar el SDK de `googleapis`. `EmailService` manda de verdad cuando `GMAIL_USER`/
+  `GMAIL_CLIENT_ID`/`GMAIL_CLIENT_SECRET`/`GMAIL_REFRESH_TOKEN` están seteadas (credenciales OAuth2
+  de un proyecto de Google Cloud, paso a paso más arriba); sin esas variables sigue logueando
+  exactamente como antes, cero cambio de comportamiento en dev/test. Los errores del envío nunca
+  relanzan — mismo criterio ya usado en `AccountsService` ("nunca bloquea nada"), y el propio envío
+  del email pasó a ser fire-and-forget (sin `await` en el flujo de request/response) para que un
+  handshake lento nunca cuelgue la respuesta HTTP al cliente — antes de este cambio, un timeout de
+  red silencioso dejaba el registro/reenvío colgado sin ningún error visible. Agregado a
+  `render.yaml` como variables opcionales (`sync: false`). typecheck + lint + build en verde.
 - [x] **`first_scan`/`profile_complete` conectados** — el último hueco de gamification que
   quedaba sin disparador real en `mobile-mini`, ver detalle en la sección de Logros más arriba.
   `first_scan` en los tres consumidores del scanner (`ProductsScreen`/`SalesScreen`/

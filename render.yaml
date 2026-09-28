@@ -67,14 +67,18 @@ services:
       - key: ADMIN_SEED_PASSWORD
         sync: false
       # Opcionales — sin esto, los emails de verificación/reset se loguean en vez de mandarse de
-      # verdad (no rompe nada, solo no llegan). SMTP real de Gmail, no un ESP de terceros: Resend y
-      # SendGrid mandan desde sus propios servidores diciendo "soy gmail.com" sin poder alinear
-      # SPF/DKIM (no hay dominio propio), Gmail lo trata como spoofing y cae a spam (confirmado en
-      # producción). `GMAIL_APP_PASSWORD` se genera en myaccount.google.com/apppasswords (necesita
-      # 2FA activado en esa cuenta) — nunca la contraseña real de la cuenta.
+      # verdad (no rompe nada, solo no llegan). API REST de Gmail (OAuth2), no SMTP: el SMTP real
+      # de Gmail funcionaba pero Render bloquea los puertos SMTP salientes (25/465/587) en el plan
+      # free desde sep-2025; la API REST usa HTTPS (443), nunca bloqueado. Credenciales de un
+      # proyecto de Google Cloud con la Gmail API habilitada — ver
+      # docs/monetization/ADS_CREDITS_GAMIFICATION.md §3 para el paso a paso de cómo conseguirlas.
       - key: GMAIL_USER
         sync: false
-      - key: GMAIL_APP_PASSWORD
+      - key: GMAIL_CLIENT_ID
+        sync: false
+      - key: GMAIL_CLIENT_SECRET
+        sync: false
+      - key: GMAIL_REFRESH_TOKEN
         sync: false
 
   - type: web
