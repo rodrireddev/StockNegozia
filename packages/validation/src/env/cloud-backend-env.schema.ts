@@ -18,16 +18,16 @@ export const cloudBackendEnvSchema = z.object({
   // Orígenes adicionales permitidos por CORS (panel de administración, futuros clientes), separados
   // por coma — mismo patrón que `backendEnvSchema.CORS_ALLOWED_ORIGINS`.
   CORS_ALLOWED_ORIGINS: z.string().optional(),
-  // Proveedor de email real (SendGrid, no Resend) — opcional a propósito: sin esto, `EmailService`
-  // sigue logueando en vez de mandar (mismo comportamiento que siempre tuvo en dev, doc
-  // ADS_CREDITS_GAMIFICATION.md §3). Resend exige un dominio propio verificado para mandar a
-  // cualquier destinatario (sin dominio, solo deja mandar a la casilla dueña de la cuenta) — sin
-  // presupuesto para comprar uno todavía, SendGrid sí permite verificar un solo email existente
-  // ("Single Sender Verification") y mandar a cualquiera desde ahí.
-  SENDGRID_API_KEY: z.string().optional(),
-  // El email que se verificó como "Single Sender" en SendGrid — tiene que ser exactamente ese,
-  // SendGrid rechaza el envío si el remitente no está verificado.
-  SENDGRID_FROM_EMAIL: z.string().optional(),
+  // Proveedor de email real (SMTP de Gmail, no Resend/SendGrid) — opcional a propósito: sin esto,
+  // `EmailService` sigue logueando en vez de mandar (mismo comportamiento que siempre tuvo en dev,
+  // doc ADS_CREDITS_GAMIFICATION.md §3). Resend y SendGrid mandan desde SUS servidores diciendo
+  // "soy gmail.com" (SPF/DKIM no alineado, sin dominio propio no hay forma de arreglar eso) — Gmail
+  // lo trata como spoofing y lo manda a spam, confirmado en producción. Mandar por el SMTP real de
+  // Gmail evita el problema de raíz: el mensaje sale genuinamente de la infraestructura de Google.
+  GMAIL_USER: z.string().optional(),
+  // Contraseña de aplicación (myaccount.google.com/apppasswords, no la contraseña real de la
+  // cuenta) — necesita 2FA activado en esa cuenta de Gmail.
+  GMAIL_APP_PASSWORD: z.string().optional(),
 });
 
 export type CloudBackendEnv = z.infer<typeof cloudBackendEnvSchema>;

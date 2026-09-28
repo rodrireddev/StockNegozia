@@ -67,13 +67,14 @@ services:
       - key: ADMIN_SEED_PASSWORD
         sync: false
       # Opcionales — sin esto, los emails de verificación/reset se loguean en vez de mandarse de
-      # verdad (no rompe nada, solo no llegan). SendGrid, no Resend: Resend exige dominio propio
-      # verificado para mandar a cualquiera, SendGrid deja verificar un solo email existente
-      # ("Single Sender Verification" en app.sendgrid.com) sin necesitar dominio.
-      # `SENDGRID_FROM_EMAIL` tiene que ser exactamente ese email verificado.
-      - key: SENDGRID_API_KEY
+      # verdad (no rompe nada, solo no llegan). SMTP real de Gmail, no un ESP de terceros: Resend y
+      # SendGrid mandan desde sus propios servidores diciendo "soy gmail.com" sin poder alinear
+      # SPF/DKIM (no hay dominio propio), Gmail lo trata como spoofing y cae a spam (confirmado en
+      # producción). `GMAIL_APP_PASSWORD` se genera en myaccount.google.com/apppasswords (necesita
+      # 2FA activado en esa cuenta) — nunca la contraseña real de la cuenta.
+      - key: GMAIL_USER
         sync: false
-      - key: SENDGRID_FROM_EMAIL
+      - key: GMAIL_APP_PASSWORD
         sync: false
 
   - type: web

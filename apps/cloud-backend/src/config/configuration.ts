@@ -18,8 +18,8 @@ function loadConfig() {
           .map((origin) => origin.trim())
           .filter((origin) => origin.length > 0)
       : [],
-    sendgridApiKey: env.SENDGRID_API_KEY,
-    sendgridFromEmail: env.SENDGRID_FROM_EMAIL,
+    gmailUser: env.GMAIL_USER,
+    gmailAppPassword: env.GMAIL_APP_PASSWORD,
   };
 }
 

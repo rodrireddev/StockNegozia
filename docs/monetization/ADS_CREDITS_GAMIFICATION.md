@@ -302,16 +302,20 @@ v1, ver `apps/cloud-backend/src/accounts`).
 **Confirmación de email + recuperación de contraseña — implementado y probado end-to-end contra
 Postgres real.** Ambos comparten `account_tokens` (token de un solo uso, hasheado SHA-256 igual
 que `credentialHash` en apps/backend, nunca en texto plano; pedir uno nuevo invalida cualquier
-anterior sin usar del mismo propósito). **Proveedor real: SendGrid, no Resend** (decidido, cambiado
-después de probar Resend en producción) — Resend exige un dominio propio verificado para mandar a
-cualquier destinatario (sin dominio, solo deja mandar a la casilla dueña de la cuenta de Resend, lo
-que se descubrió recién al probar el registro con un email real); sin presupuesto todavía para un
-dominio, SendGrid permite verificar un solo email existente ("Single Sender Verification") y mandar
-a cualquiera desde ahí, sin dominio. `EmailService` (`apps/cloud-backend/src/common/email.service.ts`)
-manda de verdad si `SENDGRID_API_KEY`/`SENDGRID_FROM_EMAIL` están seteadas, y sigue logueando en vez
-de mandar si no (mismo comportamiento de siempre en dev/test, cero fricción sin cuenta de SendGrid).
-Fuera de producción, el token también se devuelve en la respuesta (`devToken`) para poder probar el
-flujo completo sin leer logs del servidor.
+anterior sin usar del mismo propósito). **Proveedor real: SMTP de Gmail — pasó por Resend y
+SendGrid antes de llegar acá.** Resend exige un dominio propio verificado para mandar a cualquier
+destinatario (sin dominio, solo deja mandar a la casilla dueña de la cuenta, descubierto al probar
+el registro con un email real). Se migró a SendGrid ("Single Sender Verification", sin dominio) y
+el envío funcionó, pero llegaba a spam: sin dominio propio no hay forma de alinear SPF/DKIM para un
+remitente `@gmail.com` mandado desde los servidores de un tercero, y Gmail lo trata como spoofing.
+La solución real: autenticarse contra `smtp.gmail.com` con una cuenta de Gmail de verdad (paquete
+`nodemailer`) — el mensaje sale genuinamente de la infraestructura de Google, no de un tercero que
+dice serlo, así que no depende de configurar nada en un dominio que no se tiene. `EmailService`
+(`apps/cloud-backend/src/common/email.service.ts`) manda de verdad si `GMAIL_USER`/
+`GMAIL_APP_PASSWORD` están seteadas (contraseña de aplicación, no la real — requiere 2FA activado
+en esa cuenta), y sigue logueando en vez de mandar si no (mismo comportamiento de siempre en
+dev/test). Fuera de producción, el token también se devuelve en la respuesta (`devToken`) para
+poder probar el flujo completo sin leer logs del servidor.
 
 - `POST /accounts/verify-email/resend` (autenticado) + `POST /accounts/verify-email/confirm`
   (público — el token es la autenticación). Se manda automáticamente al registrarse, sin bloquear
@@ -782,18 +786,21 @@ niveles):
     después de comprar.
   - typecheck + lint de los 14 paquetes del monorepo en verde, 28 tests de `mobile-mini` sin
     regresiones. No se pudo probar en dispositivo real (mismo límite de siempre).
-- [x] **Proveedor de email real conectado: Resend → reemplazado por SendGrid.** Primer intento con
-  Resend (`resend.emails.send`, remitente `onboarding@resend.dev`) funcionó en el deploy real, pero
-  probar el registro con un email de verdad reveló la restricción real: sin dominio propio
+- [x] **Proveedor de email real: Resend → SendGrid → SMTP de Gmail (nodemailer).** Primer intento
+  con Resend (`resend.emails.send`, remitente `onboarding@resend.dev`) funcionó en el deploy real,
+  pero probar el registro con un email de verdad reveló la restricción real: sin dominio propio
   verificado en Resend, solo deja mandar a la casilla dueña de la cuenta, a cualquier otro
-  destinatario lo rechaza. Sin presupuesto todavía para comprar un dominio, se migró a SendGrid
-  (API REST directa con `fetch`, sin agregar el SDK — un solo endpoint no lo justifica), que
-  permite "Single Sender Verification": verificar un email que ya se tiene (sin dominio) y mandar
-  desde ahí a cualquier destinatario. `EmailService` manda de verdad cuando
-  `SENDGRID_API_KEY`/`SENDGRID_FROM_EMAIL` están seteadas; sin esas variables sigue logueando
-  exactamente como antes, cero cambio de comportamiento en dev/test. Los errores del envío nunca
-  relanzan — mismo criterio ya usado en `AccountsService` ("nunca bloquea nada"). Agregado a
-  `render.yaml` como variables opcionales (`sync: false`). typecheck + lint + build en verde.
+  destinatario lo rechaza. Se migró a SendGrid ("Single Sender Verification", sin dominio) — mandó
+  bien, pero cayó a spam en Gmail: sin dominio propio no hay forma de alinear SPF/DKIM para un
+  remitente `@gmail.com` mandado desde los servidores de SendGrid, Gmail lo trata como spoofing.
+  Se migró de nuevo, esta vez al SMTP real de Gmail (`nodemailer` + `createTransport({service:
+  "gmail"})`, autenticado con una contraseña de aplicación) — el mensaje sale genuinamente de la
+  infraestructura de Google, no de un tercero que dice serlo, así que no depende de un dominio que
+  no se tiene. `EmailService` manda de verdad cuando `GMAIL_USER`/`GMAIL_APP_PASSWORD` están
+  seteadas; sin esas variables sigue logueando exactamente como antes, cero cambio de
+  comportamiento en dev/test. Los errores del envío nunca relanzan — mismo criterio ya usado en
+  `AccountsService` ("nunca bloquea nada"). Agregado a `render.yaml` como variables opcionales
+  (`sync: false`). typecheck + lint + build en verde.
 - [x] **`first_scan`/`profile_complete` conectados** — el último hueco de gamification que
   quedaba sin disparador real en `mobile-mini`, ver detalle en la sección de Logros más arriba.
   `first_scan` en los tres consumidores del scanner (`ProductsScreen`/`SalesScreen`/
