@@ -18,10 +18,8 @@ function loadConfig() {
           .map((origin) => origin.trim())
           .filter((origin) => origin.length > 0)
       : [],
-    gmailUser: env.GMAIL_USER,
-    gmailClientId: env.GMAIL_CLIENT_ID,
-    gmailClientSecret: env.GMAIL_CLIENT_SECRET,
-    gmailRefreshToken: env.GMAIL_REFRESH_TOKEN,
+    sendgridApiKey: env.SENDGRID_API_KEY,
+    sendgridFromEmail: env.SENDGRID_FROM_EMAIL,
   };
 }
 
