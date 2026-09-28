@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter, type Href } from "expo-router";
 import {
   ChevronRight,
+  Gift,
   Layers,
   Settings,
   ShoppingBag,
@@ -13,6 +14,7 @@ import {
 } from "lucide-react-native";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { Card } from "@/components/Card";
+import { useCloudAccountStatus } from "@/devices/useCloudAccountStatus";
 import { useTheme } from "@/theme/useTheme";
 import { minTouchTarget, spacing, typography } from "@/theme/tokens";
 
@@ -32,12 +34,28 @@ const ITEMS: MoreItem[] = [
   { href: "/settings", label: "Ajustes", description: "Este dispositivo y cerrar sesión", icon: Settings },
 ];
 
+/**
+ * Solo existe cuando el desktop emparejado tiene una cuenta cloud logueada (doc
+ * ADS_CREDITS_GAMIFICATION.md, requisito 4) — no una entrada deshabilitada, directamente no está
+ * en el array (ver `useCloudAccountStatus`).
+ */
+const BENEFITS_ITEM: MoreItem = {
+  // `as Href`: expo-router recién agrega esta ruta al union tipado después de que el dev server la
+  // vea una vez (no corrió acá) — mismo criterio que `mobile-mini/.../BenefitsScreen.tsx`.
+  href: "/benefits" as Href,
+  label: "Beneficios",
+  description: "Créditos, objetivos y anuncios",
+  icon: Gift,
+};
+
 /** Hub de teléfono para las secciones que no entran en la barra inferior (`Productos`/`Ventas`/
  *  `Más`) — en tablet estas mismas secciones están directamente en el riel lateral, ver
  *  `AdaptiveShell`. */
 export function MoreScreen() {
   const { colors } = useTheme();
   const router = useRouter();
+  const cloudAccountStatus = useCloudAccountStatus();
+  const items = cloudAccountStatus.data?.linked ? [...ITEMS, BENEFITS_ITEM] : ITEMS;
 
   return (
     <ScreenContainer>
@@ -45,7 +63,7 @@ export function MoreScreen() {
         Más
       </Text>
       <View style={styles.list}>
-        {ITEMS.map((item) => (
+        {items.map((item) => (
           <Pressable key={item.label} onPress={() => router.push(item.href)}>
             <Card style={styles.row}>
               <item.icon color={colors.foreground} size={22} />

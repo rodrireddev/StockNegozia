@@ -27,6 +27,7 @@ function loadConfig() {
     accessMode: env.API_ACCESS_MODE,
     pairingExpirationMinutes: env.PAIRING_EXPIRATION_MINUTES,
     pairingHostOverride: env.PAIRING_HOST,
+    cloudBackendUrl: env.CLOUD_BACKEND_URL,
     corsAllowedOrigins: env.CORS_ALLOWED_ORIGINS
       ? env.CORS_ALLOWED_ORIGINS.split(",")
           .map((origin) => origin.trim())

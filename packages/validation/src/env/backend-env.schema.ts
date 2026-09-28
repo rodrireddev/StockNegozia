@@ -32,6 +32,10 @@ export const backendEnvSchema = z.object({
   // Desktop, un futuro cliente Mobile) — se suman a los orígenes conocidos por defecto (renderer de
   // Electron en dev, Web Client en dev/LAN). Ver docs/lan/DEVICE_MANAGEMENT.md §CORS.
   CORS_ALLOWED_ORIGINS: z.string().optional(),
+  // URL de apps/cloud-backend (backend multi-tenant de cuentas/créditos, distinto de este) — usada
+  // solo por el proxy `cloud-account` (ver docs/monetization/ADS_CREDITS_GAMIFICATION.md §6), que
+  // reenvía ahí los requests de `apps/mobile` con el JWT que Electron main le empuja.
+  CLOUD_BACKEND_URL: z.string().url().default("http://localhost:38200"),
 });
 
 export type BackendEnv = z.infer<typeof backendEnvSchema>;

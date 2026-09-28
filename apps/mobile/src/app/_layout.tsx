@@ -5,6 +5,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "@/auth/AuthContext";
+import { getNativeAdsModule } from "@/features/ads/nativeAdsModule";
 import { ThemeProvider, useThemeMode } from "@/theme/ThemeContext";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -36,6 +37,24 @@ function RootNavigator() {
       SplashScreen.hideAsync().catch(() => {});
     }
   }, [bootstrapping]);
+
+  // No bloquea el splash ni el resto del arranque — un rewarded ad recién hace falta cuando el
+  // usuario entra a "Beneficios" (doc ADS_CREDITS_GAMIFICATION.md §6). Mismo criterio que
+  // `apps/mobile-mini/src/app/_layout.tsx`: `AdsConsent.gatherConsent()` (UMP) siempre antes de
+  // inicializar el SDK. `getNativeAdsModule()` devuelve `null` en Expo Go — ahí no hay nada que
+  // inicializar, el resto de la app sigue funcionando igual (ver ese archivo).
+  useEffect(() => {
+    const nativeAds = getNativeAdsModule();
+    if (!nativeAds) return;
+    nativeAds.AdsConsent.gatherConsent()
+      .catch(() => {})
+      .finally(() => {
+        nativeAds
+          .default()
+          .initialize()
+          .catch(() => {});
+      });
+  }, []);
 
   if (bootstrapping) return null;
 

@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { BackendManager } from "./backend-manager";
 import { BackupManager } from "./backup-manager";
 import { ensureDeviceCredential } from "./bootstrap-device";
+import { CloudAccountCredentialStore } from "./cloud-account-credential-store";
 import { DeviceCredentialStore } from "./device-credential-store";
 import { PreferencesStore } from "./preferences-store";
 import { ReceiptManager } from "./receipt-manager";
@@ -22,8 +23,43 @@ const backendManager = new BackendManager({
 });
 
 const credentialStore = new DeviceCredentialStore(dataDir);
+const cloudAccountCredentialStore = new CloudAccountCredentialStore(dataDir);
 const preferencesStore = new PreferencesStore(dataDir);
 const themeController = new ThemeController(preferencesStore);
+
+/**
+ * Empuja (o borra) la sesión de cuenta cloud al backend local (`PUT /cloud-account/session`, ver
+ * docs/monetization/ADS_CREDITS_GAMIFICATION.md §6) — a diferencia de las requests que hace el
+ * Renderer, esta la dispara Electron Main directamente, así que no pasa por el
+ * `onBeforeSendHeaders` de `attachDeviceCredential` (eso solo intercepta requests de sesiones de
+ * `webContents`): hay que adjuntar la credential del propio dispositivo a mano. Sin credential de
+ * dispositivo todavía (bootstrap no resolvió), no hay nada que autenticar el push — se reintenta
+ * solo, en el próximo login/logout o arranque.
+ */
+async function pushCloudSession(accessToken: string | null): Promise<void> {
+  const deviceCredential = credentialStore.load()?.credential;
+  if (!deviceCredential) return;
+
+  try {
+    await fetch(`${backendManager.baseUrl}/cloud-account/session`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${deviceCredential}` },
+      body: JSON.stringify({ accessToken }),
+    });
+  } catch (error) {
+    console.error(`[cloud-account] No se pudo sincronizar la sesión con el backend local: ${error}`);
+  }
+}
+
+ipcMain.handle("cloudAccount:getToken", () => cloudAccountCredentialStore.load()?.accessToken ?? null);
+ipcMain.handle("cloudAccount:setToken", async (_event, accessToken: string, expiresAt: string) => {
+  cloudAccountCredentialStore.save({ accessToken, expiresAt });
+  await pushCloudSession(accessToken);
+});
+ipcMain.handle("cloudAccount:clearToken", async () => {
+  cloudAccountCredentialStore.clear();
+  await pushCloudSession(null);
+});
 
 function attachDeviceCredential(credential: string): void {
   session.defaultSession.webRequest.onBeforeSendHeaders(
@@ -103,6 +139,12 @@ async function bootstrap(): Promise<void> {
     // preferible a bloquear el arranque de la app por un problema transitorio de bootstrap.
     console.error(`[bootstrap-device] No se pudo resolver la credential del dispositivo: ${error}`);
   }
+
+  // El proceso del backend es nuevo en cada arranque (`BackendManager.start()`), así que arranca
+  // sin sesión de cuenta cloud en memoria aunque Desktop ya esté "logueado" localmente — hay que
+  // reempujarla una vez que el backend está sano.
+  const cloudAccountCredential = cloudAccountCredentialStore.load();
+  if (cloudAccountCredential) void pushCloudSession(cloudAccountCredential.accessToken);
 
   mainWindow = createMainWindow(iconPath);
   mainWindow.once("ready-to-show", () => {

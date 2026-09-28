@@ -79,3 +79,13 @@ export interface PairingStatusResult {
   status: PairingStatus;
   expiresAt: string;
 }
+
+/**
+ * Respuesta de `GET /cloud-account/status` (y de `PUT /cloud-account/session`, para confirmar el
+ * resultado del push) — ver docs/monetization/ADS_CREDITS_GAMIFICATION.md §6. `apps/mobile` la
+ * poll-ea para decidir si la opción "Beneficios" existe en su menú: `false` mientras el desktop
+ * emparejado no tenga una sesión de cuenta cloud activa.
+ */
+export interface CloudAccountStatusDto {
+  linked: boolean;
+}

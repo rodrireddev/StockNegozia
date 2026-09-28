@@ -7,6 +7,7 @@ import { LoggerModule } from "./common/logger/logger.module";
 import { AuthModule } from "./auth/auth.module";
 import { PairingModule } from "./auth/pairing/pairing.module";
 import { BackupModule } from "./backup/backup.module";
+import { CloudAccountModule } from "./cloud-account/cloud-account.module";
 import { CoreModule } from "./core/core.module";
 import { DatabaseModule } from "./database/database.module";
 import { HealthModule } from "./health/health.module";
@@ -25,6 +26,7 @@ import { HealthModule } from "./health/health.module";
     CoreModule,
     HealthModule,
     BackupModule,
+    CloudAccountModule,
   ],
 })
 export class AppModule implements NestModule {

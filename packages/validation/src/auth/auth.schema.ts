@@ -76,3 +76,15 @@ export const updateSellerNameSchema = z.object({
 });
 
 export type UpdateSellerNameInput = z.infer<typeof updateSellerNameSchema>;
+
+/**
+ * Body de `PUT /cloud-account/session` — Electron main empuja acá el JWT de cuenta cloud que
+ * guarda cifrado (ver docs/monetization/ADS_CREDITS_GAMIFICATION.md §6); `null` lo borra
+ * (logout). Nunca lo envía `apps/mobile`: el endpoint está detrás de `AdminDeviceGuard`, solo el
+ * dispositivo admin (desktop) puede llamarlo.
+ */
+export const setCloudAccountSessionSchema = z.object({
+  accessToken: z.string().min(1).nullable(),
+});
+
+export type SetCloudAccountSessionInput = z.infer<typeof setCloudAccountSessionSchema>;

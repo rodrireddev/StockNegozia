@@ -65,8 +65,25 @@ const themeApi = {
 
 contextBridge.exposeInMainWorld("theme", themeApi);
 
+/**
+ * Superficie mínima para la sesión de cuenta cloud (doc ADS_CREDITS_GAMIFICATION.md §6) — el JWT
+ * vive cifrado en Electron Main (`CloudAccountCredentialStore`), nunca en `localStorage` del
+ * renderer. `setToken`/`clearToken` también sincronizan el proxy `apps/backend` (ver
+ * `electron/main/index.ts`), para que un `apps/mobile` emparejado vea el cambio en su próximo
+ * poll de `/cloud-account/status`.
+ */
+const cloudAccountApi = {
+  getToken: (): Promise<string | null> => ipcRenderer.invoke("cloudAccount:getToken"),
+  setToken: (accessToken: string, expiresAt: string): Promise<void> =>
+    ipcRenderer.invoke("cloudAccount:setToken", accessToken, expiresAt),
+  clearToken: (): Promise<void> => ipcRenderer.invoke("cloudAccount:clearToken"),
+};
+
+contextBridge.exposeInMainWorld("cloudAccount", cloudAccountApi);
+
 export type StockNegoziaApi = typeof stockNegoziaApi;
 export type BackupApi = typeof backupApi;
 export type ReceiptApi = typeof receiptApi;
 export type ThemeApi = typeof themeApi;
+export type CloudAccountApi = typeof cloudAccountApi;
 export type { ThemePreference, ThemeStatus };

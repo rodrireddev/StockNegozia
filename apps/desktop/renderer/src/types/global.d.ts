@@ -74,12 +74,24 @@ export interface ThemeApi {
   onUpdated(callback: (resolvedDark: boolean) => void): () => void;
 }
 
+/**
+ * JWT de cuenta cloud (doc ADS_CREDITS_GAMIFICATION.md §6) — cifrado en Electron Main
+ * (`CloudAccountCredentialStore`), nunca en `localStorage`. `setToken`/`clearToken` también
+ * empujan el cambio al proxy `apps/backend` para que `apps/mobile` lo vea en su próximo poll.
+ */
+export interface CloudAccountApi {
+  getToken(): Promise<string | null>;
+  setToken(accessToken: string, expiresAt: string): Promise<void>;
+  clearToken(): Promise<void>;
+}
+
 declare global {
   interface Window {
     stockNegozia: StockNegoziaApi;
     backup: BackupApi;
     receipt: ReceiptApi;
     theme: ThemeApi;
+    cloudAccount: CloudAccountApi;
   }
 }
 

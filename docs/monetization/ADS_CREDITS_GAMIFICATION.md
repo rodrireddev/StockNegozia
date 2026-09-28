@@ -936,3 +936,86 @@ niveles):
       `scheduled_goal` cambiándole el `scheduleType` de `daily` a `weekly` a mitad de un período con
       progreso ya acumulado (el período vigente cambia de cálculo, el progreso viejo queda "huérfano"
       del período anterior — comportamiento esperado, pero nunca se vio pasar en vivo).
+- [x] **Cuenta cloud / créditos / gamification extendido a `apps/desktop` y `apps/mobile`** — hasta
+  acá todo esto vivía solo en `mobile-mini`; ninguna de las otras dos apps tenía nada de esto.
+  **Decisión de arquitectura tomada con el usuario antes de tocar código** (era la bisagra de todo
+  lo demás, ver sección 6): el JWT de cuenta cloud vive **exclusivamente en `apps/desktop`** (es
+  quien loguea); `apps/mobile` nunca lo ve ni conoce la URL de `apps/cloud-backend` — todo pasa por
+  un **proxy nuevo en `apps/backend`** (el server LAN que desktop ya embebe), manteniendo el
+  invariante de siempre: `apps/mobile` solo le habla a `apps/backend`. Se descartó pasarle el JWT
+  directo a mobile por el canal de pairing (opción evaluada y rechazada: obligaba a que mobile
+  aprendiera la URL de cloud-backend, sumar CORS ahí para clientes LAN, un segundo almacén de
+  credenciales en mobile y resincronizarlo en cada cambio de sesión — rompía el invariante actual
+  sin necesidad real). Alcance de `apps/mobile` acotado a pedido explícito: solo saldo + botón "ver
+  anuncio" + objetivos activos — nada de logros históricos, entitlements ni tablero de pedidos, y
+  **nunca** ninguna UI de registro/login ahí (la cuenta se maneja siempre desde desktop).
+  - **`apps/backend` — módulo `cloud-account`** (`src/cloud-account/`): `CloudSessionService`
+    guarda el JWT actual **solo en memoria** (nunca en disco de este proceso — es Electron Main
+    quien lo persiste cifrado y lo reempuja) y reenvía requests a `apps/cloud-backend` (nueva env
+    var `CLOUD_BACKEND_URL`, default `http://localhost:38200`, en `backendEnvSchema`).
+    `CloudAccountController`: `PUT /cloud-account/session` (solo el dispositivo admin, vía
+    `AdminDeviceGuard` — así ningún `apps/mobile` emparejado puede fijar la sesión de otro),
+    `GET /cloud-account/status` (`{ linked: boolean }`, lo que `apps/mobile` poll-ea para decidir
+    si "Beneficios" existe en el menú — chequeo en memoria, sin red a cloud-backend) y los
+    reenvíos (`/me`, `/goals/active`, `/rewarded-ad/status`, `/rewarded-ad/claim`,
+    `/ads/placement/:key`). Sin sesión, o si cloud-backend devuelve 401 (token vencido), los
+    reenvíos devuelven 404 `not_linked` en vez de un 401 genérico — el cliente trata esto igual que
+    "desktop no está logueado", sin un segundo estado de error que manejar; un fallo real de red
+    hacia cloud-backend devuelve 502 en cambio, para no confundir los dos casos.
+  - **`apps/desktop` (Electron Main)** — `CloudAccountCredentialStore` (mismo patrón que
+    `DeviceCredentialStore`: `safeStorage`, archivo cifrado propio en `userData`) guarda el JWT.
+    Nuevo bridge de preload `cloudAccount` (`getToken`/`setToken`/`clearToken`). Como
+    `apps/backend` corre como **proceso hijo separado** (no dentro de Electron Main —
+    `safeStorage` no está disponible ahí), `setToken`/`clearToken` además hacen un
+    `PUT /cloud-account/session` directo (con el propio device credential adjuntado a mano, ya que
+    esta request no pasa por el `onBeforeSendHeaders` que sí intercepta las del Renderer) para
+    mantener sincronizado el proceso del backend; y como ese proceso es nuevo en cada arranque de
+    la app, el JWT guardado se reempuja una vez que `backendManager.waitUntilHealthy()` resuelve.
+  - **`apps/desktop` (Renderer) — feature `benefits`**: `cloud-api-client.ts` extendido para
+    adjuntar el bearer (leído del bridge) y limpiar la sesión ante un 401 (`AuthRequiredError`).
+    `AccountContext.tsx` (port de la de `mobile-mini`, sin la cola offline/backfill de
+    gamification — fuera de alcance acá). `BenefitsPage.tsx`: login/registro (con
+    `TurnstileWidget.tsx` propio — a diferencia de `mobile-mini`, que lo embebe en un WebView
+    porque React Native no tiene DOM, acá el renderer de Electron ya es Chromium, así que carga el
+    script oficial de Cloudflare directo, sin el workaround), saldo + racha + código de referido,
+    `ActiveGoalsCard`, `AchievementsList` — y en vez de una card de rewarded ad (Electron no tiene
+    SDK de AdMob, doc §1bis), un aviso fijo aclarando **"para sumar créditos"** (para no confundirlo
+    con el banner pasivo de house ad que el sidebar ya tenía, que no otorga créditos y no tiene
+    nada que ver con esto): *"En la versión de escritorio no se pueden ver anuncios para sumar
+    créditos. Para ganar créditos mirando anuncios, usá la app StockNegozia Mobile en tu celular
+    emparejado con esta PC."* Nueva entrada "Beneficios" en el nav lateral.
+  - **`apps/mobile` — gating del menú + feature `benefits`**: `useCloudAccountStatus.ts`
+    (`src/devices/`, mismo patrón que `useDeviceInfo.ts`) poll-ea `GET /cloud-account/status`;
+    `MoreScreen.tsx` filtra `ITEMS` con eso — sin sesión cloud en el desktop emparejado, la entrada
+    "Beneficios" directamente no existe en el array (no deshabilitada). `BenefitsScreen.tsx`: card
+    de saldo + objetivos activos + card de "ver anuncio" con estado de elegibilidad — nada más.
+    `useRewardedAd.ts` (port del de `mobile-mini`, mismo `nativeAdsModule.ts` para que
+    `react-native-google-mobile-ads` — agregado como dependencia nueva, antes `apps/mobile` no
+    tenía SDK de ads — no crashee la app en Expo Go): el `userId` para SSV sale del `id` que
+    devuelve el proxy (`/cloud-account/me`), y el claim pega a `apps/backend`, nunca directo a
+    cloud-backend. `app.json` con el plugin de `react-native-google-mobile-ads` (mismos IDs de
+    prueba de Google que `mobile-mini`) y `_layout.tsx` con el mismo gate de consentimiento UMP
+    (`AdsConsent.gatherConsent()` antes de `mobileAds().initialize()`) antes de mostrar cualquier
+    anuncio.
+  - **Fuera de alcance a propósito en esta pasada**: compra de entitlements (backup/sacar-ads) en
+    desktop o mobile, lista de logros históricos en mobile, cualquier registro/login en mobile, y
+    ningún cambio a `apps/cloud-backend` (se reusa el claim interino de rewarded ad tal cual existe,
+    sin SSV real todavía — mismo pendiente ya documentado más arriba) ni a `mobile-mini`.
+  - Probado end-to-end contra el backend real (Vitest + Supertest, nuevo
+    `cloud-account.e2e.spec.ts`): sin sesión, `/status` da `false` y los reenvíos dan 404
+    `not_linked`; el dispositivo admin puede fijar/borrar la sesión y `/status` lo refleja; un
+    dispositivo no-admin (mobile) recibe 403 al intentar fijarla; con sesión, el reenvío adjunta el
+    bearer correcto y devuelve la respuesta de cloud-backend tal cual; un 401 de cloud-backend
+    (token vencido) se traduce a 404 `not_linked`; un fallo de red da 502. 341 tests de
+    `apps/backend`, 156 de `apps/desktop` y la suite de `apps/mobile` en verde (un fallo
+    preexistente y no relacionado en `SalesScreen.receipt.spec.tsx` se confirmó reproducible
+    también en el código sin tocar, antes de este cambio — no es una regresión). typecheck + lint
+    en verde en los 5 paquetes tocados (`backend`, `desktop`, `mobile`, `validation`,
+    `api-contracts`) vía `pnpm turbo run typecheck lint`.
+  - **No se pudo probar** (mismo límite de siempre con Electron/React Native desde este entorno):
+    el flujo real en la app Electron nativa (usa `contextBridge`, no disponible fuera de Electron —
+    mismo límite ya documentado para `AdBanner`), y todo lo que depende del SDK nativo de AdMob en
+    un dispositivo real (`useRewardedAd` de `apps/mobile`, mismo límite que `mobile-mini` siempre
+    tuvo). El JWT de cuenta cloud en `apps/desktop` no tiene refresh token (mismo modelo simple que
+    `mobile-mini`): al vencer, `AccountContext` cae a `unauthenticated` en el próximo llamado y hay
+    que volver a loguearse — comportamiento esperado, no un bug.

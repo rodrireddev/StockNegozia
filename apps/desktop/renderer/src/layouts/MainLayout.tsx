@@ -15,6 +15,7 @@ const navItems = [
   { to: "/cash-adjustments", label: "Ajustes de caja" },
   { to: "/suppliers", label: "Proveedores" },
   { to: "/devices", label: "Dispositivos" },
+  { to: "/benefits", label: "Beneficios" },
   { to: "/settings", label: "Configuración" },
 ];
 
