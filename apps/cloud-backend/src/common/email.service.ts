@@ -32,7 +32,15 @@ export class EmailService {
     this.transporter =
       config.gmailUser && config.gmailAppPassword
         ? createTransport({
-            service: "gmail",
+            // `service: "gmail"` (shorthand de Nodemailer) usa el puerto 465 (TLS implícito) — ese
+            // puerto dio "Connection timeout" en Render (confirmado en producción), un PaaS
+            // bloqueando/filtrando SMTP saliente es política común anti-spam. 587 (STARTTLS,
+            // submission autenticado) es el puerto que factualmente queda abierto con más
+            // frecuencia — mismo servidor, mismo usuario/contraseña de aplicación, solo cambia el
+            // puerto y que la conexión arranca en texto plano y sube a TLS después.
+            host: "smtp.gmail.com",
+            port: 587,
+            secure: false,
             auth: { user: config.gmailUser, pass: config.gmailAppPassword },
             // Sin esto, si el puerto SMTP saliente está bloqueado o filtrado por el hosting (común
             // en PaaS — a diferencia de una API HTTP como Resend/SendGrid, que usan 443, siempre
