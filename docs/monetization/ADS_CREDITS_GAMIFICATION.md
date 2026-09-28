@@ -984,6 +984,20 @@ niveles):
     nada que ver con esto): *"En la versión de escritorio no se pueden ver anuncios para sumar
     créditos. Para ganar créditos mirando anuncios, usá la app StockNegozia Mobile en tu celular
     emparejado con esta PC."* Nueva entrada "Beneficios" en el nav lateral.
+  - **Credenciales reales de Cloudflare Turnstile para `apps/desktop`, ya obtenidas y
+    configuradas** (era lo único que quedaba pendiente para que el registro/login desde desktop
+    funcione de punta a punta, no solo con el widget cargando en vacío): widget nuevo "StockNegozia
+    Desktop" creado en el dashboard de Cloudflare (`Managed` mode, hostname `localhost` por ahora —
+    agregar el dominio real ahí cuando `apps/desktop` tenga distribución pública, hasta 10
+    hostnames permitidos por widget). Site key pública en `apps/desktop/.env`
+    (`VITE_TURNSTILE_SITE_KEY`) y secret key en `apps/cloud-backend/.env`
+    (`TURNSTILE_SECRET_KEY`) — ambos `.env` locales, nunca commiteados (`.gitignore`). La secret
+    key también se cargó como variable de entorno del servicio real en Render
+    (`stocknegozia-cloud-backend`, confirmado en el dashboard tras el deploy), así que la
+    verificación de `TurnstileService` contra la API de Cloudflare ya corre de verdad en
+    producción, no solo local — antes de esto, sin la key seteada ahí, `TurnstileService` se
+    saltaba la verificación en producción también (mismo criterio "opcional sin la key" que ya
+    tenía para no forzar de alta una cuenta de Cloudflare a cualquiera que corra el backend local).
   - **`apps/mobile` — gating del menú + feature `benefits`**: `useCloudAccountStatus.ts`
     (`src/devices/`, mismo patrón que `useDeviceInfo.ts`) poll-ea `GET /cloud-account/status`;
     `MoreScreen.tsx` filtra `ITEMS` con eso — sin sesión cloud en el desktop emparejado, la entrada
