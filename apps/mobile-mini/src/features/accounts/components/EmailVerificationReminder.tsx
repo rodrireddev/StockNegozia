@@ -53,7 +53,8 @@ export function EmailVerificationReminder() {
     <Card style={styles.card}>
       <Text style={[typography.bodyStrong, { color: colors.foreground }]}>Confirmá tu email</Text>
       <Text style={[typography.caption, { color: colors.mutedForeground }]}>
-        Es opcional, pero nos ayuda a que no pierdas el acceso a tu cuenta.
+        Es opcional, pero nos ayuda a que no pierdas el acceso a tu cuenta. Revisá también la
+        carpeta de spam o promociones — a veces el mail llega ahí.
       </Text>
       {info ? <Text style={[typography.caption, { color: colors.mutedForeground }]}>{info}</Text> : null}
       <TextField label="Código recibido por mail" value={token} onChangeText={setToken} autoCapitalize="none" />
