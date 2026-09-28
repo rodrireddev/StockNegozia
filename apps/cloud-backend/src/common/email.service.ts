@@ -57,6 +57,7 @@ export class EmailService {
         text: email.body,
         html: email.body.replace(/\n/g, "<br>"),
       });
+      this.logger.log(`Email enviado a ${email.to} | Asunto: ${email.subject}`);
     } catch (err) {
       this.logger.error(
         `No se pudo mandar el email a ${email.to}: ${err instanceof Error ? err.message : String(err)}`,
