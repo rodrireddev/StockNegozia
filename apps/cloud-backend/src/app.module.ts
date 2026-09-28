@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { EventEmitterModule } from "@nestjs/event-emitter";
 import { AccountsModule } from "./accounts/accounts.module";
+import { AchievementsModule } from "./achievements/achievements.module";
 import { AdminAuthModule } from "./admin-auth/admin-auth.module";
 import { AdsModule } from "./ads/ads.module";
 import { appConfig } from "./config/configuration";
@@ -25,6 +26,7 @@ import { HealthModule } from "./health/health.module";
     AccountsModule,
     CreditsModule,
     GamificationModule,
+    AchievementsModule,
     AdsModule,
   ],
 })

@@ -1,13 +1,13 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
 import type { RecordActivityResult } from "@stocknegozia/api-contracts";
 import { randomUUID } from "node:crypto";
+import { AchievementDefinitionsRepository } from "../achievements/achievement-definitions.repository";
 import { ReferralsRepository } from "../accounts/referrals.repository";
 import { UsersRepository } from "../accounts/users.repository";
 import { CreditConfigService } from "../credit-config/credit-config.service";
 import { CreditsService } from "../credits/credits.service";
-import { StreakMilestoneClaimsRepository } from "./streak-milestone-claims.repository";
+import { AchievementClaimsRepository } from "./achievement-claims.repository";
 
-const MILESTONE_DAYS = [3, 7, 14, 30];
 /** "Éxito" de un referido (doc §1) = llega a este día de racha... */
 const REFERRAL_VALIDATION_STREAK_DAY = 3;
 /** ...dentro de su primera semana como cuenta (doc §1: "en su 1ª semana"). */
@@ -22,16 +22,18 @@ export class StreakService {
   constructor(
     @Inject(UsersRepository) private readonly usersRepository: UsersRepository,
     @Inject(ReferralsRepository) private readonly referralsRepository: ReferralsRepository,
-    @Inject(StreakMilestoneClaimsRepository)
-    private readonly milestoneClaimsRepository: StreakMilestoneClaimsRepository,
+    @Inject(AchievementDefinitionsRepository)
+    private readonly achievementDefinitionsRepository: AchievementDefinitionsRepository,
+    @Inject(AchievementClaimsRepository) private readonly achievementClaimsRepository: AchievementClaimsRepository,
     @Inject(CreditsService) private readonly creditsService: CreditsService,
     @Inject(CreditConfigService) private readonly creditConfigService: CreditConfigService,
   ) {}
 
   /**
-   * Se llama cuando el cliente hace algo real (venta o movimiento de stock, doc §2) — nunca por
-   * solo abrir la app. Idempotente por día: llamarlo varias veces el mismo día no rompe la racha
-   * ni duplica créditos.
+   * Se llama cuando el cliente hace algo real (venta, ajuste de stock, etc. — cualquier evento de
+   * la whitelist de métricas, ver `GamificationController.recordActivity`) — nunca por solo abrir
+   * la app. Idempotente por día: llamarlo varias veces el mismo día no rompe la racha ni duplica
+   * créditos.
    */
   async recordActivity(userId: string): Promise<RecordActivityResult> {
     const user = await this.usersRepository.findById(userId);
@@ -41,12 +43,15 @@ export class StreakService {
     const today = toUtcDateString(now);
 
     if (user.lastActiveDate === today) {
-      // Ya se contó hoy — no hay nada nuevo que hacer.
+      // Ya se contó hoy — no hay nada nuevo que hacer con la racha (el evento de actividad en sí
+      // ya se insertó aparte, en `ActivityEventsRepository`, esto solo evita mover la racha dos
+      // veces el mismo día).
       return {
         currentStreak: user.currentStreak,
         longestStreak: user.longestStreak,
         milestoneReached: null,
         creditsAwarded: 0,
+        goalsCompleted: [],
       };
     }
 
@@ -63,21 +68,29 @@ export class StreakService {
     let creditsAwarded = 0;
     let milestoneReached: number | null = null;
 
-    if (MILESTONE_DAYS.includes(newStreak)) {
-      const alreadyClaimed = await this.milestoneClaimsRepository.findByUserAndDay(userId, newStreak);
-      if (!alreadyClaimed) {
-        const amount = await this.creditConfigService.getValueByKey(`source.streak_milestone_day_${newStreak}`);
-        await this.creditsService.grant(userId, amount, "streak_milestone", {
-          reasonMetadata: { milestoneDay: newStreak },
+    // Hitos de racha configurados desde el panel admin (`achievement_definitions`, categoría
+    // `streak_milestone`) — cualquier cantidad de días, no una lista fija de 4 hardcodeada.
+    const milestones = await this.achievementDefinitionsRepository.findActiveByCategory("streak_milestone");
+    const reachedMilestone = milestones.find((m) => m.target === newStreak);
+    if (reachedMilestone) {
+      const claimed = await this.achievementClaimsRepository.findByUserDefinitionAndPeriod(
+        userId,
+        reachedMilestone.id,
+        "streak",
+      );
+      if (!claimed) {
+        await this.creditsService.grant(userId, reachedMilestone.creditsAwarded, "streak_milestone", {
+          reasonMetadata: { milestoneDay: newStreak, achievementKey: reachedMilestone.key },
           idempotencyKey: `streak:${userId}:${newStreak}`,
         });
-        await this.milestoneClaimsRepository.insert({
+        await this.achievementClaimsRepository.insert({
           id: randomUUID(),
           userId,
-          milestoneDay: newStreak,
-          creditsAwarded: amount,
+          achievementDefinitionId: reachedMilestone.id,
+          periodKey: "streak",
+          creditsAwarded: reachedMilestone.creditsAwarded,
         });
-        creditsAwarded = amount;
+        creditsAwarded = reachedMilestone.creditsAwarded;
         milestoneReached = newStreak;
       }
     }
@@ -86,7 +99,7 @@ export class StreakService {
       await this.tryValidateReferral(userId, user.createdAt, now);
     }
 
-    return { currentStreak: newStreak, longestStreak: newLongest, milestoneReached, creditsAwarded };
+    return { currentStreak: newStreak, longestStreak: newLongest, milestoneReached, creditsAwarded, goalsCompleted: [] };
   }
 
   /**

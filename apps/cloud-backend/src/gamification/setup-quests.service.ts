@@ -1,50 +1,60 @@
 import { BadRequestException, Inject, Injectable } from "@nestjs/common";
 import type { SetupQuestClaimResult } from "@stocknegozia/api-contracts";
 import { randomUUID } from "node:crypto";
-import { CreditConfigService } from "../credit-config/credit-config.service";
+import { AchievementDefinitionsRepository } from "../achievements/achievement-definitions.repository";
 import { CreditsService } from "../credits/credits.service";
-import { SetupQuestCompletionsRepository } from "./setup-quest-completions.repository";
+import { AchievementClaimsRepository } from "./achievement-claims.repository";
 
-export const SETUP_QUEST_KEYS = ["first_product", "first_sale", "first_scan", "profile_complete"] as const;
-export type SetupQuestKey = (typeof SETUP_QUEST_KEYS)[number];
+const PERIOD_KEY_ONCE = "once";
 
 /**
  * Setup quests (doc §1): "acciones que el usuario iba a hacer igual" — el cliente llama a
  * `claim` cada vez que hace esa acción (ej. cada venta, no solo la primera); acá se decide si es
- * la primera vez. Idempotente por diseño (constraint `unique(userId, questKey)`), así que el
- * cliente no necesita saber de antemano si ya lo reclamó — más simple que trackear "primera vez"
- * en el dispositivo, y funciona igual aunque se reinstale la app.
+ * la primera vez. Idempotente por diseño (constraint `unique(userId, achievementDefinitionId,
+ * periodKey)` de `achievement_claims`, con `periodKey = "once"`), así que el cliente no necesita
+ * saber de antemano si ya lo reclamó.
+ *
+ * `questKey` sigue siendo un valor fijo que dispara `mobile-mini` desde un call site exacto en su
+ * código (`fireSetupQuestClaim("first_product")`, etc.) — el panel admin no puede inventar un
+ * setup quest nuevo (ver comentario en `achievement-definitions.ts`), solo editar
+ * label/descripción/créditos/activo de los que ya existen en `achievement_definitions`.
  */
 @Injectable()
 export class SetupQuestsService {
   constructor(
-    @Inject(SetupQuestCompletionsRepository) private readonly repository: SetupQuestCompletionsRepository,
+    @Inject(AchievementDefinitionsRepository)
+    private readonly achievementDefinitionsRepository: AchievementDefinitionsRepository,
+    @Inject(AchievementClaimsRepository) private readonly achievementClaimsRepository: AchievementClaimsRepository,
     @Inject(CreditsService) private readonly creditsService: CreditsService,
-    @Inject(CreditConfigService) private readonly creditConfigService: CreditConfigService,
   ) {}
 
   async claim(userId: string, questKey: string): Promise<SetupQuestClaimResult> {
-    if (!SETUP_QUEST_KEYS.includes(questKey as SetupQuestKey)) {
+    const definition = await this.achievementDefinitionsRepository.findRawByKey(`setup_quest.${questKey}`);
+    if (!definition || definition.category !== "setup_quest" || !definition.active) {
       throw new BadRequestException(`Quest de setup desconocida: "${questKey}"`);
     }
 
-    const existing = await this.repository.findByUserAndKey(userId, questKey as SetupQuestKey);
+    const existing = await this.achievementClaimsRepository.findByUserDefinitionAndPeriod(
+      userId,
+      definition.id,
+      PERIOD_KEY_ONCE,
+    );
     if (existing) {
       return { questKey, alreadyClaimed: true, creditsAwarded: 0 };
     }
 
-    const amount = await this.creditConfigService.getValueByKey("source.setup_quest");
-    await this.creditsService.grant(userId, amount, "setup_quest", {
+    await this.creditsService.grant(userId, definition.creditsAwarded, "setup_quest", {
       reasonMetadata: { questKey },
       idempotencyKey: `quest:${userId}:${questKey}`,
     });
-    await this.repository.insert({
+    await this.achievementClaimsRepository.insert({
       id: randomUUID(),
       userId,
-      questKey: questKey as SetupQuestKey,
-      creditsAwarded: amount,
+      achievementDefinitionId: definition.id,
+      periodKey: PERIOD_KEY_ONCE,
+      creditsAwarded: definition.creditsAwarded,
     });
 
-    return { questKey, alreadyClaimed: false, creditsAwarded: amount };
+    return { questKey, alreadyClaimed: false, creditsAwarded: definition.creditsAwarded };
   }
 }

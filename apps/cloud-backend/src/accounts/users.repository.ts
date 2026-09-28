@@ -4,17 +4,16 @@ import { DRIZZLE_CLIENT } from "../database/database.constants";
 import type { Database, DrizzleExecutor } from "../database/database.types";
 import {
   accountTokens,
+  achievementClaims,
+  activityEvents,
   adRewardCallbacks,
   creditLedger,
-  dailyMissionCompletions,
   entitlements,
   featureRequests,
   featureVotes,
   houseAdImpressions,
   referrals,
   rewardedAdViews,
-  setupQuestCompletions,
-  streakMilestoneClaims,
   users,
 } from "../database/schema";
 
@@ -95,9 +94,8 @@ export class UsersRepository {
       await tx.delete(houseAdImpressions).where(eq(houseAdImpressions.userId, id));
       await tx.delete(adRewardCallbacks).where(eq(adRewardCallbacks.userId, id));
       await tx.delete(rewardedAdViews).where(eq(rewardedAdViews.userId, id));
-      await tx.delete(streakMilestoneClaims).where(eq(streakMilestoneClaims.userId, id));
-      await tx.delete(setupQuestCompletions).where(eq(setupQuestCompletions.userId, id));
-      await tx.delete(dailyMissionCompletions).where(eq(dailyMissionCompletions.userId, id));
+      await tx.delete(achievementClaims).where(eq(achievementClaims.userId, id));
+      await tx.delete(activityEvents).where(eq(activityEvents.userId, id));
       await tx.delete(entitlements).where(eq(entitlements.userId, id));
       await tx.delete(accountTokens).where(eq(accountTokens.userId, id));
       await tx.delete(creditLedger).where(eq(creditLedger.userId, id));

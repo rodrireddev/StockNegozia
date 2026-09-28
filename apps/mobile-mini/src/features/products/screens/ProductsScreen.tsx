@@ -5,7 +5,7 @@ import { useRouter } from "expo-router";
 import type { ProductQueryInput } from "@stocknegozia/validation";
 import { useAccount } from "@/accounts/AccountContext";
 import { fetchProductByCode } from "@/data/products";
-import { fireSetupQuestClaim } from "@/features/benefits/gamificationTriggers";
+import { fireRecordActivity, fireSetupQuestClaim } from "@/features/benefits/gamificationTriggers";
 import { useProducts } from "@/features/products/hooks/useProducts";
 import { useCategories } from "@/features/products/hooks/useCategories";
 import { ProductListItem } from "@/features/products/components/ProductListItem";
@@ -53,8 +53,12 @@ export function ProductsScreen() {
 
   async function handleScanDetected(result: ScanResult) {
     // Idempotente en el backend — el logro es "usaste el scanner", no depende de si el código
-    // matcheó un producto (doc §1, setup quest "first_scan").
-    if (accountStatus === "authenticated") fireSetupQuestClaim("first_scan");
+    // matcheó un producto (doc §1, setup quest "first_scan"); "product_scanned" (whitelist de
+    // logros) es el mismo evento, para objetivos programados que usen esta métrica.
+    if (accountStatus === "authenticated") {
+      fireSetupQuestClaim("first_scan");
+      fireRecordActivity("product_scanned");
+    }
     setScannerOpen(false);
     setScanError(null);
     setScanNotFound(null);

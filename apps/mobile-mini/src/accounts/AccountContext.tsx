@@ -7,9 +7,12 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { AppState } from "react-native";
+import NetInfo from "@react-native-community/netinfo";
 import type { AccountAuthResult, AccountMeDto } from "@stocknegozia/api-contracts";
 import type { AccountLoginInput, AccountRegisterInput, PasswordResetConfirmInput } from "@stocknegozia/validation";
 import { backfillSetupQuestsFromLocalData } from "@/features/benefits/gamificationTriggers";
+import { drainGamificationOutbox } from "@/features/benefits/outboxSyncRunner";
 import {
   confirmPasswordReset as confirmPasswordResetRequest,
   deleteAccount as deleteAccountRequest,
@@ -65,6 +68,10 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         if (cancelled) return;
         setMe(meDto);
         setStatus("authenticated");
+        // Drena lo que haya quedado pendiente de una sesión anterior sin red (doc de logros: "al
+        // conectarse, actualiza el estado de anterior al actual") — fire-and-forget, nunca bloquea
+        // el arranque.
+        void drainGamificationOutbox();
       } catch (error) {
         if (cancelled) return;
         if (error instanceof AuthRequiredError) {
@@ -93,6 +100,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     // Fire-and-forget — repara el caso de un comercio que ya tenía productos/ventas locales
     // antes de esta sesión (doc §3, "caso: usuario existente se registra"). Nunca bloquea el login.
     void backfillSetupQuestsFromLocalData();
+    void drainGamificationOutbox();
   }, []);
 
   const register = useCallback(
@@ -136,6 +144,25 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       }
     }
   }, []);
+
+  // Drena el outbox al volver a foreground y al reconectar red — mientras la app está en
+  // background/offline, todo lo que pase (venta, ajuste de stock, etc.) se sigue encolando local
+  // (`gamificationTriggers.ts`) sin problema; esto es lo que lo saca de la cola apenas hay chance.
+  useEffect(() => {
+    if (status !== "authenticated") return;
+
+    const appStateSubscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") void drainGamificationOutbox();
+    });
+    const netInfoUnsubscribe = NetInfo.addEventListener((state) => {
+      if (state.isConnected) void drainGamificationOutbox();
+    });
+
+    return () => {
+      appStateSubscription.remove();
+      netInfoUnsubscribe();
+    };
+  }, [status]);
 
   const value = useMemo<AccountContextValue>(
     () => ({ status, me, register, login, completePasswordReset, signOut, deleteAccount, refetchMe }),

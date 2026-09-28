@@ -3,7 +3,12 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { and, eq } from "drizzle-orm";
 import { randomBytes, randomUUID, scryptSync } from "node:crypto";
 import { Pool } from "pg";
-import { adminUsers, adPlacements, creditConfigItems } from "./schema";
+import type {
+  AchievementDefinitionCategory,
+  AchievementScheduleType,
+  TrackableMetricType,
+} from "@stocknegozia/api-contracts";
+import { achievementDefinitions, adminUsers, adPlacements, creditConfigItems } from "./schema";
 
 /**
  * Carga inicial de datos, pensada para correrse una sola vez por entorno (`pnpm run db:seed`):
@@ -30,20 +35,6 @@ interface SeedConfigItem {
 /** Números de doc/monetization/ADS_CREDITS_GAMIFICATION.md §1 — punto de partida, no verdad fija. */
 const SEED_CONFIG_ITEMS: SeedConfigItem[] = [
   { key: "source.welcome_bonus", label: "Bienvenida (una vez)", category: "source", unit: "credits", value: 20 },
-  {
-    key: "source.setup_quest",
-    label: "Quest de setup (c/u)",
-    description: "Primer producto, primera venta, primer escaneo, perfil completo.",
-    category: "source",
-    unit: "credits",
-    value: 5,
-  },
-  { key: "source.streak_milestone_day_3", label: "Hito de racha — día 3", category: "source", unit: "credits", value: 2 },
-  { key: "source.streak_milestone_day_7", label: "Hito de racha — día 7", category: "source", unit: "credits", value: 5 },
-  { key: "source.streak_milestone_day_14", label: "Hito de racha — día 14", category: "source", unit: "credits", value: 10 },
-  { key: "source.streak_milestone_day_30", label: "Hito de racha — día 30", category: "source", unit: "credits", value: 20 },
-  { key: "source.daily_mission", label: "Misión diaria", category: "source", unit: "credits", value: 3 },
-  { key: "cap.daily_mission_max_per_day", label: "Tope de misiones/día", category: "source", unit: "count", value: 1 },
   {
     key: "source.rewarded_ad_view_1",
     label: "Rewarded ad — 1ra vista del día",
@@ -137,6 +128,114 @@ const SEED_AD_PLACEMENTS: SeedAdPlacement[] = [
   { key: "rewarded_credits", platform: "ios", adNetwork: "admob", adUnitId: "ca-app-pub-3940256099942544/1712485313" },
 ];
 
+interface SeedAchievementDefinition {
+  key: string;
+  label: string;
+  description?: string;
+  category: AchievementDefinitionCategory;
+  metricType?: TrackableMetricType;
+  target?: number;
+  scheduleType: AchievementScheduleType;
+  scheduleConfig?: { date: string };
+  creditsAwarded: number;
+}
+
+/**
+ * Los logros que ya existían hardcodeados en código antes de este refactor (ver
+ * docs/monetization/ADS_CREDITS_GAMIFICATION.md, sección "Logros"), sembrados acá como filas reales
+ * — quedan de ejemplo de uso real del panel admin, no solo de documentación. `goal.daily_cash_in_1`
+ * es la única fila sin equivalente viejo: demuestra la métrica de caja de punta a punta.
+ */
+const SEED_ACHIEVEMENT_DEFINITIONS: SeedAchievementDefinition[] = [
+  {
+    key: "setup_quest.first_product",
+    label: "Cargaste tu primer producto",
+    category: "setup_quest",
+    scheduleType: "once",
+    creditsAwarded: 5,
+  },
+  {
+    key: "setup_quest.first_sale",
+    label: "Registraste tu primera venta",
+    category: "setup_quest",
+    scheduleType: "once",
+    creditsAwarded: 5,
+  },
+  {
+    key: "setup_quest.first_scan",
+    label: "Escaneaste tu primer código",
+    category: "setup_quest",
+    scheduleType: "once",
+    creditsAwarded: 5,
+  },
+  {
+    key: "setup_quest.profile_complete",
+    label: "Completaste tu perfil",
+    category: "setup_quest",
+    scheduleType: "once",
+    creditsAwarded: 5,
+  },
+  {
+    key: "streak_milestone.day_3",
+    label: "3 días seguidos usando StockNegozia",
+    category: "streak_milestone",
+    target: 3,
+    scheduleType: "streak",
+    creditsAwarded: 2,
+  },
+  {
+    key: "streak_milestone.day_7",
+    label: "1 semana seguida usando StockNegozia",
+    category: "streak_milestone",
+    target: 7,
+    scheduleType: "streak",
+    creditsAwarded: 5,
+  },
+  {
+    key: "streak_milestone.day_14",
+    label: "2 semanas seguidas usando StockNegozia",
+    category: "streak_milestone",
+    target: 14,
+    scheduleType: "streak",
+    creditsAwarded: 10,
+  },
+  {
+    key: "streak_milestone.day_30",
+    label: "1 mes seguido usando StockNegozia",
+    category: "streak_milestone",
+    target: 30,
+    scheduleType: "streak",
+    creditsAwarded: 20,
+  },
+  {
+    key: "goal.daily_sales_3",
+    label: "Registrá 3 ventas hoy",
+    category: "scheduled_goal",
+    metricType: "sale_completed",
+    target: 3,
+    scheduleType: "daily",
+    creditsAwarded: 3,
+  },
+  {
+    key: "goal.daily_stock_adjustments_5",
+    label: "Actualizá el stock de 5 productos hoy",
+    category: "scheduled_goal",
+    metricType: "stock_adjustment_in",
+    target: 5,
+    scheduleType: "daily",
+    creditsAwarded: 3,
+  },
+  {
+    key: "goal.daily_cash_in_1",
+    label: "Registrá un ingreso de caja hoy",
+    category: "scheduled_goal",
+    metricType: "cash_adjustment_in",
+    target: 1,
+    scheduleType: "daily",
+    creditsAwarded: 3,
+  },
+];
+
 async function main() {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) throw new Error("DATABASE_URL no está seteada");
@@ -205,6 +304,34 @@ async function main() {
   }
   console.log(
     `[seed] ad_placements: ${placementsInserted} insertados, ${SEED_AD_PLACEMENTS.length - placementsInserted} ya existían`,
+  );
+
+  let achievementsInserted = 0;
+  for (const achievement of SEED_ACHIEVEMENT_DEFINITIONS) {
+    const [existing] = await db.select().from(achievementDefinitions).where(eq(achievementDefinitions.key, achievement.key));
+    if (existing) continue;
+
+    const now = new Date();
+    await db.insert(achievementDefinitions).values({
+      id: randomUUID(),
+      key: achievement.key,
+      label: achievement.label,
+      description: achievement.description ?? null,
+      category: achievement.category,
+      metricType: achievement.metricType ?? null,
+      target: achievement.target ?? null,
+      scheduleType: achievement.scheduleType,
+      scheduleConfig: achievement.scheduleConfig ?? null,
+      creditsAwarded: achievement.creditsAwarded,
+      active: true,
+      createdAt: now,
+      updatedAt: now,
+      updatedByAdminId: null,
+    });
+    achievementsInserted++;
+  }
+  console.log(
+    `[seed] achievement_definitions: ${achievementsInserted} insertados, ${SEED_ACHIEVEMENT_DEFINITIONS.length - achievementsInserted} ya existían`,
   );
 
   await pool.end();

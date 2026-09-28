@@ -13,4 +13,6 @@ export * from "./admin/admin-auth.contract";
 export * from "./admin/credit-config.contract";
 export * from "./admin/ad-placements.contract";
 export * from "./admin/house-ads.contract";
+export * from "./admin/achievements.contract";
 export * from "./accounts/account.contract";
+export * from "./gamification/trackable-metrics";

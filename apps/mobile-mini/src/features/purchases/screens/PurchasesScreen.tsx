@@ -13,7 +13,7 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { Select } from "@/components/Select";
 import { TextField } from "@/components/TextField";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
-import { fireSetupQuestClaim } from "@/features/benefits/gamificationTriggers";
+import { fireRecordActivity, fireSetupQuestClaim } from "@/features/benefits/gamificationTriggers";
 import { useProducts } from "@/features/products/hooks/useProducts";
 import { ProductListItem } from "@/features/products/components/ProductListItem";
 import { ProductScanner, type ScanFeedback } from "@/features/scanner/ProductScanner";
@@ -97,8 +97,12 @@ export function PurchasesScreen() {
    */
   async function handleScanDetected(result: ScanResult) {
     // Idempotente en el backend — el logro es "usaste el scanner", no depende de si el código
-    // matcheó un producto (doc §1, setup quest "first_scan").
-    if (accountStatus === "authenticated") fireSetupQuestClaim("first_scan");
+    // matcheó un producto (doc §1, setup quest "first_scan"); "product_scanned" (whitelist de
+    // logros) es el mismo evento, para objetivos programados que usen esta métrica.
+    if (accountStatus === "authenticated") {
+      fireSetupQuestClaim("first_scan");
+      fireRecordActivity("product_scanned");
+    }
     try {
       const product = await fetchProductByCode(result.code);
       cart.addItem(product);

@@ -17,9 +17,9 @@ export function useCreateSale() {
       void queryClient.invalidateQueries({ queryKey: ["profits"] });
       // Venta = "algo real" para la racha (doc §2) + posible logro de primera venta (doc §1).
       if (status === "authenticated") {
-        fireRecordActivity();
+        fireRecordActivity("sale_completed");
         fireSetupQuestClaim("first_sale");
-        void queryClient.invalidateQueries({ queryKey: ["daily-mission"] });
+        void queryClient.invalidateQueries({ queryKey: ["active-goals"] });
       }
     },
   });

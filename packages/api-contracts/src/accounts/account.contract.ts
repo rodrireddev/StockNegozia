@@ -68,12 +68,24 @@ export interface CreditLedgerEntryDto {
   createdAt: string;
 }
 
-/** Respuesta de `POST /gamification/activity` — qué pasó con la racha al registrar la acción. */
+/** Un logro programado que se completó como resultado directo de este evento. */
+export interface CompletedGoalResult {
+  key: string;
+  label: string;
+  creditsAwarded: number;
+}
+
+/**
+ * Respuesta de `POST /gamification/activity` — qué pasó con la racha al registrar la acción, más
+ * cualquier objetivo programado (`scheduled_goal`) que se haya completado con este mismo evento
+ * (se evalúa y acredita ahí mismo, sin un endpoint de "claim" separado — ver `ScheduledGoalsService`).
+ */
 export interface RecordActivityResult {
   currentStreak: number;
   longestStreak: number;
   milestoneReached: number | null;
   creditsAwarded: number;
+  goalsCompleted: CompletedGoalResult[];
 }
 
 /** Respuesta de `POST /gamification/setup-quests/:questKey/claim`. */
@@ -84,18 +96,22 @@ export interface SetupQuestClaimResult {
   creditsAwarded: number;
 }
 
-/** Respuesta de `GET /gamification/daily-mission/today`. */
-export interface DailyMissionTodayDto {
-  missionKey: string;
+/**
+ * Una fila de `GET /gamification/goals/active` — un logro `scheduled_goal` vigente ahora mismo
+ * (según su `scheduleType`: el día/semana/mes calendario, o la fecha específica configurada), con
+ * el progreso ya calculado 100% server-side (suma de `activity_events` en el período vigente) —
+ * el cliente nunca cuenta nada acá, solo muestra lo que el server ya evaluó. Puede haber más de
+ * una fila activa al mismo tiempo (ej. un objetivo diario y uno semanal, simultáneos).
+ */
+export interface ActiveGoalDto {
+  key: string;
   label: string;
-  /** Cuánto hay que hacer localmente (ej. 3 ventas) — el cliente cuenta el progreso, no el server. */
+  description: string | null;
+  metricType: string;
   target: number;
-  alreadyClaimedToday: boolean;
-}
-
-/** Respuesta de `POST /gamification/daily-mission/claim`. */
-export interface DailyMissionClaimResult {
-  missionKey: string;
+  progress: number;
+  scheduleType: string;
+  periodKey: string;
   alreadyClaimed: boolean;
   creditsAwarded: number;
 }
@@ -107,6 +123,8 @@ export interface RewardedAdClaimResult {
   sequenceInDay?: number;
   /** Presente solo si `granted` es `false` — "daily_cap" o "cooldown". */
   reason?: string;
+  /** Objetivos programados (`metricType: "rewarded_ad_viewed"`) completados con esta vista. */
+  goalsCompleted: CompletedGoalResult[];
 }
 
 /**

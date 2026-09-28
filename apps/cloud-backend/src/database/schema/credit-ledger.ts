@@ -9,7 +9,7 @@ export const creditReasonEnum = pgEnum("credit_reason", [
   "welcome_bonus",
   "setup_quest",
   "streak_milestone",
-  "daily_mission",
+  "scheduled_goal",
   "rewarded_ad",
   "referral_bonus",
   "cofounder_grant",

@@ -45,7 +45,7 @@ export function StockAdjustModal({ product, onClose }: StockAdjustModalProps) {
     }
     if (!product) return;
     adjustStock.mutate(
-      { id: product.id, stock: parsed, reason: reason.trim() },
+      { id: product.id, stock: parsed, reason: reason.trim(), previousStock: product.stock },
       { onSuccess: onClose, onError: (err) => setError(err.message) },
     );
   }

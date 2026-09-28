@@ -4,6 +4,11 @@ import { randomUUID } from "node:crypto";
 import { CreditConfigService } from "../credit-config/credit-config.service";
 import { CreditsService } from "../credits/credits.service";
 import { RewardedAdViewsRepository } from "./rewarded-ad-views.repository";
+import { ScheduledGoalsService } from "./scheduled-goals.service";
+
+function todayUtcDateString(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 interface Eligibility {
   eligible: boolean;
@@ -48,6 +53,7 @@ export class RewardedAdsService {
     @Inject(RewardedAdViewsRepository) private readonly repository: RewardedAdViewsRepository,
     @Inject(CreditsService) private readonly creditsService: CreditsService,
     @Inject(CreditConfigService) private readonly creditConfigService: CreditConfigService,
+    @Inject(ScheduledGoalsService) private readonly scheduledGoalsService: ScheduledGoalsService,
   ) {}
 
   /**
@@ -87,7 +93,7 @@ export class RewardedAdsService {
   async claim(userId: string): Promise<RewardedAdClaimOutcome> {
     const eligibility = await this.getEligibility(userId);
     if (!eligibility.eligible) {
-      return { granted: false, creditsAwarded: 0, reason: eligibility.reason };
+      return { granted: false, creditsAwarded: 0, reason: eligibility.reason, goalsCompleted: [] };
     }
 
     const sequenceInDay = eligibility.countToday + 1;
@@ -99,10 +105,24 @@ export class RewardedAdsService {
     const ledgerEntry = await this.creditsService.grant(userId, amount, "rewarded_ad", {
       reasonMetadata: { sequenceInDay },
     });
-    await this.repository.insert({ id: randomUUID(), userId, sequenceInDay, creditsAwarded: amount });
+    const viewId = randomUUID();
+    await this.repository.insert({ id: viewId, userId, sequenceInDay, creditsAwarded: amount });
+
+    // `rewarded_ad_viewed` es una métrica trackeable más (whitelist, ver
+    // `@stocknegozia/api-contracts/gamification/trackable-metrics`) — a diferencia del resto, la
+    // genera el server (esta vista ya se verificó/acreditó acá mismo), no un ping del cliente: no
+    // necesita pasar por la cola offline de `mobile-mini`, ver un anuncio requiere red de por sí.
+    // Se reusa el `id` de la vista como `clientEventId`: ya es único por vista, no hace falta uno
+    // aparte.
+    const goalsCompleted = await this.scheduledGoalsService.recordEventAndEvaluate(
+      userId,
+      "rewarded_ad_viewed",
+      todayUtcDateString(),
+      viewId,
+    );
 
     // `.returning()` de Drizzle tipa como posiblemente vacío el array — un insert recién hecho
     // siempre devuelve la fila (mismo criterio que `accounts.service.ts`/`users.repository.ts`).
-    return { granted: true, creditsAwarded: amount, sequenceInDay, ledgerEntryId: ledgerEntry!.id };
+    return { granted: true, creditsAwarded: amount, sequenceInDay, ledgerEntryId: ledgerEntry!.id, goalsCompleted };
   }
 }

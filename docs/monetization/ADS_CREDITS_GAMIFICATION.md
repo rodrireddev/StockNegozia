@@ -854,3 +854,85 @@ niveles):
   también sumados a `backfillSetupQuestsFromLocalData()` donde tiene sentido (`profile_complete`
   sí se puede reparar retroactivamente mirando `AsyncStorage`; `first_scan` no, un escaneo no deja
   rastro persistente). typecheck/lint/28 tests en verde.
+- [x] **Panel admin: gestión completa de logros + calendario de objetivos** — reemplaza los 3
+  catálogos hardcodeados que documentaba la sección de "Logros" más arriba
+  (`SETUP_QUEST_LABELS`/`STREAK_MILESTONE_LABELS`/`MISSION_CATALOG`) por un sistema editable desde
+  `apps/admin-panel`, sin tocar código para crear/editar/desactivar un logro o programar su
+  calendario (diario/semanal/mensual/fecha específica). Puede haber varios objetivos activos al
+  mismo tiempo (antes rotaba de a uno por día).
+  - **Tracking pasa a ser 100% server-side, nunca contado por el cliente**: nueva tabla
+    `activity_events` (evento individual, idempotente por `(userId, metricType, clientEventId)`,
+    `apps/cloud-backend/src/database/schema/activity-events.ts`) reemplaza la idea de "contador que
+    se incrementa". El progreso de cualquier `achievement_definitions.category = 'scheduled_goal'`
+    se calcula sumando estos eventos en el rango del período vigente
+    (`ScheduledGoalsService`/`period.util.ts`) — un solo mecanismo reusado por cualquier calendario,
+    nunca una regla de conteo distinta por logro. `mobile-mini` (`useDailyMissionProgress.ts`, con
+    un switch hardcodeado por `missionKey`) ya no cuenta nada local.
+  - **Whitelist de 10 métricas trackeables**
+    (`@stocknegozia/api-contracts/gamification/trackable-metrics.ts`), revisada contra el código
+    real de `mobile-mini` (no elegida a mano): ventas, cancelación de venta descartada por no tener
+    call site real todavía (ver más abajo), ajustes de stock in/out, compras, caja in/out,
+    productos, escaneos, proveedores, y **anuncios vistos** (`rewarded_ad_viewed` — a diferencia del
+    resto la genera el server, dentro de `RewardedAdsService.claim()`, no un ping del cliente: ver
+    un anuncio ya requiere red de por sí). El panel solo puede elegir métricas de esta lista, nunca
+    texto libre.
+  - Catálogo unificado `achievement_definitions` + `achievement_definition_revisions` (historial,
+    mismo patrón que `credit_config_item_revisions`/`ad_placement_revisions`) +
+    `achievement_claims` (reemplaza `setup_quest_completions`/`streak_milestone_claims`/
+    `daily_mission_completions`, una sola tabla de reclamos para cualquier categoría, idempotente
+    por `(userId, achievementDefinitionId, periodKey)`). "Borrar" desde el panel es borrado suave
+    (`active: false`) — nunca DELETE real, mismo criterio que el resto del backend
+    (`ad_placements.enabled`).
+  - Límite honesto: el panel puede crear libremente `scheduled_goal` (cualquier métrica
+    whitelisteada) y `streak_milestone` (cualquier día N) sin tocar código, pero no puede inventar
+    un `setup_quest` nuevo — esos siguen atados a un call site exacto en `mobile-mini`
+    (`fireSetupQuestClaim("first_product")`, etc.), el panel solo edita label/descripción/
+    créditos/activo de los 4 que ya existen.
+  - `mobile-mini` gana una cola local durable (`gamification_outbox`, SQLite) — `fireRecordActivity`/
+    `fireSetupQuestClaim` ya no pegan a la red directo (se perdía para siempre sin conexión), encolan
+    local y un `outboxSyncRunner` drena en orden al iniciar la app, volver a foreground o reconectar
+    red (`@react-native-community/netinfo`, dependencia nueva). 9 de las 10 métricas quedaron con su
+    call site conectado en esta pasada (`useCreateSale`/`useAdjustStock`/`useCreateProduct`/los 3
+    `onDetected` de scanner/`useCreatePurchase`/`useCreateCashAdjustment`/`useCreateSupplier`).
+  - Seed (`apps/cloud-backend/src/database/seed.ts`) con los 11 logros que ya existían en código,
+    ahora como filas reales editables — `credit_config_items` se limpia de las 7 claves que ahora
+    viven directo en la fila del logro (`source.setup_quest`, `source.streak_milestone_day_*`,
+    `source.daily_mission`, `cap.daily_mission_max_per_day`).
+  - Migración `0002_achievement_system` — `drizzle-kit generate` no pudo correr en este entorno
+    (pide confirmar por prompt interactivo si un enum nuevo es creación o rename, sin flag
+    no-interactivo), así que la migración SQL + su snapshot JSON se armaron a mano (verificado con
+    un script Node que clona y muta el snapshot anterior, no tipeado a ciegas) y se confirmaron con
+    `drizzle-kit generate` reportando "No schema changes, nothing to migrate" contra el schema real.
+  - Probado end-to-end contra Postgres local real: migración aplicada, seed corrido, login admin,
+    creado un logro de prueba (`scheduled_goal`, métrica `product_scanned`, target 3), 3 eventos
+    hasta completarlo (el 3ro devuelve `goalsCompleted`), reintento del mismo `clientEventId` sin
+    duplicar, desactivado y confirmado que desaparece de `GET /gamification/goals/active` con su
+    revisión registrada, setup quest reclamado con idempotencia confirmada. Panel admin probado en
+    el navegador real (no solo curl): login, listado agrupado por categoría, historial con el diff
+    correcto. typecheck + lint + build en verde en los 5 paquetes tocados (`cloud-backend`,
+    `admin-panel`, `mobile-mini`, `api-contracts`, `validation`); 30 tests de `mobile-mini` sin
+    regresiones.
+  - **`sale_cancelled` se sacó de la whitelist final** (quedaron 10, no 11): `cancelSale` existe en
+    `apps/mobile-mini/src/features/sales/data/service.ts` pero ninguna pantalla lo expone todavía
+    (no hay botón "cancelar venta") — dejarla habría sido un logro que nunca se puede completar.
+    Agregarla más adelante es sumar la UI de cancelación + el call site, no un cambio de arquitectura.
+  - **Pendiente de testear** (no se prueba más en local desde acá en adelante — se deja documentado
+    para la ronda de test después de deployar varias features juntas):
+    - La cola offline de `mobile-mini` (`gamification_outbox`/`outboxSyncRunner`) en un
+      dispositivo/emulador real: encolar sin red, matar y reabrir la app con eventos pendientes,
+      reconectar y confirmar que drena en orden sin duplicar ni saltar ninguno. No se pudo probar
+      desde este entorno (mismo límite que ya tenía todo lo de AdMob/SQLite nativo del proyecto).
+    - `@react-native-community/netinfo` en build nativo real (agregado a `package.json`, nunca
+      probado en un dispositivo — puede necesitar un rebuild nativo, mismo caso que
+      `react-native-webview` cuando se agregó para Turnstile).
+    - El flujo completo desde la UI de `mobile-mini` (no solo el backend por curl): que
+      `ActiveGoalsCard` muestre varios objetivos simultáneos correctamente, que el progreso se
+      actualice después de una venta/ajuste real, que el drenado del outbox dispare el refetch de
+      `["active-goals"]`.
+    - El panel admin en un despliegue real (Render), no solo local — mismo pendiente que ya tenía
+      todo `apps/admin-panel` antes de este feature.
+    - Que el formulario de creación del panel (`AchievementFormDialog`) valide bien los casos límite
+      que no se probaron a mano: `specific_date` sin fecha, `target` en 0, editar un logro
+      `scheduled_goal` cambiándole el `scheduleType` de `daily` a `weekly` a mitad de un período con
+      progreso ya acumulado (el período vigente cambia de cálculo, el progreso viejo queda "huérfano"
+      del período anterior — comportamiento esperado, pero nunca se vio pasar en vivo).

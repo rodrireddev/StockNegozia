@@ -1,32 +1,56 @@
-import { Controller, Get, Inject, Param, Post, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Inject, Param, Post, Req, UseGuards } from "@nestjs/common";
 import type {
-  DailyMissionClaimResult,
-  DailyMissionTodayDto,
+  ActiveGoalDto,
   RecordActivityResult,
   RewardedAdClaimResult,
   RewardedAdStatusDto,
   SetupQuestClaimResult,
 } from "@stocknegozia/api-contracts";
+import { recordActivitySchema, type RecordActivityInput } from "@stocknegozia/validation";
 import { AccountJwtGuard, type RequestWithAccount } from "../accounts/account-jwt.guard";
-import { DailyMissionsService } from "./daily-missions.service";
+import { ZodValidationPipe } from "../common/pipes/zod-validation.pipe";
 import { RewardedAdsService } from "./rewarded-ads.service";
+import { ScheduledGoalsService } from "./scheduled-goals.service";
 import { SetupQuestsService } from "./setup-quests.service";
 import { StreakService } from "./streak.service";
+
+function todayUtcDateString(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 @Controller("gamification")
 @UseGuards(AccountJwtGuard)
 export class GamificationController {
   constructor(
     @Inject(StreakService) private readonly streakService: StreakService,
+    @Inject(ScheduledGoalsService) private readonly scheduledGoalsService: ScheduledGoalsService,
     @Inject(SetupQuestsService) private readonly setupQuestsService: SetupQuestsService,
-    @Inject(DailyMissionsService) private readonly dailyMissionsService: DailyMissionsService,
     @Inject(RewardedAdsService) private readonly rewardedAdsService: RewardedAdsService,
   ) {}
 
-  /** El cliente llama esto cuando el usuario hace algo real (venta o movimiento de stock, doc §2). */
+  /**
+   * El cliente llama esto cuando el usuario hace algo real de la whitelist de métricas (venta,
+   * ajuste de stock, etc. — ver `@stocknegozia/api-contracts/gamification/trackable-metrics`).
+   * Mueve la racha (`StreakService`, sin cambios de esa lógica) y, en paralelo, registra el evento
+   * de actividad y evalúa/acredita cualquier objetivo programado que se acabe de cumplir con él
+   * (`ScheduledGoalsService`) — todo en la misma llamada, sin un endpoint de "claim" separado para
+   * objetivos. Idempotente por `clientEventId`: reintentar el mismo evento (ej. `mobile-mini`
+   * reenviando desde su cola offline) nunca duplica ni la racha ni el conteo de un objetivo.
+   */
   @Post("activity")
-  recordActivity(@Req() request: RequestWithAccount): Promise<RecordActivityResult> {
-    return this.streakService.recordActivity(request.account!.id);
+  async recordActivity(
+    @Body(new ZodValidationPipe(recordActivitySchema)) body: RecordActivityInput,
+    @Req() request: RequestWithAccount,
+  ): Promise<RecordActivityResult> {
+    const userId = request.account!.id;
+    const occurredOn = body.occurredOn ?? todayUtcDateString();
+
+    const [streakResult, goalsCompleted] = await Promise.all([
+      this.streakService.recordActivity(userId),
+      this.scheduledGoalsService.recordEventAndEvaluate(userId, body.metricType, occurredOn, body.clientEventId),
+    ]);
+
+    return { ...streakResult, goalsCompleted };
   }
 
   /**
@@ -41,19 +65,10 @@ export class GamificationController {
     return this.setupQuestsService.claim(request.account!.id, questKey);
   }
 
-  /** Cuál es la misión de hoy (rotación determinística por fecha, doc §1/§2) y si ya se reclamó. */
-  @Get("daily-mission/today")
-  getTodayMission(@Req() request: RequestWithAccount): Promise<DailyMissionTodayDto> {
-    return this.dailyMissionsService.getToday(request.account!.id);
-  }
-
-  /**
-   * El progreso (3 ventas, 5 stock actualizado) se cuenta 100% local en `mobile-mini` — el
-   * backend solo confía en que el cliente llama esto cuando corresponde y aplica el tope de 1/día.
-   */
-  @Post("daily-mission/claim")
-  claimDailyMission(@Req() request: RequestWithAccount): Promise<DailyMissionClaimResult> {
-    return this.dailyMissionsService.claim(request.account!.id);
+  /** Objetivos programados vigentes ahora mismo (puede haber varios a la vez), con su progreso ya calculado. */
+  @Get("goals/active")
+  listActiveGoals(@Req() request: RequestWithAccount): Promise<ActiveGoalDto[]> {
+    return this.scheduledGoalsService.listActiveForUser(request.account!.id);
   }
 
   /**
@@ -73,9 +88,9 @@ export class GamificationController {
   @Post("rewarded-ad/claim")
   async claimRewardedAd(@Req() request: RequestWithAccount): Promise<RewardedAdClaimResult> {
     // `ledgerEntryId` es interno (lo usa el callback de SSV para auditoría) — nunca al cliente.
-    const { granted, creditsAwarded, sequenceInDay, reason } = await this.rewardedAdsService.claim(
+    const { granted, creditsAwarded, sequenceInDay, reason, goalsCompleted } = await this.rewardedAdsService.claim(
       request.account!.id,
     );
-    return { granted, creditsAwarded, sequenceInDay, reason };
+    return { granted, creditsAwarded, sequenceInDay, reason, goalsCompleted };
   }
 }

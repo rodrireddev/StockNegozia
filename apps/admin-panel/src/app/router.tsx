@@ -1,4 +1,5 @@
 import { createBrowserRouter } from "react-router-dom";
+import { AchievementsPage } from "@/features/achievements/pages/AchievementsPage";
 import { AdPlacementsPage } from "@/features/ads/pages/AdPlacementsPage";
 import { HouseAdsPage } from "@/features/ads/pages/HouseAdsPage";
 import { LoginPage } from "@/features/auth/pages/LoginPage";
@@ -16,6 +17,7 @@ export const router = createBrowserRouter([
         element: <AdminLayout />,
         children: [
           { index: true, element: <CreditConfigPage /> },
+          { path: "achievements", element: <AchievementsPage /> },
           { path: "ad-placements", element: <AdPlacementsPage /> },
           { path: "house-ads", element: <HouseAdsPage /> },
         ],

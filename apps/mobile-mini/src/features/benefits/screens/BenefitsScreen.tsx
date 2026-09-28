@@ -15,7 +15,7 @@ import { RegisterForm } from "@/features/accounts/components/RegisterForm";
 import { useAdsPrivacyOptions } from "@/features/ads/hooks/useAdsPrivacyOptions";
 import { useRewardedAd } from "@/features/ads/hooks/useRewardedAd";
 import { AchievementsList } from "@/features/benefits/components/AchievementsList";
-import { DailyMissionCard } from "@/features/benefits/components/DailyMissionCard";
+import { ActiveGoalsCard } from "@/features/benefits/components/ActiveGoalsCard";
 import { OnboardingRecapButton } from "@/features/onboarding/components/OnboardingRecapButton";
 import { spacing, typography } from "@/theme/tokens";
 import { useTheme } from "@/theme/useTheme";
@@ -123,7 +123,7 @@ function AuthenticatedBenefits({
         />
       </Card>
 
-      <DailyMissionCard />
+      <ActiveGoalsCard />
       <AchievementsList />
 
       <Card style={styles.card}>

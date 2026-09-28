@@ -1,21 +1,28 @@
-import { claimSetupQuest, recordActivity } from "@/accounts/api/gamification.api";
 import { fetchProducts } from "@/data/products";
 import { salesRepository } from "@/features/sales/data/repository";
 import { getBusinessName } from "@/features/settings/data/businessName";
+import { drainGamificationOutbox } from "./outboxSyncRunner";
+import { gamificationOutboxRepository } from "./gamificationOutbox.repository";
 
 /**
- * Fire-and-forget a propósito (doc §2/§3: "nunca bloquea nada, en ningún nivel") — vender o
- * cargar stock nunca debe esperar ni fallar por esto. Sin cuenta no hay nada que registrar
- * (el llamador chequea `useAccount().status === "authenticated"` antes de llamar), y cualquier
- * error de red se descarta silenciosamente: como mucho, el logro/racha se actualiza un poco
- * tarde la próxima vez que la acción se repita.
+ * Encola local (nunca falla por estar offline) y dispara un intento de drenado inmediato, no
+ * bloqueante — vender o cargar stock nunca debe esperar ni fallar por esto (doc §2/§3: "nunca
+ * bloquea nada, en ningún nivel"). A diferencia de la versión anterior (POST directo,
+ * fire-and-forget, se perdía para siempre sin red), el evento queda en `gamification_outbox` y se
+ * reintenta solo hasta que se sincroniza — ver `outboxSyncRunner.ts`.
+ *
+ * `metricType` es una de las claves de la whitelist compartida
+ * (`@stocknegozia/api-contracts/gamification/trackable-metrics`) — el server es quien cuenta el
+ * progreso de cualquier objetivo que la use, esta función nunca cuenta nada localmente.
  */
-export function fireSetupQuestClaim(questKey: string): void {
-  claimSetupQuest(questKey).catch(() => {});
+export function fireRecordActivity(metricType: string): void {
+  gamificationOutboxRepository.enqueueActivity(metricType);
+  void drainGamificationOutbox();
 }
 
-export function fireRecordActivity(): void {
-  recordActivity().catch(() => {});
+export function fireSetupQuestClaim(questKey: string): void {
+  gamificationOutboxRepository.enqueueSetupQuestClaim(questKey);
+  void drainGamificationOutbox();
 }
 
 /**

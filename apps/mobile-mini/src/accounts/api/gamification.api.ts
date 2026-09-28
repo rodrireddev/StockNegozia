@@ -1,7 +1,6 @@
 import type {
   AchievementDto,
-  DailyMissionClaimResult,
-  DailyMissionTodayDto,
+  ActiveGoalDto,
   RecordActivityResult,
   RewardedAdClaimResult,
   RewardedAdStatusDto,
@@ -9,20 +8,21 @@ import type {
 } from "@stocknegozia/api-contracts";
 import { apiGet, apiPost } from "./client";
 
-export function recordActivity(): Promise<RecordActivityResult> {
-  return apiPost<RecordActivityResult>("/gamification/activity");
+export function recordActivity(
+  metricType: string,
+  clientEventId: string,
+  occurredOn: string,
+): Promise<RecordActivityResult> {
+  return apiPost<RecordActivityResult>("/gamification/activity", { metricType, clientEventId, occurredOn });
 }
 
 export function claimSetupQuest(questKey: string): Promise<SetupQuestClaimResult> {
   return apiPost<SetupQuestClaimResult>(`/gamification/setup-quests/${questKey}/claim`);
 }
 
-export function getTodayMission(): Promise<DailyMissionTodayDto> {
-  return apiGet<DailyMissionTodayDto>("/gamification/daily-mission/today");
-}
-
-export function claimDailyMission(): Promise<DailyMissionClaimResult> {
-  return apiPost<DailyMissionClaimResult>("/gamification/daily-mission/claim");
+/** Objetivos programados vigentes ahora (puede haber varios a la vez), con progreso ya calculado por el server. */
+export function getActiveGoals(): Promise<ActiveGoalDto[]> {
+  return apiGet<ActiveGoalDto[]>("/gamification/goals/active");
 }
 
 export function claimRewardedAd(): Promise<RewardedAdClaimResult> {

@@ -4,6 +4,8 @@ export * from "./admin/admin-auth.schema";
 export * from "./admin/credit-config.schema";
 export * from "./admin/ad-placements.schema";
 export * from "./admin/house-ads.schema";
+export * from "./admin/achievements.schema";
+export * from "./gamification/activity.schema";
 export * from "./accounts/account-auth.schema";
 export * from "./products/product.schema";
 export * from "./sales/sale.schema";
