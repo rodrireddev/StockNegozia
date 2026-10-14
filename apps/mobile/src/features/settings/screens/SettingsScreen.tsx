@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { useRouter, type Href } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { Check, Smartphone } from "lucide-react-native";
+import { Check, ChevronRight, CreditCard, Smartphone } from "lucide-react-native";
 import { useDeviceInfo } from "@/devices/useDeviceInfo";
 import { useAuth } from "@/auth/AuthContext";
 import { useAuthErrorRedirect } from "@/auth/useAuthErrorRedirect";
@@ -94,6 +95,7 @@ export function SettingsScreen() {
   const query = useDeviceInfo();
   const auth = useAuth();
   const { colors, mode, setMode } = useThemeMode();
+  const router = useRouter();
   useAuthErrorRedirect(query.error);
 
   return (
@@ -102,6 +104,24 @@ export function SettingsScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={[typography.subtitle, { color: colors.foreground }]}>Datos del negocio</Text>
         <BusinessNameCard />
+        <Pressable
+          testID="open-payment-terms"
+          accessibilityRole="button"
+          onPress={() => router.push("/settings/payment-terms" as Href)}
+        >
+          <Card style={styles.linkCard}>
+            <CreditCard color={colors.foreground} size={20} />
+            <View style={styles.linkCardText}>
+              <Text style={[typography.bodyStrong, { color: colors.foreground }]}>
+                Medios de pago
+              </Text>
+              <Text style={[typography.caption, { color: colors.mutedForeground }]}>
+                Recargos, comisiones y días de acreditación
+              </Text>
+            </View>
+            <ChevronRight color={colors.mutedForeground} size={18} />
+          </Card>
+        </Pressable>
 
         <Text style={[typography.subtitle, { color: colors.foreground }]}>Este dispositivo</Text>
         {query.isPending ? (
@@ -172,6 +192,8 @@ export function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  linkCard: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  linkCardText: { flex: 1, gap: 2 },
   title: { ...typography.title, marginBottom: spacing.md },
   content: { gap: spacing.lg, paddingBottom: spacing.xxl },
   businessCard: { gap: spacing.md },

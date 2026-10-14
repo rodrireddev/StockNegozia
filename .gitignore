@@ -7,6 +7,10 @@ dist/
 build/
 out/
 release/
+# Backend armado para el instalador de Desktop (apps/desktop/scripts/prepare-backend-bundle.mjs)
+build-resources/
+# APKs e instaladores generados para testear/subir como release
+releases/
 *.tsbuildinfo
 
 # Turborepo

@@ -1,9 +1,16 @@
 import type { CashAdjustmentDto } from "@stocknegozia/api-contracts";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { formatMoney } from "@stocknegozia/shared";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
 const dateFormatter = new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" });
-const currencyFormatter = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 
 export function CashAdjustmentsTable({ adjustments }: { adjustments: CashAdjustmentDto[] }) {
   return (
@@ -32,7 +39,7 @@ export function CashAdjustmentsTable({ adjustments }: { adjustments: CashAdjustm
                   isOut ? "text-destructive" : "text-success",
                 )}
               >
-                {currencyFormatter.format(signedAmount)}
+                {formatMoney(signedAmount)}
               </TableCell>
               <TableCell className="text-muted-foreground">{adjustment.reason}</TableCell>
             </TableRow>

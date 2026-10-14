@@ -1,12 +1,27 @@
 import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
+import type { SalePaymentDto } from "@stocknegozia/api-contracts";
+import { describePayment, formatMoney } from "@stocknegozia/shared";
 import { getBusinessName } from "@/features/settings/data/businessName";
 
 export interface ReceiptSale {
   id: number;
   createdAt: string;
   total: number;
+  /** Opcional: ventas sin medio de pago registrado no muestran la sección "Forma de pago". */
+  payments?: Pick<
+    SalePaymentDto,
+    | "method"
+    | "amount"
+    | "installments"
+    | "cardBrand"
+    | "reference"
+    | "amountReceived"
+    | "change"
+    | "surchargePercent"
+    | "surchargeAmount"
+  >[];
 }
 
 export interface ReceiptLine {
@@ -17,7 +32,6 @@ export interface ReceiptLine {
   subtotal: number;
 }
 
-const currencyFormatter = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 const dateFormatter = new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" });
 
 /** Puntos/píxeles por milímetro a 72 DPI — misma unidad que usa `expo-print` para `width`/`height`
@@ -36,9 +50,15 @@ const PAGE_WIDTH_PX = Math.round(RECEIPT_WIDTH_MM * MM);
 const HEADER_HEIGHT_PX = 170;
 const ITEM_HEIGHT_PX = 70;
 const FOOTER_HEIGHT_PX = 90;
+const PAYMENT_HEIGHT_PX = 45;
 
-function estimateReceiptHeight(itemCount: number): number {
-  return HEADER_HEIGHT_PX + itemCount * ITEM_HEIGHT_PX + FOOTER_HEIGHT_PX;
+function estimateReceiptHeight(itemCount: number, paymentCount: number): number {
+  return (
+    HEADER_HEIGHT_PX +
+    itemCount * ITEM_HEIGHT_PX +
+    (paymentCount > 0 ? 30 + paymentCount * PAYMENT_HEIGHT_PX : 0) +
+    FOOTER_HEIGHT_PX
+  );
 }
 
 /** Mismo layout que el recibo del backend (ver apps/backend/src/core/sales/sale-receipt.pdf.ts):
@@ -56,10 +76,27 @@ export function buildReceiptHtml(
         <div class="item">
           <div class="item-name">${line.name} (${line.sku})</div>
           <div class="item-detail">
-            <span>${line.quantity} x ${currencyFormatter.format(line.unitPrice)}</span>
-            <span>${currencyFormatter.format(line.subtotal)}</span>
+            <span>${line.quantity} x ${formatMoney(line.unitPrice)}</span>
+            <span>${formatMoney(line.subtotal)}</span>
           </div>
         </div>`,
+    )
+    .join("");
+
+  const payments = sale.payments ?? [];
+  const surcharge = payments.reduce((sum, payment) => sum + (payment.surchargeAmount ?? 0), 0);
+  const paymentRows = payments
+    .map(
+      (payment) => `
+        <div class="payment">
+          <span>${describePayment(payment)}</span>
+          ${payments.length > 1 ? `<span>${formatMoney(payment.amount)}</span>` : ""}
+        </div>
+        ${
+          payment.method === "cash" && payment.amountReceived !== null
+            ? `<div class="payment-note">Recibido ${formatMoney(payment.amountReceived)} · vuelto ${formatMoney(payment.change ?? 0)}</div>`
+            : ""
+        }`,
     )
     .join("");
 
@@ -78,7 +115,11 @@ export function buildReceiptHtml(
           .item { margin-bottom: 8px; }
           .item-name { font-size: 16px; font-weight: bold; }
           .item-detail { display: flex; justify-content: space-between; font-size: 15px; }
-          .total { display: flex; justify-content: space-between; font-size: 22px; font-weight: bold; margin-top: 4px; }
+          .total { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 22px; font-weight: bold; margin-top: 4px; }
+          .total span:last-child { text-align: right; word-break: break-all; }
+          .payments-title { font-size: 14px; font-weight: bold; margin: 12px 0 2px; }
+          .payment { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+          .payment-note { font-size: 12px; color: #555; }
           .footer { margin-top: 16px; font-size: 12px; color: #555; text-align: center; }
         </style>
       </head>
@@ -95,8 +136,15 @@ export function buildReceiptHtml(
         <hr />
         <div class="total">
           <span>TOTAL</span>
-          <span>${currencyFormatter.format(sale.total)}</span>
+          <span>${formatMoney(sale.total)}</span>
         </div>
+        ${paymentRows ? `<div class="payments-title">Forma de pago</div>${paymentRows}` : ""}
+        ${
+          surcharge > 0
+            ? `<div class="payment"><span>Recargo medio de pago</span><span>${formatMoney(surcharge)}</span></div>
+               <div class="total"><span>TOTAL COBRADO</span><span>${formatMoney(sale.total + surcharge)}</span></div>`
+            : ""
+        }
         <p class="footer">Gracias por su compra.</p>
       </body>
     </html>`;
@@ -105,7 +153,10 @@ export function buildReceiptHtml(
 /** Genera el PDF localmente (sin backend) y abre la hoja nativa de compartir/guardar — mismo
  *  mecanismo que en mobile, para que la persona lo guarde en Archivos/Downloads sin permisos
  *  extra de almacenamiento. */
-export async function generateAndShareReceipt(sale: ReceiptSale, lines: ReceiptLine[]): Promise<void> {
+export async function generateAndShareReceipt(
+  sale: ReceiptSale,
+  lines: ReceiptLine[],
+): Promise<void> {
   const businessName = (await getBusinessName()) ?? "StockNegozia";
   // `expo-print` deja el PDF en un directorio temporal propio (bajo Expo Go, del proceso del
   // cliente de Expo) al que a veces ni la propia app puede leer/copiar — produce
@@ -116,7 +167,7 @@ export async function generateAndShareReceipt(sale: ReceiptSale, lines: ReceiptL
   const { base64 } = await Print.printToFileAsync({
     html: buildReceiptHtml(sale, lines, businessName),
     width: PAGE_WIDTH_PX,
-    height: estimateReceiptHeight(lines.length),
+    height: estimateReceiptHeight(lines.length, sale.payments?.length ?? 0),
     base64: true,
   });
   if (!base64) throw new Error("No se pudo generar el contenido del recibo.");

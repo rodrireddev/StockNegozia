@@ -35,7 +35,13 @@ export function MainLayout() {
           {!sidebarCollapsed && (
             <div>
               <div className="flex items-center gap-2">
-                <img src="/branding/logo.png" alt="" className="h-6 w-6" />
+                {/* `BASE_URL`: "/" en desarrollo, "./" en la app empaquetada (se abre desde `file://`,
+                    donde "/branding/..." apuntaba a la raíz del disco y la imagen no cargaba). */}
+                <img
+                  src={`${import.meta.env.BASE_URL}branding/logo.png`}
+                  alt=""
+                  className="h-6 w-6"
+                />
                 <h1 className="text-lg font-semibold">StockNegozia</h1>
               </div>
               {me.data?.sellerName && (

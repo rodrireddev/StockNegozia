@@ -1,11 +1,16 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { ShoppingCart } from "lucide-react-native";
 import type { ProductDto } from "@stocknegozia/api-contracts";
-import { resolveScanMatch } from "@stocknegozia/shared";
+import {
+  formatMoney,
+  resolveScanMatch,
+  createPaymentDraft,
+  summarizePaymentDraft,
+  type PaymentDraft,
+} from "@stocknegozia/shared";
 import { fetchProductByCode, fetchProducts } from "@/api/endpoints/products";
 import { Button } from "@/components/Button";
-import { Checkbox } from "@/components/Checkbox";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
@@ -23,12 +28,12 @@ import { useSettings } from "@/features/settings/hooks/useSettings";
 import { useTheme } from "@/theme/useTheme";
 import { spacing, typography } from "@/theme/tokens";
 import { MissingBusinessNameModal } from "../components/MissingBusinessNameModal";
+import { usePaymentTerms } from "@/features/finance/hooks/usePaymentTerms";
+import { CheckoutSheet } from "../components/CheckoutSheet";
 import { SaleCartRow } from "../components/SaleCartRow";
 import { useCart } from "../hooks/useCart";
 import { useCreateSale } from "../hooks/useCreateSale";
 import { useDownloadReceipt } from "../hooks/useDownloadReceipt";
-
-const currencyFormatter = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 
 export function SalesScreen() {
   const { colors } = useTheme();
@@ -50,6 +55,14 @@ export function SalesScreen() {
   useAuthErrorRedirect(productsQuery.error);
 
   const cart = useCart();
+  const [paymentDraft, setPaymentDraft] = useState<PaymentDraft>(() => createPaymentDraft());
+  const paymentTerms = usePaymentTerms();
+  const paymentSummary = useMemo(
+    () => summarizePaymentDraft(paymentDraft, cart.total, paymentTerms.data),
+    [paymentDraft, cart.total, paymentTerms.data],
+  );
+  // Paso "Cobrar" en pantalla completa — ver `CheckoutSheet`.
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const createSale = useCreateSale();
   const downloadReceipt = useDownloadReceipt();
   const settings = useSettings();
@@ -122,7 +135,13 @@ export function SalesScreen() {
     // sale-receipt.pdf.ts) es un error que antes recién se notaba mirando el PDF ya entregado —
     // se corta acá, antes de registrar la venta, en vez de dejarlo pasar.
     if (generateReceipt && !settings.data?.businessName) {
+      setCheckoutOpen(false);
       setShowMissingBusinessNameModal(true);
+      return;
+    }
+
+    if (!paymentSummary.payments) {
+      setConfirmError(paymentSummary.error ?? "Revisá la forma de pago.");
       return;
     }
 
@@ -130,9 +149,13 @@ export function SalesScreen() {
     try {
       sale = await createSale.mutateAsync({
         items: cart.items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+        payments: paymentSummary.payments,
       });
       // El carrito solo se limpia después de que el backend confirmó la venta — nunca antes.
       cart.clear();
+      setCheckoutOpen(false);
+      // La próxima venta arranca con el mismo medio, sin montos ni referencias de esta.
+      setPaymentDraft((draft) => createPaymentDraft(draft.lines[0]?.method));
       setSuccessMessage("Venta registrada correctamente.");
     } catch (error) {
       setConfirmError(error instanceof Error ? error.message : "No se pudo registrar la venta.");
@@ -151,126 +174,157 @@ export function SalesScreen() {
   }
 
   return (
-    <ScreenContainer>
-      <Text style={[typography.title, { color: colors.foreground, marginBottom: spacing.md }]}>
-        Ventas
-      </Text>
+    // Raíz propia para que la capa "Cobrar" cubra toda la pantalla (incluido el padding
+    // de `ScreenContainer`).
+    <View style={styles.root}>
+      <ScreenContainer>
+        <Text style={[typography.title, { color: colors.foreground, marginBottom: spacing.md }]}>
+          Ventas
+        </Text>
 
-      <TextField
-        label="Buscar producto"
-        placeholder="Nombre, SKU o código de barras…"
-        value={searchTerm}
-        onChangeText={(v) => {
-          setSearchTerm(v);
-          setScanError(null);
-        }}
-        onSubmitEditing={handleSubmitSearch}
-        returnKeyType="done"
-      />
-      <Button
-        label="📷 Escanear"
-        variant="secondary"
-        onPress={() => setScannerOpen(true)}
-        testID="scan-product-sale"
-      />
-      {scanError && <Text style={{ color: colors.danger }}>{scanError}</Text>}
-
-      <ProductScanner
-        visible={scannerOpen}
-        onDetected={handleScanDetected}
-        onCancel={() => setScannerOpen(false)}
-        feedback={scanFeedback}
-      />
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.results}>
-          {productsQuery.isLoading || isResolvingScan ? (
-            <LoadingState message="Buscando productos…" />
-          ) : productsQuery.isError ? (
-            <ErrorState
-              message="No pudimos cargar los productos."
-              onRetry={() => void productsQuery.refetch()}
-            />
-          ) : (productsQuery.data ?? []).length === 0 ? (
-            <Text style={[typography.caption, { color: colors.mutedForeground }]}>
-              {trimmedSearch
-                ? `No encontramos productos que coincidan con "${trimmedSearch}".`
-                : "No tenés productos cargados todavía."}
-            </Text>
-          ) : (
-            (productsQuery.data ?? []).map((product) => (
-              <Pressable key={product.id} onPress={() => handleAdd(product)}>
-                <ProductListItem product={product} />
-              </Pressable>
-            ))
-          )}
-        </View>
-
-        <Text style={[typography.subtitle, { color: colors.foreground }]}>Venta actual</Text>
-
-        {cart.items.length === 0 ? (
-          <EmptyState
-            title="Carrito vacío"
-            message="Buscá o escaneá un producto para empezar."
-            icon={ShoppingCart}
-          />
-        ) : (
-          <View style={styles.cartList}>
-            {cart.items.map((item) => (
-              <SaleCartRow
-                key={item.productId}
-                item={item}
-                onIncrement={() => cart.incrementItem(item.productId)}
-                onDecrement={() => cart.decrementItem(item.productId)}
-                onRemove={() => cart.removeItem(item.productId)}
-              />
-            ))}
-          </View>
-        )}
-      </ScrollView>
-
-      <View style={[styles.footer, { borderTopColor: colors.border }]}>
-        {confirmError && <Text style={{ color: colors.danger }}>{confirmError}</Text>}
-        {successMessage && <Text style={{ color: colors.success }}>{successMessage}</Text>}
-        {receiptError && <Text style={{ color: colors.danger }}>{receiptError}</Text>}
-        <View style={styles.totalRow}>
-          <Text style={[typography.bodyStrong, { color: colors.foreground }]}>Total</Text>
-          <Text style={[typography.title, { color: colors.foreground }]}>
-            {currencyFormatter.format(cart.total)}
-          </Text>
-        </View>
-        <Checkbox
-          checked={generateReceipt}
-          onChange={setGenerateReceipt}
-          label="Generar recibo PDF"
-          testID="generate-receipt"
+        <TextField
+          label="Buscar producto"
+          placeholder="Nombre, SKU o código de barras…"
+          value={searchTerm}
+          onChangeText={(v) => {
+            setSearchTerm(v);
+            setScanError(null);
+          }}
+          onSubmitEditing={handleSubmitSearch}
+          returnKeyType="done"
         />
         <Button
-          testID="confirm-sale"
-          label={createSale.isPending ? "Registrando venta…" : "Confirmar venta"}
-          onPress={handleConfirm}
-          disabled={cart.isEmpty}
-          loading={createSale.isPending || downloadReceipt.isPending}
+          label="📷 Escanear"
+          variant="secondary"
+          onPress={() => setScannerOpen(true)}
+          testID="scan-product-sale"
         />
-      </View>
+        {scanError && <Text style={{ color: colors.danger }}>{scanError}</Text>}
 
-      <MissingBusinessNameModal
-        visible={showMissingBusinessNameModal}
-        onClose={() => setShowMissingBusinessNameModal(false)}
+        <ProductScanner
+          visible={scannerOpen}
+          onDetected={handleScanDetected}
+          onCancel={() => setScannerOpen(false)}
+          feedback={scanFeedback}
+        />
+
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.results}>
+            {productsQuery.isLoading || isResolvingScan ? (
+              <LoadingState message="Buscando productos…" />
+            ) : productsQuery.isError ? (
+              <ErrorState
+                message="No pudimos cargar los productos."
+                onRetry={() => void productsQuery.refetch()}
+              />
+            ) : (productsQuery.data ?? []).length === 0 ? (
+              <Text style={[typography.caption, { color: colors.mutedForeground }]}>
+                {trimmedSearch
+                  ? `No encontramos productos que coincidan con "${trimmedSearch}".`
+                  : "No tenés productos cargados todavía."}
+              </Text>
+            ) : (
+              (productsQuery.data ?? []).map((product) => (
+                <Pressable key={product.id} onPress={() => handleAdd(product)}>
+                  <ProductListItem product={product} />
+                </Pressable>
+              ))
+            )}
+          </View>
+
+          <Text style={[typography.subtitle, { color: colors.foreground }]}>Venta actual</Text>
+
+          {cart.items.length === 0 ? (
+            <EmptyState
+              title="Carrito vacío"
+              message="Buscá o escaneá un producto para empezar."
+              icon={ShoppingCart}
+            />
+          ) : (
+            <View style={styles.cartList}>
+              {cart.items.map((item) => (
+                <SaleCartRow
+                  key={item.productId}
+                  item={item}
+                  onIncrement={() => cart.incrementItem(item.productId)}
+                  onDecrement={() => cart.decrementItem(item.productId)}
+                  onRemove={() => cart.removeItem(item.productId)}
+                />
+              ))}
+            </View>
+          )}
+        </ScrollView>
+
+        <View style={[styles.footer, { borderTopColor: colors.border }]}>
+          {confirmError && !checkoutOpen && (
+            <Text style={{ color: colors.danger }}>{confirmError}</Text>
+          )}
+          {successMessage && <Text style={{ color: colors.success }}>{successMessage}</Text>}
+          {receiptError && <Text style={{ color: colors.danger }}>{receiptError}</Text>}
+          <View style={styles.totalRow}>
+            <Text style={[typography.bodyStrong, { color: colors.foreground }]}>Total</Text>
+            {/* `adjustsFontSizeToFit`: con totales de 9+ dígitos el título no entraba en el ancho
+              del teléfono y se cortaba. */}
+            <Text
+              style={[typography.title, styles.totalAmount, { color: colors.foreground }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
+              {formatMoney(cart.total)}
+            </Text>
+          </View>
+          <Button
+            testID="open-checkout"
+            label={cart.isEmpty ? "Cobrar" : `Cobrar ${formatMoney(paymentSummary.totalToCharge)}`}
+            onPress={() => {
+              setConfirmError(null);
+              setSuccessMessage(null);
+              setCheckoutOpen(true);
+            }}
+            disabled={cart.isEmpty}
+          />
+        </View>
+
+        <MissingBusinessNameModal
+          visible={showMissingBusinessNameModal}
+          onClose={() => setShowMissingBusinessNameModal(false)}
+        />
+      </ScreenContainer>
+      <CheckoutSheet
+        visible={checkoutOpen}
+        onClose={() => setCheckoutOpen(false)}
+        total={cart.total}
+        itemCount={cart.items.reduce((sum, item) => sum + item.quantity, 0)}
+        draft={paymentDraft}
+        onDraftChange={setPaymentDraft}
+        summary={paymentSummary}
+        terms={paymentTerms.data}
+        generateReceipt={generateReceipt}
+        onGenerateReceiptChange={setGenerateReceipt}
+        onConfirm={handleConfirm}
+        isSubmitting={createSale.isPending}
+        error={confirmError}
       />
-    </ScreenContainer>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1 },
   scroll: { flex: 1 },
   content: { gap: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.md },
   results: { gap: spacing.sm },
   cartList: { gap: spacing.sm },
   footer: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spacing.md, gap: spacing.sm },
-  totalRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  totalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  totalAmount: { flexShrink: 1, textAlign: "right" },
 });

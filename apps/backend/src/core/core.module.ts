@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { CashAdjustmentsModule } from "./cash-adjustments/cash-adjustments.module";
 import { CustomersModule } from "./customers/customers.module";
+import { FinanceModule } from "./finance/finance.module";
 import { InventoryModule } from "./inventory/inventory.module";
 import { PermissionsModule } from "./permissions/permissions.module";
 import { ProductsModule } from "./products/products.module";
@@ -26,6 +27,7 @@ import { UsersModule } from "./users/users.module";
     SalesModule,
     CashAdjustmentsModule,
     ProfitsModule,
+    FinanceModule,
     SettingsModule,
     StockMovementsModule,
     SuppliersModule,

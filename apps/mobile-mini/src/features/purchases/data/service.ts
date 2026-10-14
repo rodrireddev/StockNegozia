@@ -64,8 +64,8 @@ function assertValidItems(items: PurchaseItemInput[]): void {
  * por `productsService.adjustStock` — este módulo nunca toca `products.stock` directamente.
  */
 export const purchasesService = {
-  findMany(): PurchaseSummaryDto[] {
-    return purchasesRepository.findMany().map(toSummaryDto);
+  findMany(filters: { from?: Date; to?: Date } = {}): PurchaseSummaryDto[] {
+    return purchasesRepository.findMany(filters).map(toSummaryDto);
   },
 
   findById(id: number): PurchaseDto {
@@ -91,7 +91,12 @@ export const purchasesService = {
       const lines = input.items.map((item) => {
         productsService.findById(item.productId, tx); // 404 si no existe
         const subtotal = roundMoney(item.unitCost * item.quantity);
-        return { productId: item.productId, quantity: item.quantity, unitCost: item.unitCost, subtotal };
+        return {
+          productId: item.productId,
+          quantity: item.quantity,
+          unitCost: item.unitCost,
+          subtotal,
+        };
       });
 
       const total = roundMoney(lines.reduce((sum, line) => sum + line.subtotal, 0));

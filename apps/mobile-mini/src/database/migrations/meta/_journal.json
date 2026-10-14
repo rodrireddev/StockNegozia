@@ -36,6 +36,27 @@
       "when": 1790590098677,
       "tag": "0004_green_ikaris",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1791102996468,
+      "tag": "0005_tough_drax",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1791120263665,
+      "tag": "0006_salty_kang",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1791954462909,
+      "tag": "0007_backfill_legacy_sale_payments",
+      "breakpoints": true
     }
   ]
 }

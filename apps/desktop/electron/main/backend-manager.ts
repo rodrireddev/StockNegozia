@@ -13,6 +13,17 @@ export interface BackendManagerOptions {
   port?: number;
 }
 
+/** El backend terminó antes de responder saludable. */
+export class BackendExitedError extends Error {
+  constructor(
+    readonly code: number | null,
+    readonly signal: NodeJS.Signals | null,
+  ) {
+    super(`El backend se cerró al arrancar (code=${code} signal=${signal})`);
+    this.name = "BackendExitedError";
+  }
+}
+
 /**
  * Administra el ciclo de vida del backend NestJS como proceso hijo:
  * inicio, parada, supervisión y espera de disponibilidad.
@@ -20,6 +31,8 @@ export interface BackendManagerOptions {
 export class BackendManager {
   private child: ChildProcess | null = null;
   private stopping = false;
+  /** Salida del proceso actual sin que se haya pedido `stop()` (ej. una migración que falló). */
+  private unexpectedExit: { code: number | null; signal: NodeJS.Signals | null } | null = null;
   readonly port: number;
 
   constructor(private readonly options: BackendManagerOptions) {
@@ -32,6 +45,8 @@ export class BackendManager {
 
   start(): void {
     if (this.child) return;
+    this.stopping = false;
+    this.unexpectedExit = null;
 
     const env = {
       ...process.env,
@@ -43,6 +58,10 @@ export class BackendManager {
     if (this.options.isPackaged) {
       const backendEntry = `${this.options.repoRoot}/apps/backend/dist/main.js`;
       this.child = spawn(process.execPath, [backendEntry], {
+        // El backend resuelve sus migraciones (`src/database/migrations`) relativo al `cwd` — ver
+        // database.module.ts y scripts/prepare-backend-bundle.mjs. Sin esto el `cwd` es donde se
+        // lanzó el .exe y el backend no encuentra las migraciones.
+        cwd: `${this.options.repoRoot}/apps/backend`,
         env: { ...env, ELECTRON_RUN_AS_NODE: "1" },
         stdio: "inherit",
         // El proceso Electron main no tiene una consola propia (es un binario GUI): sin
@@ -64,6 +83,7 @@ export class BackendManager {
     this.child.on("exit", (code, signal) => {
       this.child = null;
       if (!this.stopping) {
+        this.unexpectedExit = { code, signal };
         console.error(
           `[backend-manager] backend exited unexpectedly (code=${code} signal=${signal})`,
         );
@@ -113,11 +133,19 @@ export class BackendManager {
    * durante un Restore, donde un backend que no vuelve a levantar tras restaurar un archivo SÍ es
    * una señal real de que algo salió mal (base restaurada incompatible/corrupta) y debe disparar
    * el rollback automático, no quedar esperando para siempre.
+   *
+   * En ambos casos, si el proceso se cerró solo (sin `stop()`) se rechaza de inmediato con
+   * `BackendExitedError`: un proceso muerto no va a responder por más que se espere.
    */
   async waitUntilHealthy(timeoutMs?: number, intervalMs = 300): Promise<void> {
     const deadline = timeoutMs !== undefined ? Date.now() + timeoutMs : Infinity;
 
     while (Date.now() < deadline) {
+      // Si el proceso ya murió no va a responder nunca: esperar "indefinidamente" dejaría el
+      // splash colgado para siempre (ej. una migración de la base que falló al actualizar).
+      if (this.unexpectedExit) {
+        throw new BackendExitedError(this.unexpectedExit.code, this.unexpectedExit.signal);
+      }
       try {
         const response = await fetch(`${this.baseUrl}/health`);
         if (response.ok) {

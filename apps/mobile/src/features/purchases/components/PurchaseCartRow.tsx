@@ -1,13 +1,17 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { X } from "lucide-react-native";
+import {
+  formatMoney,
+  formatMoneyInputText,
+  moneyToInputText,
+  parseMoneyInput,
+} from "@stocknegozia/shared";
 import type { PurchaseCartItem } from "../hooks/usePurchaseCart";
 import { Card } from "@/components/Card";
 import { QuantityStepper } from "@/components/QuantityStepper";
 import { useTheme } from "@/theme/useTheme";
 import { minTouchTarget, radius, spacing, typography } from "@/theme/tokens";
-
-const currencyFormatter = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 
 export interface PurchaseCartRowProps {
   item: PurchaseCartItem;
@@ -16,16 +20,22 @@ export interface PurchaseCartRowProps {
   onRemove: () => void;
 }
 
-export function PurchaseCartRow({ item, onSetQuantity, onSetUnitCost, onRemove }: PurchaseCartRowProps) {
+export function PurchaseCartRow({
+  item,
+  onSetQuantity,
+  onSetUnitCost,
+  onRemove,
+}: PurchaseCartRowProps) {
   const { colors } = useTheme();
-  const [costText, setCostText] = useState(String(item.unitCost));
+  const [costText, setCostText] = useState(() => moneyToInputText(item.unitCost));
 
   function commitCost() {
-    const value = Number(costText);
-    if (Number.isFinite(value) && value >= 0) {
+    const value = parseMoneyInput(costText);
+    if (value !== null && value >= 0) {
       onSetUnitCost(value);
+      setCostText(moneyToInputText(value));
     } else {
-      setCostText(String(item.unitCost));
+      setCostText(moneyToInputText(item.unitCost));
     }
   }
 
@@ -55,20 +65,28 @@ export function PurchaseCartRow({ item, onSetQuantity, onSetUnitCost, onRemove }
           <Text style={[typography.caption, { color: colors.mutedForeground }]}>Costo</Text>
           <TextInput
             value={costText}
-            onChangeText={setCostText}
+            onChangeText={(text) => setCostText(formatMoneyInputText(text, costText))}
             onBlur={commitCost}
             onSubmitEditing={commitCost}
             keyboardType="decimal-pad"
             accessibilityLabel={`Costo unitario de ${item.name}`}
             style={[
               styles.costInput,
-              { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background },
+              {
+                color: colors.foreground,
+                borderColor: colors.border,
+                backgroundColor: colors.background,
+              },
             ]}
           />
         </View>
       </View>
-      <Text style={[typography.caption, { color: colors.mutedForeground, textAlign: "right" }]}>
-        Subtotal: {currencyFormatter.format(item.unitCost * item.quantity)}
+      <Text
+        style={[typography.caption, { color: colors.mutedForeground, textAlign: "right" }]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
+        Subtotal: {formatMoney(item.unitCost * item.quantity)}
       </Text>
     </Card>
   );
@@ -78,10 +96,17 @@ const styles = StyleSheet.create({
   card: { gap: spacing.sm },
   header: { flexDirection: "row", justifyContent: "space-between", gap: spacing.sm },
   info: { gap: 2, flex: 1 },
-  footer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: spacing.sm },
-  costField: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
+  footer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  costField: { flexDirection: "row", alignItems: "center", gap: spacing.xs, flexShrink: 1 },
   costInput: {
-    minWidth: 72,
+    // Ancho para "100.000.000,00" — antes 72dp mostraba sólo los últimos dígitos.
+    minWidth: 128,
     minHeight: minTouchTarget,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radius.md,

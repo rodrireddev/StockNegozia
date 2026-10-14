@@ -26,6 +26,10 @@ jest.mock("@/api/endpoints/receipt", () => ({
   downloadSaleReceipt: jest.fn(),
 }));
 jest.mock("@/api/endpoints/settings", () => ({
+  fetchPaymentTerms: jest.fn(() =>
+    Promise.resolve(jest.requireActual("@stocknegozia/shared").DEFAULT_PAYMENT_TERMS),
+  ),
+  updatePaymentTerms: jest.fn(),
   fetchSettings: jest.fn(),
   updateSettings: jest.fn(),
 }));
@@ -85,6 +89,8 @@ describe("SalesScreen — recibo PDF", () => {
       total: 1200,
       createdAt: "2026-01-01T00:00:00.000Z",
       cancelledAt: null,
+      paymentMethods: [],
+      payments: [],
       items: [{ id: 1, productId: cocaCola.id, quantity: 1, unitPrice: 1200, subtotal: 1200 }],
     });
   });
@@ -96,6 +102,8 @@ describe("SalesScreen — recibo PDF", () => {
   it("sin tildar el checkbox (default), confirmar la venta no descarga ningún recibo", async () => {
     await renderWithClient(<SalesScreen />);
     fireEvent.press(await screen.findByText("Coca-Cola 2L"));
+    await waitFor(() => expect(screen.getByTestId("open-checkout")).not.toBeDisabled());
+    fireEvent.press(screen.getByTestId("open-checkout"));
     await waitFor(() => expect(screen.getByTestId("confirm-sale")).not.toBeDisabled());
     fireEvent.press(screen.getByTestId("confirm-sale"));
 
@@ -108,7 +116,9 @@ describe("SalesScreen — recibo PDF", () => {
 
     await renderWithClient(<SalesScreen />);
     fireEvent.press(await screen.findByText("Coca-Cola 2L"));
-    fireEvent.press(screen.getByTestId("generate-receipt"));
+    await waitFor(() => expect(screen.getByTestId("open-checkout")).not.toBeDisabled());
+    fireEvent.press(screen.getByTestId("open-checkout"));
+    fireEvent.press(await screen.findByTestId("generate-receipt"));
     await waitFor(() => expect(screen.getByTestId("confirm-sale")).not.toBeDisabled());
     fireEvent.press(screen.getByTestId("confirm-sale"));
 
@@ -124,7 +134,9 @@ describe("SalesScreen — recibo PDF", () => {
 
     await renderWithClient(<SalesScreen />);
     fireEvent.press(await screen.findByText("Coca-Cola 2L"));
-    fireEvent.press(screen.getByTestId("generate-receipt"));
+    await waitFor(() => expect(screen.getByTestId("open-checkout")).not.toBeDisabled());
+    fireEvent.press(screen.getByTestId("open-checkout"));
+    fireEvent.press(await screen.findByTestId("generate-receipt"));
     await waitFor(() => expect(screen.getByTestId("confirm-sale")).not.toBeDisabled());
     fireEvent.press(screen.getByTestId("confirm-sale"));
 

@@ -27,11 +27,36 @@ interface MoreItem {
 
 const ITEMS: MoreItem[] = [
   { href: "/purchases", label: "Compras", description: "Registrar compras", icon: ShoppingBag },
-  { href: "/inventory", label: "Inventario", description: "Categorías y movimientos de stock", icon: Layers },
-  { href: "/profits", label: "Ganancias", description: "Historial y gráfico de ganancias", icon: TrendingUp },
-  { href: "/cash-adjustments", label: "Ajustes de caja", description: "Retiros e ingresos de caja", icon: Wallet },
-  { href: "/suppliers", label: "Proveedores", description: "Ver, agregar y editar proveedores", icon: Truck },
-  { href: "/settings", label: "Ajustes", description: "Este dispositivo y cerrar sesión", icon: Settings },
+  {
+    href: "/inventory",
+    label: "Inventario",
+    description: "Categorías y movimientos de stock",
+    icon: Layers,
+  },
+  {
+    href: "/profits",
+    label: "Ganancias",
+    description: "Ventas, compras, caja y cobros",
+    icon: TrendingUp,
+  },
+  {
+    href: "/cash-adjustments",
+    label: "Ajustes de caja",
+    description: "Retiros e ingresos de caja",
+    icon: Wallet,
+  },
+  {
+    href: "/suppliers",
+    label: "Proveedores",
+    description: "Ver, agregar y editar proveedores",
+    icon: Truck,
+  },
+  {
+    href: "/settings",
+    label: "Ajustes",
+    description: "Este dispositivo y cerrar sesión",
+    icon: Settings,
+  },
 ];
 
 /**
@@ -68,7 +93,9 @@ export function MoreScreen() {
             <Card style={styles.row}>
               <item.icon color={colors.foreground} size={22} />
               <View style={styles.rowText}>
-                <Text style={[typography.bodyStrong, { color: colors.foreground }]}>{item.label}</Text>
+                <Text style={[typography.bodyStrong, { color: colors.foreground }]}>
+                  {item.label}
+                </Text>
                 <Text style={[typography.caption, { color: colors.mutedForeground }]}>
                   {item.description}
                 </Text>

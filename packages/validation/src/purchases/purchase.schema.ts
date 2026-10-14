@@ -1,3 +1,4 @@
+import { MAX_ITEM_QUANTITY, MAX_MONEY_AMOUNT } from "@stocknegozia/api-contracts";
 import { z } from "zod";
 
 export const purchaseItemInputSchema = z.object({
@@ -8,11 +9,13 @@ export const purchaseItemInputSchema = z.object({
   quantity: z.coerce
     .number({ required_error: "La cantidad es obligatoria" })
     .int("La cantidad debe ser un número entero")
-    .positive("La cantidad debe ser mayor a 0"),
+    .positive("La cantidad debe ser mayor a 0")
+    .max(MAX_ITEM_QUANTITY, "La cantidad es demasiado grande"),
   unitCost: z.coerce
     .number({ required_error: "El costo unitario es obligatorio" })
     .min(0, "El costo unitario no puede ser negativo")
-    .finite("El costo unitario no puede ser infinito"),
+    .finite("El costo unitario no puede ser infinito")
+    .max(MAX_MONEY_AMOUNT, "El costo unitario supera el máximo permitido"),
 });
 
 /**
@@ -36,3 +39,11 @@ export const createPurchaseSchema = z.object({
 
 export type PurchaseItemInput = z.infer<typeof purchaseItemInputSchema>;
 export type CreatePurchaseInput = z.infer<typeof createPurchaseSchema>;
+
+/** Filtros de `GET /purchases` — rango de fechas opcional (vista "Compras" de Finanzas). */
+export const purchaseQuerySchema = z.object({
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
+});
+
+export type PurchaseQueryInput = z.infer<typeof purchaseQuerySchema>;

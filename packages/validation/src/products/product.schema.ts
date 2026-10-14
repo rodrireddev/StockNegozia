@@ -1,3 +1,4 @@
+import { MAX_ITEM_QUANTITY, MAX_MONEY_AMOUNT } from "@stocknegozia/api-contracts";
 import { z } from "zod";
 
 const optionalTrimmedString = () =>
@@ -18,16 +19,32 @@ export const productBaseSchema = z.object({
   description: optionalTrimmedString(),
   categoryId: z.coerce.number().int().positive().optional(),
   categoryName: optionalTrimmedString(),
-  purchasePrice: z.coerce.number().min(0, "El precio de compra no puede ser negativo"),
-  salePrice: z.coerce.number().min(0, "El precio de venta no puede ser negativo"),
-  minimumStock: z.coerce.number().int().min(0, "El stock mínimo no puede ser negativo").default(0),
+  purchasePrice: z.coerce
+    .number({ invalid_type_error: "El precio de compra es inválido" })
+    .min(0, "El precio de compra no puede ser negativo")
+    .max(MAX_MONEY_AMOUNT, "El precio de compra supera el máximo permitido"),
+  salePrice: z.coerce
+    .number({ invalid_type_error: "El precio de venta es inválido" })
+    .min(0, "El precio de venta no puede ser negativo")
+    .max(MAX_MONEY_AMOUNT, "El precio de venta supera el máximo permitido"),
+  minimumStock: z.coerce
+    .number()
+    .int()
+    .min(0, "El stock mínimo no puede ser negativo")
+    .max(MAX_ITEM_QUANTITY, "El stock mínimo es demasiado grande")
+    .default(0),
   image: optionalTrimmedString(),
   active: z.boolean().default(true),
 });
 
 export const createProductSchema = productBaseSchema
   .extend({
-    stock: z.coerce.number().int().min(0, "El stock no puede ser negativo").default(0),
+    stock: z.coerce
+      .number()
+      .int()
+      .min(0, "El stock no puede ser negativo")
+      .max(MAX_ITEM_QUANTITY, "El stock es demasiado grande")
+      .default(0),
     /**
      * Proveedor del stock inicial — igual que en una compra (`createPurchaseSchema` también exige
      * `supplierId`), nunca un valor inventado por el backend. `supplierId` para elegir uno

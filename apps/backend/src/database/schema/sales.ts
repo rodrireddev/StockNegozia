@@ -49,3 +49,43 @@ export const saleItems = sqliteTable(
     productIdIdx: index("sale_items_product_id_idx").on(table.productId),
   }),
 );
+
+/**
+ * Pagos de una venta — uno o varios (pago mixto). La suma de `amount` = `sales.total`. Una venta
+ * registrada antes de esta tabla simplemente no tiene filas acá ("Sin especificar"). Nunca se
+ * guarda el número de tarjeta: sólo marca, cuotas y una referencia libre (n° de cupón/lote u
+ * operación) — ver `SalePaymentDto` en `@stocknegozia/api-contracts`.
+ */
+export const salePayments = sqliteTable(
+  "sale_payments",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    saleId: integer("sale_id")
+      .notNull()
+      .references(() => sales.id),
+    method: text("method", {
+      enum: ["cash", "debit_card", "credit_card", "transfer", "qr", "other"],
+    }).notNull(),
+    amount: real("amount").notNull(),
+    installments: integer("installments"),
+    cardBrand: text("card_brand", {
+      enum: ["visa", "mastercard", "amex", "cabal", "naranja", "maestro", "other"],
+    }),
+    reference: text("reference"),
+    amountReceived: real("amount_received"),
+    change: real("change"),
+    // Recargo al cliente y comisión del procesador congelados al momento de la venta (ver
+    // `PaymentTermsDto`): si después cambian las condiciones, una venta vieja no cambia.
+    surchargePercent: real("surcharge_percent").notNull().default(0),
+    surchargeAmount: real("surcharge_amount").notNull().default(0),
+    feePercent: real("fee_percent").notNull().default(0),
+    feeAmount: real("fee_amount").notNull().default(0),
+    /** Acreditación estimada — `null` = se cobra en el momento (efectivo/otro). */
+    settlementDate: integer("settlement_date", { mode: "timestamp" }),
+  },
+  (table) => ({
+    saleIdIdx: index("sale_payments_sale_id_idx").on(table.saleId),
+    methodIdx: index("sale_payments_method_idx").on(table.method),
+    settlementIdx: index("sale_payments_settlement_date_idx").on(table.settlementDate),
+  }),
+);

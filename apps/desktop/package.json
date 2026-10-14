@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "branding:generate": "node scripts/generate-branding-assets.mjs",
-    "dist:win": "electron-vite build && electron-builder --win --x64"
+    "bundle:backend": "node scripts/prepare-backend-bundle.mjs",
+    "dist:win": "node scripts/prepare-backend-bundle.mjs && electron-vite build && electron-builder --win --x64"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.4",

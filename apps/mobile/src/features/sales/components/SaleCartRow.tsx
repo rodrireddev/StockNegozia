@@ -1,12 +1,11 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { X } from "lucide-react-native";
+import { formatMoney } from "@stocknegozia/shared";
 import type { CartItem } from "../hooks/useCart";
 import { Card } from "@/components/Card";
 import { QuantityStepper } from "@/components/QuantityStepper";
 import { useTheme } from "@/theme/useTheme";
 import { spacing, typography } from "@/theme/tokens";
-
-const currencyFormatter = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 
 export interface SaleCartRowProps {
   item: CartItem;
@@ -36,9 +35,17 @@ export function SaleCartRow({ item, onIncrement, onDecrement, onRemove }: SaleCa
         </Pressable>
       </View>
       <View style={styles.footer}>
-        <QuantityStepper quantity={item.quantity} onIncrement={onIncrement} onDecrement={onDecrement} />
-        <Text style={[typography.bodyStrong, { color: colors.foreground }]}>
-          {currencyFormatter.format(item.unitPrice * item.quantity)}
+        <QuantityStepper
+          quantity={item.quantity}
+          onIncrement={onIncrement}
+          onDecrement={onDecrement}
+        />
+        <Text
+          style={[typography.bodyStrong, styles.subtotal, { color: colors.foreground }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+        >
+          {formatMoney(item.unitPrice * item.quantity)}
         </Text>
       </View>
       {insufficientStock && (
@@ -55,5 +62,11 @@ const styles = StyleSheet.create({
   card: { gap: spacing.sm },
   header: { flexDirection: "row", justifyContent: "space-between", gap: spacing.sm },
   info: { gap: 2, flex: 1 },
-  footer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  subtotal: { flexShrink: 1, textAlign: "right" },
 });

@@ -1,13 +1,20 @@
 import type { ProductDto } from "@stocknegozia/api-contracts";
-import { isRapidKeystrokeBurst, resolveScanMatch } from "@stocknegozia/shared";
+import {
+  createPaymentDraft,
+  isRapidKeystrokeBurst,
+  resolveScanMatch,
+  summarizePaymentDraft,
+  type PaymentDraft,
+} from "@stocknegozia/shared";
 import type { ChangeEvent, KeyboardEvent } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchProducts } from "@/features/products/api/products.api";
 import { useDebouncedValue } from "@/features/products/hooks/useDebouncedValue";
 import { useProducts } from "@/features/products/hooks/useProducts";
 import { Input } from "@/components/ui/input";
 import { getUserFriendlyError } from "@/lib/errors";
 import { useMe } from "@/features/devices/hooks/useMe";
+import { usePaymentTerms } from "@/features/settings/hooks/usePaymentTerms";
 import { useSettings } from "@/features/settings/hooks/useSettings";
 import { MissingBusinessNameModal } from "../components/MissingBusinessNameModal";
 import { MissingSellerNameModal } from "../components/MissingSellerNameModal";
@@ -25,7 +32,11 @@ const SCAN_QUIET_PERIOD_MS = 150;
 
 function isEditableElement(element: Element | null): boolean {
   if (!element) return false;
-  if (element.tagName === "INPUT" || element.tagName === "TEXTAREA" || element.tagName === "SELECT") {
+  if (
+    element.tagName === "INPUT" ||
+    element.tagName === "TEXTAREA" ||
+    element.tagName === "SELECT"
+  ) {
     return true;
   }
   return (element as HTMLElement).isContentEditable === true;
@@ -52,6 +63,7 @@ export function SalesPage() {
   const [showMissingBusinessNameModal, setShowMissingBusinessNameModal] = useState(false);
   const [generateReceipt, setGenerateReceipt] = useState(false);
   const [receiptNotice, setReceiptNotice] = useState<string | null>(null);
+  const [paymentDraft, setPaymentDraft] = useState<PaymentDraft>(() => createPaymentDraft());
 
   const debouncedSearch = useDebouncedValue(searchTerm);
   const trimmedDebouncedSearch = debouncedSearch.trim();
@@ -65,6 +77,11 @@ export function SalesPage() {
 
   const cart = useCart();
   const createSale = useCreateSale();
+  const paymentTerms = usePaymentTerms();
+  const paymentSummary = useMemo(
+    () => summarizePaymentDraft(paymentDraft, cart.total, paymentTerms.data),
+    [paymentDraft, cart.total, paymentTerms.data],
+  );
   const downloadReceipt = useDownloadReceipt();
   const me = useMe();
   const settings = useSettings();
@@ -277,13 +294,22 @@ export function SalesPage() {
       return;
     }
 
+    if (!paymentSummary.payments) {
+      setConfirmError(paymentSummary.error ?? "Revisá la forma de pago.");
+      return;
+    }
+
     let sale;
     try {
       sale = await createSale.mutateAsync({
         items: cart.items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+        payments: paymentSummary.payments,
       });
       // El carrito solo se limpia después de que el backend confirmó la venta — nunca antes.
       cart.clear();
+      // La próxima venta arranca con el mismo medio (lo más común es cobrar igual varias veces
+      // seguidas), pero sin montos ni referencias de esta.
+      setPaymentDraft((draft) => createPaymentDraft(draft.lines[0]?.method));
       setSuccessMessage("Venta registrada correctamente.");
       focusSearch();
     } catch (error) {
@@ -343,10 +369,17 @@ export function SalesPage() {
           generateReceipt={generateReceipt}
           onGenerateReceiptChange={setGenerateReceipt}
           receiptNotice={receiptNotice}
+          paymentDraft={paymentDraft}
+          onPaymentDraftChange={setPaymentDraft}
+          paymentSummary={paymentSummary}
+          paymentTerms={paymentTerms.data}
         />
       </div>
 
-      <MissingSellerNameModal open={showMissingSellerModal} onOpenChange={setShowMissingSellerModal} />
+      <MissingSellerNameModal
+        open={showMissingSellerModal}
+        onOpenChange={setShowMissingSellerModal}
+      />
       <MissingBusinessNameModal
         open={showMissingBusinessNameModal}
         onOpenChange={setShowMissingBusinessNameModal}

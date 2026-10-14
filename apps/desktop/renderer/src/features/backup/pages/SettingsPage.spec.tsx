@@ -1,3 +1,4 @@
+import { DEFAULT_PAYMENT_TERMS } from "@stocknegozia/shared";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -12,6 +13,7 @@ const {
   fetchMeMock,
   updateSellerNameMock,
   fetchSettingsMock,
+  fetchPaymentTermsMock,
   updateSettingsMock,
 } = vi.hoisted(() => ({
   createBackupMock: vi.fn(),
@@ -20,6 +22,7 @@ const {
   fetchMeMock: vi.fn(),
   updateSellerNameMock: vi.fn(),
   fetchSettingsMock: vi.fn(),
+  fetchPaymentTermsMock: vi.fn(),
   updateSettingsMock: vi.fn(),
 }));
 
@@ -37,6 +40,8 @@ vi.mock("@/features/devices/api/devices.api", () => ({
 vi.mock("@/features/settings/api/settings.api", () => ({
   fetchSettings: fetchSettingsMock,
   updateSettings: updateSettingsMock,
+  fetchPaymentTerms: () => fetchPaymentTermsMock(),
+  updatePaymentTerms: vi.fn(),
 }));
 
 /** Helper: encuentra la `Card` que contiene un título dado, para desambiguar entre las varias
@@ -74,6 +79,7 @@ beforeEach(() => {
   fetchMeMock.mockReset();
   updateSellerNameMock.mockReset();
   fetchSettingsMock.mockReset();
+  fetchPaymentTermsMock.mockResolvedValue(DEFAULT_PAYMENT_TERMS);
   updateSettingsMock.mockReset();
   fetchMeMock.mockResolvedValue(deviceFixture);
   fetchSettingsMock.mockResolvedValue({ businessName: null });
@@ -334,7 +340,9 @@ describe("SettingsPage", () => {
   describe("Nombre del negocio", () => {
     it("sin nombre configurado, muestra el campo vacío", async () => {
       renderPage();
-      expect(await screen.findByRole("heading", { name: "Nombre del negocio" })).toBeInTheDocument();
+      expect(
+        await screen.findByRole("heading", { name: "Nombre del negocio" }),
+      ).toBeInTheDocument();
       const card = within(cardWithTitle("Nombre del negocio"));
       expect(card.getByPlaceholderText(/almacén doña rosa/i)).toHaveValue("");
     });

@@ -1,3 +1,4 @@
+import type { PaymentMethod } from "@stocknegozia/api-contracts";
 import { profitsRepository, type ProfitFilters } from "./repository";
 
 export interface ProfitEntryDto {
@@ -11,17 +12,9 @@ export interface ProfitEntryDto {
   revenue: number;
   cost: number;
   profit: number;
+  /** Medios con que se cobró la venta de esta línea. Vacío = "Sin especificar". */
+  paymentMethods: PaymentMethod[];
   createdAt: string;
-}
-
-export interface DailyProfitDto {
-  /** `YYYY-MM-DD` en horario local del dispositivo. */
-  date: string;
-  /** Abreviatura del día en español ("Lun", "Mar"...), lista para el eje X del gráfico. */
-  label: string;
-  revenue: number;
-  cost: number;
-  profit: number;
 }
 
 /** Mismo `roundMoney` que `salesService`/`productsService` (duplicado a propósito, ver esos
@@ -32,7 +25,7 @@ function roundMoney(value: number): number {
 
 type ProfitRow = ReturnType<typeof profitsRepository.findMany>[number];
 
-function toDto(row: ProfitRow): ProfitEntryDto {
+function toDto(row: ProfitRow, paymentMethods: PaymentMethod[]): ProfitEntryDto {
   const cost = roundMoney(row.unitCost * row.quantity);
   return {
     id: row.id,
@@ -45,6 +38,7 @@ function toDto(row: ProfitRow): ProfitEntryDto {
     revenue: row.subtotal,
     cost,
     profit: roundMoney(row.subtotal - cost),
+    paymentMethods,
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -53,6 +47,10 @@ function toDto(row: ProfitRow): ProfitEntryDto {
  *  ajustes de caja que efectivamente usa la pantalla de Ganancias. */
 export const profitsService = {
   findMany(filters: ProfitFilters = {}): ProfitEntryDto[] {
-    return profitsRepository.findMany(filters).map(toDto);
+    const rows = profitsRepository.findMany(filters);
+    const methodsBySale = profitsRepository.findPaymentMethodsBySaleIds([
+      ...new Set(rows.map((row) => row.saleId)),
+    ]);
+    return rows.map((row) => toDto(row, methodsBySale.get(row.saleId) ?? []));
   },
 };

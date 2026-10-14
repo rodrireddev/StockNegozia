@@ -6,6 +6,15 @@ directories:
 files:
   - out/**/*
   - package.json
+# La app empaquetada busca todo esto relativo a `process.resourcesPath` (ver `repoRoot` en
+# electron/main/index.ts): el backend que lanza `backend-manager.ts` y los assets del splash/ícono.
+# El backend (`resources/apps/backend`) lo copia `scripts/after-pack.mjs` — ver ese archivo.
+afterPack: scripts/after-pack.mjs
+extraResources:
+  - from: ../../assets/branding/generated/windows
+    to: assets/branding/generated/windows
+  - from: ../../assets/branding/generated/splash
+    to: assets/branding/generated/splash
 icon: ../../assets/branding/generated/windows/icon.ico
 win:
   target:
@@ -14,6 +23,12 @@ win:
         - x64
   icon: ../../assets/branding/generated/windows/icon.ico
 nsis:
+  # Actualizar = correr el instalador nuevo sobre la versión instalada (mismo `appId`): reemplaza el
+  # programa y deja intactos los datos del usuario, que viven fuera de la carpeta de instalación
+  # (`%APPDATA%/@stocknegozia/desktop`: base, respaldos, credenciales). Al primer arranque el
+  # backend respalda la base en `backups/pre-update/` y aplica las migraciones pendientes.
+  # Por eso los datos NO se borran tampoco al desinstalar.
+  deleteAppDataOnUninstall: false
   oneClick: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true

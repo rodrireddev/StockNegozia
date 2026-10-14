@@ -1,3 +1,4 @@
+import { DEFAULT_PAYMENT_TERMS } from "@stocknegozia/shared";
 import type { ProductDto } from "@stocknegozia/api-contracts";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -12,6 +13,7 @@ const {
   updateSellerNameMock,
   downloadSaleReceiptMock,
   fetchSettingsMock,
+  fetchPaymentTermsMock,
   updateSettingsMock,
 } = vi.hoisted(() => ({
   fetchProductsMock: vi.fn(),
@@ -20,6 +22,7 @@ const {
   updateSellerNameMock: vi.fn(),
   downloadSaleReceiptMock: vi.fn(),
   fetchSettingsMock: vi.fn(),
+  fetchPaymentTermsMock: vi.fn(),
   updateSettingsMock: vi.fn(),
 }));
 
@@ -43,6 +46,8 @@ vi.mock("@/features/devices/api/devices.api", () => ({
 vi.mock("@/features/settings/api/settings.api", () => ({
   fetchSettings: fetchSettingsMock,
   updateSettings: updateSettingsMock,
+  fetchPaymentTerms: () => fetchPaymentTermsMock(),
+  updatePaymentTerms: vi.fn(),
 }));
 
 function makeProduct(overrides: Partial<ProductDto> & { id: number }): ProductDto {
@@ -103,6 +108,7 @@ beforeEach(() => {
   updateSellerNameMock.mockReset();
   downloadSaleReceiptMock.mockReset();
   fetchSettingsMock.mockReset();
+  fetchPaymentTermsMock.mockResolvedValue(DEFAULT_PAYMENT_TERMS);
   updateSettingsMock.mockReset();
   fetchProductsMock.mockResolvedValue([cocaCola, jabon]);
   // Vendedor actual ya configurado por defecto — así las ventas se registran sin fricción en
@@ -324,15 +330,120 @@ describe("SalesPage", () => {
     expect(screen.getByText(/busc.*producto para empezar/i)).toBeInTheDocument(); // carrito vacío
     expect(createSaleMock).toHaveBeenCalledWith({
       items: [{ productId: cocaCola.id, quantity: 1 }],
+      payments: [{ method: "cash" }],
     });
     await waitFor(() => {
       expect(screen.getByPlaceholderText(/buscar por nombre/i)).toHaveFocus();
     });
   });
 
+  it("medio de pago: transferencia con n° de operación se envía en la venta", async () => {
+    const user = userEvent.setup();
+    createSaleMock.mockResolvedValue({
+      id: 11,
+      status: "completed",
+      total: 1200,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      cancelledAt: null,
+      paymentMethods: ["transfer"],
+      items: [],
+      payments: [],
+    });
+
+    renderSalesPage();
+    await user.click(await screen.findByText("Coca-Cola 2L"));
+    await user.click(screen.getByRole("radio", { name: /transferencia/i }));
+    await user.type(screen.getByPlaceholderText(/n° de operación/i), "OP-77");
+    await user.click(screen.getByRole("button", { name: /confirmar venta/i }));
+
+    await waitFor(() =>
+      expect(createSaleMock).toHaveBeenCalledWith({
+        items: [{ productId: cocaCola.id, quantity: 1 }],
+        payments: [{ method: "transfer", reference: "OP-77" }],
+      }),
+    );
+  });
+
+  it("medio de pago: efectivo calcula el vuelto y bloquea si paga con menos del total", async () => {
+    const user = userEvent.setup();
+    renderSalesPage();
+    await user.click(await screen.findByText("Coca-Cola 2L"));
+
+    const received = screen.getByLabelText(/monto recibido en efectivo/i);
+    await user.type(received, "1000");
+    expect(screen.getByText(/menor al total/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /confirmar venta/i })).toBeDisabled();
+
+    await user.clear(received);
+    await user.type(received, "2000");
+    expect(received).toHaveValue("2.000");
+    expect(screen.getByText("Vuelto")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /confirmar venta/i })).toBeEnabled();
+  });
+
+  it("medio de pago: pago mixto exige que la suma cubra el total", async () => {
+    const user = userEvent.setup();
+    renderSalesPage();
+    await user.click(await screen.findByText("Coca-Cola 2L"));
+    await user.click(screen.getByRole("button", { name: /dividir pago/i }));
+
+    const first = screen.getByLabelText(/monto del pago 1/i);
+    await user.clear(first);
+    await user.type(first, "500");
+    expect(screen.getByRole("button", { name: /confirmar venta/i })).toBeDisabled();
+
+    await user.click(screen.getAllByRole("button", { name: /resto/i })[1]!);
+    expect(screen.getByLabelText(/monto del pago 2/i)).toHaveValue("700");
+    expect(screen.getByText(/pagos completos/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /confirmar venta/i })).toBeEnabled();
+  });
+
+  it("tarjeta de crédito en cuotas: suma el recargo configurado y permite bonificarlo", async () => {
+    const user = userEvent.setup();
+    fetchPaymentTermsMock.mockResolvedValue({
+      ...DEFAULT_PAYMENT_TERMS,
+      credit: [
+        { installments: 1, surchargePercent: 0, feePercent: 0, settlementDays: 10 },
+        { installments: 6, surchargePercent: 15, feePercent: 3, settlementDays: 2 },
+      ],
+    });
+    createSaleMock.mockResolvedValue({
+      id: 12,
+      status: "completed",
+      total: 1200,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      cancelledAt: null,
+      paymentMethods: ["credit_card"],
+      items: [],
+      payments: [],
+    });
+
+    renderSalesPage();
+    await user.click(await screen.findByText("Coca-Cola 2L"));
+    await user.click(screen.getByRole("radio", { name: /crédito/i }));
+    await user.selectOptions(await screen.findByLabelText("Cuotas"), "6");
+
+    expect(await screen.findByText("Total a cobrar")).toBeInTheDocument();
+    expect(screen.getByText(/1\.380,00/)).toBeInTheDocument();
+    expect(screen.getByText(/se acredita el/i)).toBeInTheDocument();
+
+    await user.click(screen.getByLabelText(/bonificar/i));
+    expect(screen.queryByText("Total a cobrar")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /confirmar venta/i }));
+    await waitFor(() =>
+      expect(createSaleMock).toHaveBeenCalledWith({
+        items: [{ productId: cocaCola.id, quantity: 1 }],
+        payments: [{ method: "credit_card", installments: 6, waiveSurcharge: true }],
+      }),
+    );
+  });
+
   it("confirmar la venta: si el backend rechaza, conserva el carrito y muestra el mensaje del error", async () => {
     const user = userEvent.setup();
-    createSaleMock.mockRejectedValue(new Error('Stock insuficiente para el producto "Coca-Cola 2L"'));
+    createSaleMock.mockRejectedValue(
+      new Error('Stock insuficiente para el producto "Coca-Cola 2L"'),
+    );
 
     renderSalesPage();
     await user.click(await screen.findByText("Coca-Cola 2L"));
@@ -414,7 +525,10 @@ describe("SalesPage", () => {
 
     it("si falla la descarga del recibo, la venta sigue mostrando éxito y el error se avisa aparte", async () => {
       const user = userEvent.setup();
-      downloadSaleReceiptMock.mockResolvedValue({ cancelled: false, error: "Backend no disponible" });
+      downloadSaleReceiptMock.mockResolvedValue({
+        cancelled: false,
+        error: "Backend no disponible",
+      });
 
       renderSalesPage();
       await user.click(await screen.findByText("Coca-Cola 2L"));
@@ -452,10 +566,7 @@ describe("SalesPage", () => {
       await user.click(screen.getByRole("button", { name: /confirmar venta/i }));
       await screen.findByRole("heading", { name: /falta indicar el vendedor actual/i });
 
-      await user.type(
-        screen.getByLabelText(/coloque el nombre del vendedor actual/i),
-        "Rodrigo",
-      );
+      await user.type(screen.getByLabelText(/coloque el nombre del vendedor actual/i), "Rodrigo");
       await user.click(screen.getByRole("button", { name: /^guardar$/i }));
 
       expect(updateSellerNameMock).toHaveBeenCalledWith({ sellerName: "Rodrigo" });
@@ -520,7 +631,10 @@ describe("SalesPage", () => {
       // `getByLabelText` sería ambiguo acá: el título del modal ("Falta indicar el nombre del
       // negocio") contiene el mismo texto que la etiqueta del campo, y Radix expone ese título
       // como nombre accesible del propio diálogo vía `aria-labelledby`.
-      await user.type(screen.getByRole("textbox", { name: /nombre del negocio/i }), "Almacén Doña Rosa");
+      await user.type(
+        screen.getByRole("textbox", { name: /nombre del negocio/i }),
+        "Almacén Doña Rosa",
+      );
       await user.click(screen.getByRole("button", { name: /^guardar$/i }));
 
       expect(updateSettingsMock).toHaveBeenCalledWith({ businessName: "Almacén Doña Rosa" });

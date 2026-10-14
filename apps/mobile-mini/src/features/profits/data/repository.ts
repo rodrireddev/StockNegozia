@@ -1,7 +1,8 @@
-import { and, desc, eq, gte, lte, type SQL } from "drizzle-orm";
+import type { PaymentMethod } from "@stocknegozia/api-contracts";
+import { and, asc, desc, eq, gte, inArray, lte, type SQL } from "drizzle-orm";
 import { db } from "@/database/client";
 import type { DrizzleExecutor } from "@/database/database.types";
-import { products, saleItems, sales } from "@/database/schema";
+import { products, saleItems, salePayments, sales } from "@/database/schema";
 
 export interface ProfitFilters {
   productId?: number;
@@ -20,7 +21,8 @@ export const profitsRepository = {
     // el total de `sales.total` en recibos, que tampoco cuenta canceladas.
     const conditions: (SQL | undefined)[] = [eq(sales.status, "completed")];
 
-    if (filters.productId !== undefined) conditions.push(eq(saleItems.productId, filters.productId));
+    if (filters.productId !== undefined)
+      conditions.push(eq(saleItems.productId, filters.productId));
     if (filters.from) conditions.push(gte(sales.createdAt, filters.from));
     if (filters.to) conditions.push(lte(sales.createdAt, filters.to));
 
@@ -42,5 +44,22 @@ export const profitsRepository = {
       .where(and(...conditions))
       .orderBy(desc(sales.createdAt), desc(saleItems.id))
       .all();
+  },
+
+  findPaymentMethodsBySaleIds(saleIds: number[], executor: DrizzleExecutor = db) {
+    const result = new Map<number, PaymentMethod[]>();
+    if (saleIds.length === 0) return result;
+    const rows = executor
+      .select({ saleId: salePayments.saleId, method: salePayments.method })
+      .from(salePayments)
+      .where(inArray(salePayments.saleId, saleIds))
+      .orderBy(asc(salePayments.id))
+      .all();
+    for (const row of rows) {
+      const methods = result.get(row.saleId) ?? [];
+      if (!methods.includes(row.method)) methods.push(row.method);
+      result.set(row.saleId, methods);
+    }
+    return result;
   },
 };

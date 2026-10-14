@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Image, Keyboard, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { ProductDto } from "@stocknegozia/api-contracts";
+import { moneyToInputText, parseMoneyInput } from "@stocknegozia/shared";
 import { createProductSchema, updateProductSchema } from "@stocknegozia/validation";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Button } from "@/components/Button";
 import { Checkbox } from "@/components/Checkbox";
+import { MoneyField } from "@/components/MoneyField";
 import { Select } from "@/components/Select";
 import { TextField } from "@/components/TextField";
 import { ProductPhotoCapture } from "@/features/products/components/ProductPhotoCapture";
@@ -52,8 +54,8 @@ function toFormState(product?: ProductDto, initialBarcode?: string): ProductForm
     description: product?.description ?? "",
     categorySelect: product?.categoryId ? String(product.categoryId) : "",
     categoryName: "",
-    purchasePrice: product ? String(product.purchasePrice) : "",
-    salePrice: product ? String(product.salePrice) : "",
+    purchasePrice: product ? moneyToInputText(product.purchasePrice) : "",
+    salePrice: product ? moneyToInputText(product.salePrice) : "",
     stock: product ? String(product.stock) : "0",
     minimumStock: product ? String(product.minimumStock) : "0",
     supplierSelect: "",
@@ -126,8 +128,10 @@ export function ProductForm({
           ? form.categorySelect
           : undefined,
       categoryName: form.categorySelect === NEW_CATEGORY_VALUE ? form.categoryName : undefined,
-      purchasePrice: form.purchasePrice,
-      salePrice: form.salePrice,
+      // Texto es-AR ("100.000.000,50") → número; si no se puede parsear se manda tal cual y la
+      // validación muestra "precio inválido" (antes "100.000.000" llegaba como NaN).
+      purchasePrice: parseMoneyInput(form.purchasePrice) ?? form.purchasePrice,
+      salePrice: parseMoneyInput(form.salePrice) ?? form.salePrice,
       minimumStock: form.minimumStock,
       image: form.image,
       active: form.active,
@@ -240,21 +244,19 @@ export function ProductForm({
         />
       )}
 
-      <TextField
+      <MoneyField
         label="Precio de compra *"
         value={form.purchasePrice}
         onChangeText={(v) => update("purchasePrice", v)}
-        keyboardType="decimal-pad"
       />
       {fieldErrors.purchasePrice && (
         <Text style={{ color: colors.danger }}>{fieldErrors.purchasePrice[0]}</Text>
       )}
 
-      <TextField
+      <MoneyField
         label="Precio de venta *"
         value={form.salePrice}
         onChangeText={(v) => update("salePrice", v)}
-        keyboardType="decimal-pad"
       />
       {fieldErrors.salePrice && (
         <Text style={{ color: colors.danger }}>{fieldErrors.salePrice[0]}</Text>

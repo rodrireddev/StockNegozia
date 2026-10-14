@@ -1,10 +1,15 @@
 import { Loader2, ShoppingCart, X } from "lucide-react";
+import {
+  formatMoney,
+  formatMoneyInputText,
+  moneyToInputText,
+  parseMoneyInput,
+} from "@stocknegozia/shared";
+import { useEffect, useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
 import type { PurchaseCartItem } from "../hooks/usePurchaseCart";
-
-const currencyFormatter = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 
 interface PurchaseCartPanelProps {
   items: PurchaseCartItem[];
@@ -62,7 +67,7 @@ export function PurchaseCartPanel({
                   </Button>
                 </div>
 
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <QuantityStepper
                     value={item.quantity}
                     onIncrement={() => onSetQuantity(item.productId, item.quantity + 1)}
@@ -71,25 +76,15 @@ export function PurchaseCartPanel({
                   />
                   <div className="flex items-center gap-1">
                     <span className="text-xs text-muted-foreground">Costo</span>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      min={0}
-                      step="0.01"
+                    <UnitCostInput
                       value={item.unitCost}
-                      aria-label={`Costo unitario de ${item.name}`}
-                      onChange={(event) => {
-                        const value = Number(event.target.value);
-                        if (Number.isFinite(value) && value >= 0) {
-                          onSetUnitCost(item.productId, value);
-                        }
-                      }}
-                      className="h-7 w-20 rounded-md border border-border bg-background px-2 text-right text-sm tabular-nums focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      label={`Costo unitario de ${item.name}`}
+                      onChange={(value) => onSetUnitCost(item.productId, value)}
                     />
                   </div>
                 </div>
                 <p className="text-right text-sm tabular-nums text-muted-foreground">
-                  Subtotal: {currencyFormatter.format(item.unitCost * item.quantity)}
+                  Subtotal: {formatMoney(item.unitCost * item.quantity)}
                 </p>
               </li>
             ))}
@@ -101,9 +96,9 @@ export function PurchaseCartPanel({
         {errorMessage && <Alert variant="destructive">{errorMessage}</Alert>}
         {successMessage && <Alert variant="success">{successMessage}</Alert>}
 
-        <div className="flex items-center justify-between text-lg font-bold tabular-nums">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 text-lg font-bold tabular-nums">
           <span>Total</span>
-          <span>{currencyFormatter.format(total)}</span>
+          <span className="min-w-0 break-all text-right">{formatMoney(total)}</span>
         </div>
 
         <Button
@@ -123,6 +118,50 @@ export function PurchaseCartPanel({
           )}
         </Button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Costo unitario editable con miles agrupados ("100.000.000"). Mantiene su propio texto mientras
+ * se escribe (si no, "1.500," se reformatearía a "1.500" al instante y no se podría escribir la
+ * coma) y sólo propaga números válidos.
+ */
+function UnitCostInput({
+  value,
+  label,
+  onChange,
+}: {
+  value: number;
+  label: string;
+  onChange: (value: number) => void;
+}) {
+  const [text, setText] = useState(() => moneyToInputText(value));
+
+  useEffect(() => {
+    // Sincroniza si el costo cambió desde afuera (p. ej. se volvió a agregar el producto).
+    if (parseMoneyInput(text) !== value) setText(moneyToInputText(value));
+  }, [value]);
+
+  return (
+    <div className="relative">
+      <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-xs text-muted-foreground">
+        $
+      </span>
+      <input
+        type="text"
+        inputMode="decimal"
+        value={text}
+        aria-label={label}
+        onChange={(event) => {
+          const next = formatMoneyInputText(event.target.value, text);
+          setText(next);
+          const parsed = parseMoneyInput(next);
+          if (parsed !== null && parsed >= 0) onChange(parsed);
+        }}
+        onBlur={() => setText(moneyToInputText(value))}
+        className="h-7 w-36 rounded-md border border-border bg-background pl-5 pr-2 text-right text-sm tabular-nums focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      />
     </div>
   );
 }

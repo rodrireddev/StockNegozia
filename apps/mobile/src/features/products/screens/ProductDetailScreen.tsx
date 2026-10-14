@@ -14,6 +14,7 @@ import { useTheme } from "@/theme/useTheme";
 import type { ThemeColors } from "@/theme/colors";
 import { spacing, typography } from "@/theme/tokens";
 import type { StockStatus } from "@stocknegozia/api-contracts";
+import { formatMoney } from "@stocknegozia/shared";
 import { StockAdjustModal } from "../components/StockAdjustModal";
 import { useProduct } from "../hooks/useProduct";
 import { useToggleActive } from "../hooks/useToggleActive";
@@ -31,7 +32,7 @@ const STOCK_TONE: Record<StockStatus, StatusPillTone> = {
 };
 
 function formatPrice(value: number): string {
-  return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(value);
+  return formatMoney(value);
 }
 
 export function ProductDetailScreen() {
@@ -77,12 +78,17 @@ export function ProductDetailScreen() {
           <Text style={[typography.title, { color: colors.foreground, flex: 1 }]}>
             {product.name}
           </Text>
-          <StatusPill label={product.active ? "Activo" : "Inactivo"} tone={product.active ? "success" : "danger"} />
+          <StatusPill
+            label={product.active ? "Activo" : "Inactivo"}
+            tone={product.active ? "success" : "danger"}
+          />
         </View>
 
         <Card style={styles.card}>
           <Row label="SKU" value={product.sku} colors={colors} />
-          {product.barcode && <Row label="Código de barras" value={product.barcode} colors={colors} />}
+          {product.barcode && (
+            <Row label="Código de barras" value={product.barcode} colors={colors} />
+          )}
           <Row label="Categoría" value={product.categoryName ?? "Sin categoría"} colors={colors} />
           {product.description && (
             <Row label="Descripción" value={product.description} colors={colors} />
@@ -90,14 +96,21 @@ export function ProductDetailScreen() {
         </Card>
 
         <Card style={styles.card}>
-          <Row label="Precio de compra" value={formatPrice(product.purchasePrice)} colors={colors} />
+          <Row
+            label="Precio de compra"
+            value={formatPrice(product.purchasePrice)}
+            colors={colors}
+          />
           <Row label="Precio de venta" value={formatPrice(product.salePrice)} colors={colors} />
         </Card>
 
         <Card style={styles.card}>
           <View style={styles.stockRow}>
             <Text style={[typography.label, { color: colors.mutedForeground }]}>Stock</Text>
-            <StatusPill label={STOCK_LABEL[product.stockStatus]} tone={STOCK_TONE[product.stockStatus]} />
+            <StatusPill
+              label={STOCK_LABEL[product.stockStatus]}
+              tone={STOCK_TONE[product.stockStatus]}
+            />
           </View>
           <Row label="Cantidad actual" value={`${product.stock} unid.`} colors={colors} />
           <Row label="Stock mínimo" value={`${product.minimumStock} unid.`} colors={colors} />
@@ -105,7 +118,11 @@ export function ProductDetailScreen() {
 
         <View style={styles.actions}>
           <Button label="Editar" onPress={() => router.push(`/products/${product.id}/edit`)} />
-          <Button label="Ajustar stock" variant="secondary" onPress={() => setAdjustingStock(true)} />
+          <Button
+            label="Ajustar stock"
+            variant="secondary"
+            onPress={() => setAdjustingStock(true)}
+          />
           <Button
             label="Ver movimientos de stock"
             variant="secondary"
@@ -119,7 +136,10 @@ export function ProductDetailScreen() {
         </View>
       </ScrollView>
 
-      <StockAdjustModal product={adjustingStock ? product : null} onClose={() => setAdjustingStock(false)} />
+      <StockAdjustModal
+        product={adjustingStock ? product : null}
+        onClose={() => setAdjustingStock(false)}
+      />
 
       <ConfirmDialog
         open={confirmingToggle}

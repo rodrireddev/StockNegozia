@@ -1,4 +1,5 @@
 import type { ProductDto } from "@stocknegozia/api-contracts";
+import { roundMoney } from "../money/money";
 
 export interface PurchaseCartItem {
   productId: number;
@@ -83,5 +84,5 @@ export function purchaseCartReducer(
 }
 
 export function selectPurchaseCartTotal(state: PurchaseCartState): number {
-  return state.items.reduce((sum, item) => sum + item.unitCost * item.quantity, 0);
+  return roundMoney(state.items.reduce((sum, item) => sum + item.unitCost * item.quantity, 0));
 }

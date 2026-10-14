@@ -1,6 +1,11 @@
-import { Body, Controller, Get, Inject, Param, ParseIntPipe, Post } from "@nestjs/common";
+import { Body, Controller, Get, Inject, Param, ParseIntPipe, Post, Query } from "@nestjs/common";
 import type { PurchaseDto, PurchaseSummaryDto } from "@stocknegozia/api-contracts";
-import { createPurchaseSchema, type CreatePurchaseInput } from "@stocknegozia/validation";
+import {
+  createPurchaseSchema,
+  purchaseQuerySchema,
+  type CreatePurchaseInput,
+  type PurchaseQueryInput,
+} from "@stocknegozia/validation";
 import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
 import { PurchasesService } from "./purchases.service";
 
@@ -11,8 +16,10 @@ export class PurchasesController {
   constructor(@Inject(PurchasesService) private readonly purchasesService: PurchasesService) {}
 
   @Get()
-  findMany(): PurchaseSummaryDto[] {
-    return this.purchasesService.findMany();
+  findMany(
+    @Query(new ZodValidationPipe(purchaseQuerySchema)) query: PurchaseQueryInput,
+  ): PurchaseSummaryDto[] {
+    return this.purchasesService.findMany(query);
   }
 
   @Get(":id")

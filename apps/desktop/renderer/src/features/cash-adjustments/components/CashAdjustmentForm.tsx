@@ -1,9 +1,11 @@
 import type { CashAdjustmentDirection } from "@stocknegozia/api-contracts";
+import { parseMoneyInput } from "@stocknegozia/shared";
 import { createCashAdjustmentSchema } from "@stocknegozia/validation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MoneyInput } from "@/components/ui/money-input";
 import { Select } from "@/components/ui/select";
 import { getUserFriendlyError } from "@/lib/errors";
 import { useCreateCashAdjustment } from "../hooks/useCreateCashAdjustment";
@@ -24,7 +26,11 @@ export function CashAdjustmentForm() {
     event.preventDefault();
     setFormError(null);
 
-    const result = createCashAdjustmentSchema.safeParse({ direction, amount, reason });
+    const result = createCashAdjustmentSchema.safeParse({
+      direction,
+      amount: parseMoneyInput(amount) ?? amount,
+      reason,
+    });
     if (!result.success) {
       setFieldErrors(result.error.flatten().fieldErrors as Record<string, string[]>);
       return;
@@ -57,16 +63,10 @@ export function CashAdjustmentForm() {
         </div>
         <div className="flex-1 space-y-1.5">
           <Label htmlFor="cash-adjustment-amount">Monto</Label>
-          <Input
-            id="cash-adjustment-amount"
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder="0"
-            value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-          />
-          {fieldErrors.amount && <p className="text-sm text-destructive">{fieldErrors.amount[0]}</p>}
+          <MoneyInput id="cash-adjustment-amount" value={amount} onValueChange={setAmount} />
+          {fieldErrors.amount && (
+            <p className="text-sm text-destructive">{fieldErrors.amount[0]}</p>
+          )}
         </div>
         <div className="flex-1 space-y-1.5">
           <Label htmlFor="cash-adjustment-reason">Motivo</Label>
@@ -76,7 +76,9 @@ export function CashAdjustmentForm() {
             value={reason}
             onChange={(event) => setReason(event.target.value)}
           />
-          {fieldErrors.reason && <p className="text-sm text-destructive">{fieldErrors.reason[0]}</p>}
+          {fieldErrors.reason && (
+            <p className="text-sm text-destructive">{fieldErrors.reason[0]}</p>
+          )}
         </div>
         <Button type="submit" disabled={createCashAdjustment.isPending}>
           {createCashAdjustment.isPending ? "Guardando…" : "Registrar"}

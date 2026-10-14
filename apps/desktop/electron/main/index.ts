@@ -1,6 +1,6 @@
-import { app, BrowserWindow, ipcMain, session } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, session } from "electron";
 import { join } from "node:path";
-import { BackendManager } from "./backend-manager";
+import { BackendExitedError, BackendManager } from "./backend-manager";
 import { BackupManager } from "./backup-manager";
 import { ensureDeviceCredential } from "./bootstrap-device";
 import { CloudAccountCredentialStore } from "./cloud-account-credential-store";
@@ -125,7 +125,22 @@ async function bootstrap(): Promise<void> {
   const splashShownAt = Date.now();
 
   backendManager.start();
-  await backendManager.waitUntilHealthy();
+  try {
+    await backendManager.waitUntilHealthy();
+  } catch (error) {
+    if (!(error instanceof BackendExitedError)) throw error;
+    // Típicamente: al actualizar la app, la migración de la base falló (drizzle hace ROLLBACK, así
+    // que la base queda como estaba) — no tiene sentido dejar el splash colgado.
+    splash.close();
+    dialog.showErrorBox(
+      "StockNegozia no pudo iniciar",
+      "No se pudo abrir la base de datos. Tus datos no se modificaron.\n\n" +
+        "Si acabás de actualizar la app, hay una copia de seguridad previa a la actualización en:\n" +
+        join(dataDir, "backups", "pre-update"),
+    );
+    app.quit();
+    return;
+  }
 
   try {
     const deviceCredential = await ensureDeviceCredential(

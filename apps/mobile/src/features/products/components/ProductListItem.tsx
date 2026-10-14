@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 import type { ProductDto, StockStatus } from "@stocknegozia/api-contracts";
+import { formatMoney } from "@stocknegozia/shared";
 import { Card } from "@/components/Card";
 import { StatusPill, type StatusPillTone } from "@/components/StatusPill";
 import { useTheme } from "@/theme/useTheme";
@@ -18,7 +19,7 @@ const STOCK_TONE: Record<StockStatus, StatusPillTone> = {
 };
 
 function formatPrice(value: number): string {
-  return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(value);
+  return formatMoney(value);
 }
 
 export function ProductListItem({ product }: { product: ProductDto }) {

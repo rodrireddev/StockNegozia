@@ -12,6 +12,7 @@ import { useMe } from "@/features/devices/hooks/useMe";
 import { useUpdateSellerName } from "@/features/devices/hooks/useUpdateSellerName";
 import { useSettings } from "@/features/settings/hooks/useSettings";
 import { useUpdateSettings } from "@/features/settings/hooks/useUpdateSettings";
+import { PaymentTermsCard } from "@/features/settings/components/PaymentTermsCard";
 import { RestoreConfirmDialog } from "../components/RestoreConfirmDialog";
 import { useCreateBackup } from "../hooks/useCreateBackup";
 import { useRestoreBackup } from "../hooks/useRestoreBackup";
@@ -106,9 +107,7 @@ function BusinessNameCard() {
           />
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
-        {successMessage && (
-          <p className="text-sm text-success">{successMessage}</p>
-        )}
+        {successMessage && <p className="text-sm text-success">{successMessage}</p>}
         <Button onClick={handleSave} disabled={updateSettings.isPending}>
           {updateSettings.isPending ? "Guardando…" : "Guardar"}
         </Button>
@@ -156,8 +155,8 @@ function SellerNameCard() {
       <CardHeader>
         <CardTitle>Vendedor actual</CardTitle>
         <CardDescription>
-          Identificá quién está operando este equipo. Este nombre reemplaza al del dispositivo en
-          el historial de movimientos, y es obligatorio para poder registrar ventas.
+          Identificá quién está operando este equipo. Este nombre reemplaza al del dispositivo en el
+          historial de movimientos, y es obligatorio para poder registrar ventas.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -171,9 +170,7 @@ function SellerNameCard() {
           />
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
-        {successMessage && (
-          <p className="text-sm text-success">{successMessage}</p>
-        )}
+        {successMessage && <p className="text-sm text-success">{successMessage}</p>}
         <Button onClick={handleSave} disabled={updateSellerName.isPending}>
           {updateSellerName.isPending ? "Guardando…" : "Guardar"}
         </Button>
@@ -258,6 +255,7 @@ export function SettingsPage() {
 
       <BusinessNameCard />
       <SellerNameCard />
+      <PaymentTermsCard />
       <AppearanceCard />
 
       <Card>

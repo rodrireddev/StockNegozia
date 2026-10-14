@@ -91,8 +91,8 @@ export class PurchasesService {
     @Inject(AppLogger) private readonly logger: AppLogger,
   ) {}
 
-  findMany(): PurchaseSummaryDto[] {
-    return this.repository.findMany().map(toSummaryDto);
+  findMany(filters: { from?: Date; to?: Date } = {}): PurchaseSummaryDto[] {
+    return this.repository.findMany(filters).map(toSummaryDto);
   }
 
   findById(id: number): PurchaseDto {
@@ -150,7 +150,12 @@ export class PurchasesService {
         const total = roundMoney(lines.reduce((sum, line) => sum + line.subtotal, 0));
 
         const purchase = this.repository.insertPurchase(
-          { supplierId: input.supplierId, supplierName: supplier.name, total, createdAt: new Date() },
+          {
+            supplierId: input.supplierId,
+            supplierName: supplier.name,
+            total,
+            createdAt: new Date(),
+          },
           tx,
         );
         this.repository.insertPurchaseItems(

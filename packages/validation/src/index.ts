@@ -16,5 +16,7 @@ export * from "./suppliers/supplier.schema";
 export * from "./purchases/purchase.schema";
 export * from "./backup/backup.schema";
 export * from "./settings/settings.schema";
+export * from "./settings/payment-terms.schema";
+export * from "./finance/finance.schema";
 export * from "./profits/profit.schema";
 export * from "./cash-adjustments/cash-adjustment.schema";

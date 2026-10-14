@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { ShoppingCart } from "lucide-react-native";
 import type { ProductDto } from "@stocknegozia/api-contracts";
-import { resolveScanMatch } from "@stocknegozia/shared";
+import { formatMoney, resolveScanMatch } from "@stocknegozia/shared";
 import { useAccount } from "@/accounts/AccountContext";
 import { fetchProductByCode, fetchProducts } from "@/data/products";
 import { Button } from "@/components/Button";
@@ -27,7 +27,6 @@ import { PurchaseCartRow } from "../components/PurchaseCartRow";
 import { useCreatePurchase } from "../hooks/useCreatePurchase";
 import { usePurchaseCart } from "../hooks/usePurchaseCart";
 
-const currencyFormatter = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 const SUPPLIER_REQUIRED_MESSAGE = "Seleccioná un proveedor antes de confirmar la compra.";
 
 export function PurchasesScreen() {
@@ -239,7 +238,7 @@ export function PurchasesScreen() {
         <View style={styles.totalRow}>
           <Text style={[typography.bodyStrong, { color: colors.foreground }]}>Total</Text>
           <Text style={[typography.title, { color: colors.foreground }]}>
-            {currencyFormatter.format(cart.total)}
+            {formatMoney(cart.total)}
           </Text>
         </View>
         <Button

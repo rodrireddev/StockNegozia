@@ -1,3 +1,5 @@
+import type { PaymentMethod, SalePaymentDto } from "./payment.contract";
+
 export type SaleStatus = "completed" | "cancelled";
 
 export interface SaleItemDto {
@@ -15,8 +17,12 @@ export interface SaleSummaryDto {
   total: number;
   createdAt: string;
   cancelledAt: string | null;
+  /** Medios de pago usados (sin repetir). Vacío en ventas anteriores a los medios de pago. */
+  paymentMethods: PaymentMethod[];
 }
 
 export interface SaleDto extends SaleSummaryDto {
   items: SaleItemDto[];
+  /** Vacío en ventas registradas antes de que existieran los medios de pago. */
+  payments: SalePaymentDto[];
 }

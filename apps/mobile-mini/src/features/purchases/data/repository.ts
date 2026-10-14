@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte, lte, type SQL } from "drizzle-orm";
 import { db } from "@/database/client";
 import type { DrizzleExecutor } from "@/database/database.types";
 import { purchaseItems, purchases } from "@/database/schema";
@@ -21,8 +21,16 @@ export interface NewPurchaseItemRecord {
 }
 
 export const purchasesRepository = {
-  findMany(executor: DrizzleExecutor = db) {
-    return executor.select().from(purchases).orderBy(desc(purchases.createdAt)).all();
+  findMany(filters: { from?: Date; to?: Date } = {}, executor: DrizzleExecutor = db) {
+    const conditions: (SQL | undefined)[] = [];
+    if (filters.from) conditions.push(gte(purchases.createdAt, filters.from));
+    if (filters.to) conditions.push(lte(purchases.createdAt, filters.to));
+    return executor
+      .select()
+      .from(purchases)
+      .where(and(...conditions))
+      .orderBy(desc(purchases.createdAt))
+      .all();
   },
 
   findById(id: number, executor: DrizzleExecutor = db) {
@@ -39,6 +47,10 @@ export const purchasesRepository = {
   },
 
   findItemsByPurchaseId(purchaseId: number, executor: DrizzleExecutor = db) {
-    return executor.select().from(purchaseItems).where(eq(purchaseItems.purchaseId, purchaseId)).all();
+    return executor
+      .select()
+      .from(purchaseItems)
+      .where(eq(purchaseItems.purchaseId, purchaseId))
+      .all();
   },
 };

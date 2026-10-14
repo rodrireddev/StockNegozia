@@ -1,4 +1,5 @@
 import type { ProductDto } from "@stocknegozia/api-contracts";
+import { formatMoney } from "@stocknegozia/shared";
 import { History } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -13,8 +14,6 @@ import {
 } from "@/components/ui/table";
 import { StockAdjustDialog } from "@/features/products/components/StockAdjustDialog";
 import { StockBadge } from "@/features/products/components/StockBadge";
-
-const currencyFormatter = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 
 /** Pantalla de "¿qué stock tengo?" — a diferencia de `ProductsTable`, no tiene acciones de
  *  catálogo (editar/desactivar): solo ver stock, ajustarlo, y saltar al historial de ese
@@ -64,10 +63,10 @@ export function InventoryTable({ products }: { products: ProductDto[] }) {
                 </button>
               </TableCell>
               <TableCell className="text-right tabular-nums text-muted-foreground">
-                {currencyFormatter.format(product.purchasePrice)}
+                {formatMoney(product.purchasePrice)}
               </TableCell>
               <TableCell className="text-right tabular-nums">
-                {currencyFormatter.format(product.salePrice)}
+                {formatMoney(product.salePrice)}
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">

@@ -20,7 +20,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_CLOUD_BACKEND_URL": "https://stocknegozia-cloud-backend.onrender.com"
+        "EXPO_PUBLIC_CLOUD_BACKEND_URL": "https://stocknegozia-cloud-backend.onrender.com",
+        "EXPO_PUBLIC_TURNSTILE_SITE_KEY": "0x4AAAAAAFH5Lp7e3yI_kRXu"
       }
     },
     "production": {

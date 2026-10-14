@@ -1,4 +1,5 @@
 import type { ProductDto } from "@stocknegozia/api-contracts";
+import { moneyToInputText, parseMoneyInput } from "@stocknegozia/shared";
 import { createProductSchema, updateProductSchema } from "@stocknegozia/validation";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -6,6 +7,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MoneyInput } from "@/components/ui/money-input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useSuppliers } from "@/features/suppliers/hooks/useSuppliers";
@@ -42,8 +44,8 @@ function toFormState(product?: ProductDto): ProductFormState {
     description: product?.description ?? "",
     categorySelect: product?.categoryId ? String(product.categoryId) : "",
     categoryName: "",
-    purchasePrice: product ? String(product.purchasePrice) : "",
-    salePrice: product ? String(product.salePrice) : "",
+    purchasePrice: product ? moneyToInputText(product.purchasePrice) : "",
+    salePrice: product ? moneyToInputText(product.salePrice) : "",
     stock: product ? String(product.stock) : "0",
     minimumStock: product ? String(product.minimumStock) : "0",
     supplierSelect: "",
@@ -97,8 +99,10 @@ export function ProductForm({ product }: { product?: ProductDto }) {
           ? form.categorySelect
           : undefined,
       categoryName: form.categorySelect === NEW_CATEGORY_VALUE ? form.categoryName : undefined,
-      purchasePrice: form.purchasePrice,
-      salePrice: form.salePrice,
+      // Texto es-AR ("100.000.000,50") → número; si no se puede parsear se manda el texto tal cual
+      // y la validación muestra "precio inválido".
+      purchasePrice: parseMoneyInput(form.purchasePrice) ?? form.purchasePrice,
+      salePrice: parseMoneyInput(form.salePrice) ?? form.salePrice,
       minimumStock: form.minimumStock,
       image: form.image,
       active: form.active,
@@ -147,17 +151,13 @@ export function ProductForm({ product }: { product?: ProductDto }) {
         <div className="col-span-2 space-y-1.5">
           <Label htmlFor="name">Nombre *</Label>
           <Input id="name" value={form.name} onChange={(e) => update("name", e.target.value)} />
-          {fieldErrors.name && (
-            <p className="text-sm text-destructive">{fieldErrors.name[0]}</p>
-          )}
+          {fieldErrors.name && <p className="text-sm text-destructive">{fieldErrors.name[0]}</p>}
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="sku">SKU *</Label>
           <Input id="sku" value={form.sku} onChange={(e) => update("sku", e.target.value)} />
-          {fieldErrors.sku && (
-            <p className="text-sm text-destructive">{fieldErrors.sku[0]}</p>
-          )}
+          {fieldErrors.sku && <p className="text-sm text-destructive">{fieldErrors.sku[0]}</p>}
         </div>
 
         <div className="space-y-1.5">
@@ -216,13 +216,10 @@ export function ProductForm({ product }: { product?: ProductDto }) {
 
         <div className="space-y-1.5">
           <Label htmlFor="purchasePrice">Precio de compra *</Label>
-          <Input
+          <MoneyInput
             id="purchasePrice"
-            type="number"
-            min={0}
-            step="0.01"
             value={form.purchasePrice}
-            onChange={(e) => update("purchasePrice", e.target.value)}
+            onValueChange={(value) => update("purchasePrice", value)}
           />
           {fieldErrors.purchasePrice && (
             <p className="text-sm text-destructive">{fieldErrors.purchasePrice[0]}</p>
@@ -231,13 +228,10 @@ export function ProductForm({ product }: { product?: ProductDto }) {
 
         <div className="space-y-1.5">
           <Label htmlFor="salePrice">Precio de venta *</Label>
-          <Input
+          <MoneyInput
             id="salePrice"
-            type="number"
-            min={0}
-            step="0.01"
             value={form.salePrice}
-            onChange={(e) => update("salePrice", e.target.value)}
+            onValueChange={(value) => update("salePrice", value)}
           />
           {fieldErrors.salePrice && (
             <p className="text-sm text-destructive">{fieldErrors.salePrice[0]}</p>

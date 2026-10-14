@@ -11,6 +11,8 @@ export function useCreateSale() {
       // eso (mismo patrón que useAdjustStock/useCreatePurchase).
       void queryClient.invalidateQueries({ queryKey: ["products"] });
       void queryClient.invalidateQueries({ queryKey: ["stock-movements"] });
+      // Y una nueva entrada de ganancia / cobro por medio de pago.
+      void queryClient.invalidateQueries({ queryKey: ["profits"] });
     },
   });
 }

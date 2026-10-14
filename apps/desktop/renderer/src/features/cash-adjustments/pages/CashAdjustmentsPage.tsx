@@ -7,7 +7,8 @@ import { useCashAdjustments } from "../hooks/useCashAdjustments";
 /**
  * Retiros/ingresos de caja — pantalla propia en el menú principal, NUNCA dentro de Ganancias: acá
  * es donde se administran (alta + su propio historial), mientras que Ganancias sólo muestra su
- * impacto ya combinado con las ventas (ver `features/profits/data/ledger.ts`).
+ * total y su desglose por motivo en una vista propia ("Ganancias → Caja"), separado de lo que se
+ * ganó vendiendo.
  */
 export function CashAdjustmentsPage() {
   const { data: adjustments, isLoading, isError, refetch } = useCashAdjustments();
@@ -37,7 +38,9 @@ export function CashAdjustmentsPage() {
       {!isLoading && !isError && adjustments && adjustments.length === 0 && (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border py-16 text-center">
           <Wallet className="h-10 w-10 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Todavía no hay ajustes de caja registrados.</p>
+          <p className="text-sm text-muted-foreground">
+            Todavía no hay ajustes de caja registrados.
+          </p>
         </div>
       )}
 

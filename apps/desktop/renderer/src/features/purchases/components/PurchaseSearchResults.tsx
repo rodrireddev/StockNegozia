@@ -1,4 +1,5 @@
 import type { ProductDto } from "@stocknegozia/api-contracts";
+import { formatMoney } from "@stocknegozia/shared";
 import { Loader2, PackageSearch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,8 +11,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { StockBadge } from "@/features/products/components/StockBadge";
-
-const currencyFormatter = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 
 interface PurchaseSearchResultsProps {
   products: ProductDto[];
@@ -105,7 +104,7 @@ export function PurchaseSearchResults({
                 <StockBadge status={product.stockStatus} />
               </TableCell>
               <TableCell className="text-right tabular-nums">
-                {currencyFormatter.format(product.purchasePrice)}
+                {formatMoney(product.purchasePrice)}
               </TableCell>
             </TableRow>
           ))}

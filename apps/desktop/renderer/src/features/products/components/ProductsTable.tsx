@@ -1,4 +1,5 @@
 import type { ProductDto } from "@stocknegozia/api-contracts";
+import { formatMoney } from "@stocknegozia/shared";
 import { Package, Pencil } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -15,8 +16,6 @@ import { useToggleActive } from "../hooks/useToggleActive";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { StockAdjustDialog } from "./StockAdjustDialog";
 import { StockBadge } from "./StockBadge";
-
-const currencyFormatter = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 
 export function ProductsTable({ products }: { products: ProductDto[] }) {
   const navigate = useNavigate();
@@ -57,7 +56,7 @@ export function ProductsTable({ products }: { products: ProductDto[] }) {
               <TableCell className="font-medium">{product.name}</TableCell>
               <TableCell className="text-muted-foreground">{product.sku}</TableCell>
               <TableCell className="text-muted-foreground">{product.categoryName ?? "—"}</TableCell>
-              <TableCell>{currencyFormatter.format(product.salePrice)}</TableCell>
+              <TableCell>{formatMoney(product.salePrice)}</TableCell>
               <TableCell>
                 <button
                   type="button"

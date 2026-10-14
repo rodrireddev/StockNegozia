@@ -1,6 +1,20 @@
-import { ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
-import type { SaleDto, SaleItemDto, SaleSummaryDto } from "@stocknegozia/api-contracts";
-import type { CreateSaleInput, SaleItemInput } from "@stocknegozia/validation";
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import type {
+  PaymentMethod,
+  PaymentTermsDto,
+  SaleDto,
+  SaleItemDto,
+  SalePaymentDto,
+  SaleSummaryDto,
+} from "@stocknegozia/api-contracts";
+import type { CreateSaleInput, SaleItemInput, SalePaymentInput } from "@stocknegozia/validation";
+import { computePaymentCharges, formatMoney } from "@stocknegozia/shared";
 import { AppLogger } from "../../common/logger/app-logger.service";
 import { errorLogLevel } from "../../common/logger/error-utils";
 import { DRIZZLE_CLIENT } from "../../database/database.constants";
@@ -9,10 +23,11 @@ import type { sales } from "../../database/schema";
 import { ProductsService } from "../products/products.service";
 import { SettingsService } from "../settings/settings.service";
 import { renderSaleReceiptPdf } from "./sale-receipt.pdf";
-import { SalesRepository } from "./sales.repository";
+import { SalesRepository, type NewSalePaymentRecord } from "./sales.repository";
 
 type SaleRow = typeof sales.$inferSelect;
 type SaleItemRow = ReturnType<SalesRepository["findItemsBySaleId"]>[number];
+type SalePaymentRow = ReturnType<SalesRepository["findPaymentsBySaleId"]>[number];
 
 /** Evita arrastrar errores de punto flotante al multiplicar precio × cantidad (mismo criterio
  *  monetario que Products, que ya usa `real`/float para sus precios). */
@@ -33,17 +48,104 @@ function normalizeItems(items: SaleItemInput[]): SaleItemInput[] {
   return Array.from(quantitiesByProduct, ([productId, quantity]) => ({ productId, quantity }));
 }
 
-function toSummaryDto(row: SaleRow): SaleSummaryDto {
+function toSummaryDto(row: SaleRow, paymentMethods: PaymentMethod[]): SaleSummaryDto {
   return {
     id: row.id,
     status: row.status,
     total: row.total,
     createdAt: row.createdAt.toISOString(),
     cancelledAt: row.cancelledAt ? row.cancelledAt.toISOString() : null,
+    paymentMethods,
   };
 }
 
+function toPaymentDto(row: SalePaymentRow): SalePaymentDto {
+  return {
+    id: row.id,
+    method: row.method,
+    amount: row.amount,
+    installments: row.installments,
+    cardBrand: row.cardBrand,
+    reference: row.reference,
+    amountReceived: row.amountReceived,
+    change: row.change,
+    surchargePercent: row.surchargePercent,
+    surchargeAmount: row.surchargeAmount,
+    feePercent: row.feePercent,
+    feeAmount: row.feeAmount,
+    netAmount: roundMoney(row.amount + row.surchargeAmount - row.feeAmount),
+    settlementDate: row.settlementDate ? row.settlementDate.toISOString() : null,
+  };
+}
+
+function uniqueMethods(payments: { method: PaymentMethod }[]): PaymentMethod[] {
+  return [...new Set(payments.map((payment) => payment.method))];
+}
+
+/**
+ * Convierte los pagos del request en filas de `sale_payments` contra el total que calculó el
+ * backend. Con un único pago el monto ES el total (el del cliente se ignora: si un precio cambió
+ * entre que se armó el carrito y se confirmó, la venta igual sale). Con pago mixto la suma tiene
+ * que coincidir con el total al centavo — si no, 400 y la transacción entera revierte.
+ */
+function resolvePayments(
+  saleId: number,
+  input: SalePaymentInput[] | undefined,
+  total: number,
+  terms: PaymentTermsDto,
+  createdAt: Date,
+): NewSalePaymentRecord[] {
+  if (!input || input.length === 0) return [];
+
+  const amounts =
+    input.length === 1 ? [total] : input.map((payment) => roundMoney(payment.amount ?? 0));
+  const assigned = roundMoney(amounts.reduce((sum, amount) => sum + amount, 0));
+  if (Math.abs(assigned - total) > 0.005) {
+    throw new BadRequestException(
+      `Los pagos (${formatMoney(assigned)}) no coinciden con el total de la venta (${formatMoney(total)})`,
+    );
+  }
+
+  return input.map((payment, index) => {
+    const amount = amounts[index] ?? 0;
+    // Recargo/comisión/acreditación según las condiciones VIGENTES — quedan congeladas en el pago.
+    const charges = computePaymentCharges(
+      {
+        method: payment.method,
+        amount,
+        installments: payment.installments,
+        waiveSurcharge: payment.waiveSurcharge,
+      },
+      terms,
+      createdAt,
+    );
+    let change: number | null = null;
+    if (payment.method === "cash" && payment.amountReceived !== undefined) {
+      if (payment.amountReceived + 0.005 < amount) {
+        throw new BadRequestException("El monto recibido en efectivo es menor al monto a cobrar");
+      }
+      change = roundMoney(payment.amountReceived - amount);
+    }
+    return {
+      saleId,
+      method: payment.method,
+      amount,
+      installments: payment.method === "credit_card" ? (payment.installments ?? 1) : null,
+      cardBrand: payment.cardBrand ?? null,
+      reference: payment.reference ?? null,
+      amountReceived: payment.method === "cash" ? (payment.amountReceived ?? null) : null,
+      change,
+      surchargePercent: charges.surchargePercent,
+      surchargeAmount: charges.surchargeAmount,
+      feePercent: charges.feePercent,
+      feeAmount: charges.feeAmount,
+      settlementDate: charges.settlementDate,
+    };
+  });
+}
+
 function createRollbackReason(error: unknown): string {
+  if (error instanceof BadRequestException) return "invalid_payments";
   if (error instanceof ConflictException) return "insufficient_stock";
   if (error instanceof NotFoundException) return "product_not_found";
   return "unexpected_error";
@@ -76,14 +178,21 @@ export class SalesService {
   ) {}
 
   findMany(): SaleSummaryDto[] {
-    return this.repository.findMany().map(toSummaryDto);
+    const rows = this.repository.findMany();
+    const methodsBySale = this.repository.findPaymentMethodsBySaleIds(rows.map((row) => row.id));
+    return rows.map((row) => toSummaryDto(row, methodsBySale.get(row.id) ?? []));
   }
 
   findById(id: number): SaleDto {
     const sale = this.repository.findById(id);
     if (!sale) throw new NotFoundException("Venta no encontrada");
     const items = this.repository.findItemsBySaleId(id);
-    return { ...toSummaryDto(sale), items: items.map(toItemDto) };
+    const payments = this.repository.findPaymentsBySaleId(id).map(toPaymentDto);
+    return {
+      ...toSummaryDto(sale, uniqueMethods(payments)),
+      items: items.map(toItemDto),
+      payments,
+    };
   }
 
   /** Genera el PDF del recibo simplificado (no fiscal) de una venta — ver sale-receipt.pdf.ts. */
@@ -91,8 +200,9 @@ export class SalesService {
     const sale = this.repository.findById(id);
     if (!sale) throw new NotFoundException("Venta no encontrada");
     const lines = this.repository.findItemsWithProductBySaleId(id);
+    const payments = this.repository.findPaymentsBySaleId(id).map(toPaymentDto);
     const { businessName } = this.settingsService.get();
-    return renderSaleReceiptPdf(sale, lines, businessName ?? "StockNegozia");
+    return renderSaleReceiptPdf(sale, lines, businessName ?? "StockNegozia", payments);
   }
 
   /**
@@ -111,8 +221,15 @@ export class SalesService {
       operation,
       event: "sale.create.started",
       message: "Creating sale",
-      metadata: { itemCount: normalizedItems.length },
+      metadata: {
+        itemCount: normalizedItems.length,
+        paymentMethods: input.payments?.map((payment) => payment.method) ?? [],
+      },
     });
+
+    // Condiciones de cobro vigentes (recargos/comisiones/acreditación) — se leen fuera de la
+    // transacción: son configuración, no parte de la venta.
+    const paymentTerms = this.settingsService.getPaymentTerms();
 
     try {
       this.logger.debug({
@@ -139,12 +256,15 @@ export class SalesService {
 
         const total = roundMoney(lines.reduce((sum, line) => sum + line.subtotal, 0));
 
-        const sale = this.repository.insertSale(
-          { status: "completed", total, createdAt: new Date() },
-          tx,
-        );
+        const createdAt = new Date();
+        const sale = this.repository.insertSale({ status: "completed", total, createdAt }, tx);
         this.repository.insertSaleItems(
           lines.map((line) => ({ ...line, saleId: sale.id })),
+          tx,
+        );
+        // Lanza BadRequestException si los pagos no cubren el total — la transacción revierte.
+        this.repository.insertSalePayments(
+          resolvePayments(sale.id, input.payments, total, paymentTerms, createdAt),
           tx,
         );
 

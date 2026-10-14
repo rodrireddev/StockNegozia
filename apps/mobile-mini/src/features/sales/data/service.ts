@@ -1,13 +1,22 @@
-import type { SaleDto, SaleItemDto, SaleSummaryDto } from "@stocknegozia/api-contracts";
-import type { CreateSaleInput, SaleItemInput } from "@stocknegozia/validation";
+import type {
+  PaymentMethod,
+  PaymentTermsDto,
+  SaleDto,
+  SaleItemDto,
+  SalePaymentDto,
+  SaleSummaryDto,
+} from "@stocknegozia/api-contracts";
+import type { CreateSaleInput, SaleItemInput, SalePaymentInput } from "@stocknegozia/validation";
+import { computePaymentCharges, DEFAULT_PAYMENT_TERMS } from "@stocknegozia/shared";
 import { db } from "@/database/client";
-import { ConflictError, NotFoundError } from "@/database/errors";
+import { ConflictError, NotFoundError, BadRequestError } from "@/database/errors";
 import { productsService } from "@/features/products/data/service";
 import type { sales } from "@/database/schema";
-import { salesRepository } from "./repository";
+import { salesRepository, type NewSalePaymentRecord } from "./repository";
 
 type SaleRow = typeof sales.$inferSelect;
 type SaleItemRow = ReturnType<typeof salesRepository.findItemsBySaleId>[number];
+type SalePaymentRow = ReturnType<typeof salesRepository.findPaymentsBySaleId>[number];
 
 /** Mismo criterio monetario que `productsService`/`purchasesService` (duplicado a propósito). */
 function roundMoney(value: number): number {
@@ -19,19 +28,98 @@ function roundMoney(value: number): number {
 function normalizeItems(items: SaleItemInput[]): SaleItemInput[] {
   const quantitiesByProduct = new Map<number, number>();
   for (const item of items) {
-    quantitiesByProduct.set(item.productId, (quantitiesByProduct.get(item.productId) ?? 0) + item.quantity);
+    quantitiesByProduct.set(
+      item.productId,
+      (quantitiesByProduct.get(item.productId) ?? 0) + item.quantity,
+    );
   }
   return Array.from(quantitiesByProduct, ([productId, quantity]) => ({ productId, quantity }));
 }
 
-function toSummaryDto(row: SaleRow): SaleSummaryDto {
+function toSummaryDto(row: SaleRow, paymentMethods: PaymentMethod[]): SaleSummaryDto {
   return {
     id: row.id,
     status: row.status,
     total: row.total,
     createdAt: row.createdAt.toISOString(),
     cancelledAt: row.cancelledAt ? row.cancelledAt.toISOString() : null,
+    paymentMethods,
   };
+}
+
+function toPaymentDto(row: SalePaymentRow): SalePaymentDto {
+  return {
+    id: row.id,
+    method: row.method,
+    amount: row.amount,
+    installments: row.installments,
+    cardBrand: row.cardBrand,
+    reference: row.reference,
+    amountReceived: row.amountReceived,
+    change: row.change,
+    surchargePercent: row.surchargePercent,
+    surchargeAmount: row.surchargeAmount,
+    feePercent: row.feePercent,
+    feeAmount: row.feeAmount,
+    netAmount: roundMoney(row.amount + row.surchargeAmount - row.feeAmount),
+    settlementDate: row.settlementDate ? row.settlementDate.toISOString() : null,
+  };
+}
+
+/** Mismas reglas que `resolvePayments` en `apps/backend/src/core/sales/sales.service.ts`: con un
+ *  único pago el monto es el total; con pago mixto la suma tiene que dar el total al centavo. */
+function resolvePayments(
+  saleId: number,
+  input: SalePaymentInput[] | undefined,
+  total: number,
+  terms: PaymentTermsDto,
+  createdAt: Date,
+): NewSalePaymentRecord[] {
+  if (!input || input.length === 0) return [];
+
+  const amounts =
+    input.length === 1 ? [total] : input.map((payment) => roundMoney(payment.amount ?? 0));
+  const assigned = roundMoney(amounts.reduce((sum, amount) => sum + amount, 0));
+  if (Math.abs(assigned - total) > 0.005) {
+    throw new BadRequestError("Los pagos no coinciden con el total de la venta");
+  }
+
+  return input.map((payment, index) => {
+    const amount = amounts[index] ?? 0;
+    // Recargo/comisión/acreditación según las condiciones VIGENTES — quedan congeladas en el pago.
+    const charges = computePaymentCharges(
+      {
+        method: payment.method,
+        amount,
+        installments: payment.installments,
+        waiveSurcharge: payment.waiveSurcharge,
+      },
+      terms,
+      createdAt,
+    );
+    let change: number | null = null;
+    if (payment.method === "cash" && payment.amountReceived !== undefined) {
+      if (payment.amountReceived + 0.005 < amount) {
+        throw new BadRequestError("El monto recibido en efectivo es menor al monto a cobrar");
+      }
+      change = roundMoney(payment.amountReceived - amount);
+    }
+    return {
+      saleId,
+      method: payment.method,
+      amount,
+      installments: payment.method === "credit_card" ? (payment.installments ?? 1) : null,
+      cardBrand: payment.cardBrand ?? null,
+      reference: payment.reference ?? null,
+      amountReceived: payment.method === "cash" ? (payment.amountReceived ?? null) : null,
+      change,
+      surchargePercent: charges.surchargePercent,
+      surchargeAmount: charges.surchargeAmount,
+      feePercent: charges.feePercent,
+      feeAmount: charges.feeAmount,
+      settlementDate: charges.settlementDate,
+    };
+  });
 }
 
 function toItemDto(row: SaleItemRow): SaleItemDto {
@@ -48,21 +136,32 @@ function toItemDto(row: SaleItemRow): SaleItemDto {
  *  razonamiento completo. */
 export const salesService = {
   findMany(): SaleSummaryDto[] {
-    return salesRepository.findMany().map(toSummaryDto);
+    const rows = salesRepository.findMany();
+    const methodsBySale = salesRepository.findPaymentMethodsBySaleIds(rows.map((row) => row.id));
+    return rows.map((row) => toSummaryDto(row, methodsBySale.get(row.id) ?? []));
   },
 
   findById(id: number): SaleDto {
     const sale = salesRepository.findById(id);
     if (!sale) throw new NotFoundError("Venta no encontrada");
     const items = salesRepository.findItemsBySaleId(id);
-    return { ...toSummaryDto(sale), items: items.map(toItemDto) };
+    const payments = salesRepository.findPaymentsBySaleId(id).map(toPaymentDto);
+    return {
+      ...toSummaryDto(sale, [...new Set(payments.map((payment) => payment.method))]),
+      items: items.map(toItemDto),
+      payments,
+    };
   },
 
   /**
    * Crea la venta completa (cabecera + items + descuento de stock) en una única transacción: si
    * cualquier paso falla (producto inexistente, stock insuficiente), la excepción revierte todo.
    */
-  create(input: CreateSaleInput): SaleDto {
+  /**
+   * `terms`: condiciones de cobro vigentes (las lee quien llama, desde `AsyncStorage` — no se
+   * puede leer async dentro de la transacción síncrona). Sin ellas, las de por defecto.
+   */
+  create(input: CreateSaleInput, terms: PaymentTermsDto = DEFAULT_PAYMENT_TERMS): SaleDto {
     const normalizedItems = normalizeItems(input.items);
 
     const saleId = db.transaction((tx) => {
@@ -81,15 +180,24 @@ export const salesService = {
 
       const total = roundMoney(lines.reduce((sum, line) => sum + line.subtotal, 0));
 
-      const sale = salesRepository.insertSale({ status: "completed", total, createdAt: new Date() }, tx);
+      const createdAt = new Date();
+      const sale = salesRepository.insertSale({ status: "completed", total, createdAt }, tx);
       salesRepository.insertSaleItems(
         lines.map((line) => ({ ...line, saleId: sale.id })),
+        tx,
+      );
+      // Lanza BadRequestError si los pagos no cubren el total — la transacción entera revierte.
+      salesRepository.insertSalePayments(
+        resolvePayments(sale.id, input.payments, total, terms, createdAt),
         tx,
       );
 
       for (const line of lines) {
         // Lanza ConflictError si no hay stock suficiente — la transacción entera revierte.
-        productsService.adjustStock(line.productId, -line.quantity, tx, { type: "SALE", saleId: sale.id });
+        productsService.adjustStock(line.productId, -line.quantity, tx, {
+          type: "SALE",
+          saleId: sale.id,
+        });
       }
 
       return sale.id;

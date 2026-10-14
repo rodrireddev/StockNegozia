@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { parseMoneyInput } from "@stocknegozia/shared";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Button } from "@/components/Button";
 import { Modal } from "@/components/Modal";
+import { MoneyField } from "@/components/MoneyField";
 import { TextField } from "@/components/TextField";
 import { useTheme } from "@/theme/useTheme";
 import { minTouchTarget, radius, spacing, typography } from "@/theme/tokens";
@@ -42,8 +44,9 @@ export function CashAdjustmentFormModal({ visible, onClose }: CashAdjustmentForm
 
   function handleSave() {
     setError(null);
-    const parsedAmount = Number(amount.replace(",", "."));
-    if (!amount.trim() || !(parsedAmount > 0)) {
+    // Antes `Number(amount.replace(",", "."))`: con "1.000.000" daba NaN y pedía "mayor a cero".
+    const parsedAmount = parseMoneyInput(amount);
+    if (parsedAmount === null || !(parsedAmount > 0)) {
       setError("Ingresá un monto mayor a cero");
       return;
     }
@@ -56,7 +59,8 @@ export function CashAdjustmentFormModal({ visible, onClose }: CashAdjustmentForm
       { direction, amount: parsedAmount, reason: reason.trim() },
       {
         onSuccess: handleClose,
-        onError: (err) => setError(err instanceof Error ? err.message : "No se pudo guardar el ajuste."),
+        onError: (err) =>
+          setError(err instanceof Error ? err.message : "No se pudo guardar el ajuste."),
       },
     );
   }
@@ -64,15 +68,15 @@ export function CashAdjustmentFormModal({ visible, onClose }: CashAdjustmentForm
   return (
     <Modal visible={visible} onClose={handleClose}>
       <View style={styles.content}>
-        <Text style={[typography.subtitle, { color: colors.foreground }]}>Nuevo ajuste de caja</Text>
+        <Text style={[typography.subtitle, { color: colors.foreground }]}>
+          Nuevo ajuste de caja
+        </Text>
 
         <View style={styles.directionToggle}>
-          {(
-            [
-              { value: "OUT" as const, label: "Retiro" },
-              { value: "IN" as const, label: "Ingreso" },
-            ]
-          ).map((option) => {
+          {[
+            { value: "OUT" as const, label: "Retiro" },
+            { value: "IN" as const, label: "Ingreso" },
+          ].map((option) => {
             const isActive = direction === option.value;
             return (
               <Pressable
@@ -96,15 +100,13 @@ export function CashAdjustmentFormModal({ visible, onClose }: CashAdjustmentForm
           })}
         </View>
 
-        <TextField
+        <MoneyField
           label="Monto"
-          placeholder="0"
           value={amount}
           onChangeText={(text) => {
             setAmount(text);
             setError(null);
           }}
-          keyboardType="decimal-pad"
         />
         <TextField
           label="Motivo"

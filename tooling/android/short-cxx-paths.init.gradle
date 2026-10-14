@@ -1,0 +1,20 @@
+// Init script de Gradle para compilar los APK de Mobile / Mobile Mini en Windows.
+//
+// Con pnpm, los módulos nativos (react-native-screens, react-native-worklets...) viven en rutas
+// como `node_modules\.pnpm\<paquete>@<versión>_<hash>\node_modules\<paquete>\android`, y CMake
+// arma sus objetos dentro de `android\.cxx\...` de cada módulo: el total supera el límite de 260
+// caracteres de Windows y el build nativo falla ("cannot be safely placed under this directory").
+// Este script mueve esas carpetas de CMake a una ruta corta, sin tocar el proyecto ni el sistema.
+//
+// Uso (desde apps/<app>/android):
+//   ./gradlew assembleRelease -I ../../../tooling/android/short-cxx-paths.init.gradle
+// Carpeta destino: variable de entorno SN_CXX_DIR, o C:/sn-cxx por defecto.
+def cxxRoot = new File(System.getenv("SN_CXX_DIR") ?: "C:/sn-cxx")
+
+gradle.beforeProject { project ->
+  ["com.android.library", "com.android.application"].each { pluginId ->
+    project.plugins.withId(pluginId) {
+      project.android.externalNativeBuild.cmake.buildStagingDirectory = new File(cxxRoot, project.name)
+    }
+  }
+}

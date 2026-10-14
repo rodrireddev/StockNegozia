@@ -1,10 +1,14 @@
+import { MAX_MONEY_AMOUNT } from "@stocknegozia/api-contracts";
 import { z } from "zod";
 
 export const cashAdjustmentDirectionSchema = z.enum(["IN", "OUT"]);
 
 export const createCashAdjustmentSchema = z.object({
   direction: cashAdjustmentDirectionSchema,
-  amount: z.coerce.number().positive("El monto tiene que ser mayor a cero"),
+  amount: z.coerce
+    .number({ invalid_type_error: "El monto es inválido" })
+    .positive("El monto tiene que ser mayor a cero")
+    .max(MAX_MONEY_AMOUNT, "El monto supera el máximo permitido"),
   reason: z
     .string({ required_error: "El motivo es obligatorio" })
     .trim()

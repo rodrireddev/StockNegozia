@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import type { ProductDto } from "@stocknegozia/api-contracts";
+import { DEFAULT_PAYMENT_TERMS } from "@stocknegozia/shared";
 import { SalesScreen } from "./SalesScreen";
 
 jest.mock("@/api/endpoints/products", () => ({
@@ -11,6 +12,10 @@ jest.mock("@/api/endpoints/sales", () => ({
   createSale: jest.fn(),
 }));
 jest.mock("@/api/endpoints/settings", () => ({
+  fetchPaymentTerms: jest.fn(() =>
+    Promise.resolve(jest.requireActual("@stocknegozia/shared").DEFAULT_PAYMENT_TERMS),
+  ),
+  updatePaymentTerms: jest.fn(),
   fetchSettings: jest.fn(),
   updateSettings: jest.fn(),
 }));
@@ -26,7 +31,7 @@ jest.mock("@/hooks/useDebouncedValue", () => ({
 
 import { fetchProducts } from "@/api/endpoints/products";
 import { createSale } from "@/api/endpoints/sales";
-import { fetchSettings } from "@/api/endpoints/settings";
+import { fetchPaymentTerms, fetchSettings } from "@/api/endpoints/settings";
 
 const mockedFetchProducts = jest.mocked(fetchProducts);
 const mockedCreateSale = jest.mocked(createSale);
@@ -78,7 +83,7 @@ describe("SalesScreen", () => {
     await renderWithClient(<SalesScreen />);
     await screen.findByText("Coca-Cola 2L");
 
-    expect(screen.getByTestId("confirm-sale")).toBeDisabled();
+    expect(screen.getByTestId("open-checkout")).toBeDisabled();
   });
 
   it("tocar un producto lo agrega al carrito; tocarlo de nuevo incrementa la cantidad sin duplicar la línea", async () => {
@@ -90,7 +95,7 @@ describe("SalesScreen", () => {
     fireEvent.press(row);
 
     await waitFor(() => expect(screen.getByText("2")).toBeTruthy());
-    expect(screen.getByTestId("confirm-sale")).not.toBeDisabled();
+    expect(screen.getByTestId("open-checkout")).not.toBeDisabled();
   });
 
   it("confirmar la venta: en éxito limpia el carrito y avisa", async () => {
@@ -100,6 +105,8 @@ describe("SalesScreen", () => {
       total: 1200,
       createdAt: "2026-01-01T00:00:00.000Z",
       cancelledAt: null,
+      paymentMethods: [],
+      payments: [],
       items: [{ id: 1, productId: cocaCola.id, quantity: 1, unitPrice: 1200, subtotal: 1200 }],
     });
 
@@ -108,15 +115,50 @@ describe("SalesScreen", () => {
     // Espera a que el botón refleje el carrito ya actualizado antes de tocarlo — sin esto, el
     // segundo `fireEvent.press` puede llegar antes de que React confirme el re-render disparado
     // por el primero.
+    await waitFor(() => expect(screen.getByTestId("open-checkout")).not.toBeDisabled());
+    fireEvent.press(screen.getByTestId("open-checkout"));
     await waitFor(() => expect(screen.getByTestId("confirm-sale")).not.toBeDisabled());
     fireEvent.press(screen.getByTestId("confirm-sale"));
 
     await waitFor(() => expect(screen.getByText("Venta registrada correctamente.")).toBeTruthy());
     expect(mockedCreateSale).toHaveBeenCalledWith({
       items: [{ productId: cocaCola.id, quantity: 1 }],
+      payments: [{ method: "cash" }],
     });
     // El carrito volvió a estar vacío.
     expect(screen.getByText("Carrito vacío")).toBeTruthy();
+  });
+
+  it("cobrar con crédito en cuotas suma el recargo configurado al total a cobrar", async () => {
+    jest.mocked(fetchPaymentTerms).mockResolvedValueOnce({
+      ...DEFAULT_PAYMENT_TERMS,
+      credit: [
+        { installments: 1, surchargePercent: 0, feePercent: 0, settlementDays: 10 },
+        { installments: 6, surchargePercent: 15, feePercent: 3, settlementDays: 2 },
+      ],
+    });
+
+    await renderWithClient(<SalesScreen />);
+    fireEvent.press(await screen.findByText("Coca-Cola 2L"));
+    await waitFor(() => expect(screen.getByTestId("open-checkout")).not.toBeDisabled());
+    fireEvent.press(screen.getByTestId("open-checkout"));
+    fireEvent.press(await screen.findByTestId("payment-method-credit_card"));
+    fireEvent.press(await screen.findByTestId("installments-6"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("checkout-total").props.children.replace(/\s/g, " ")).toBe(
+        "$ 1.380,00",
+      ),
+    );
+    expect(screen.getByText(/Se acredita el/)).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("confirm-sale"));
+    await waitFor(() =>
+      expect(mockedCreateSale).toHaveBeenCalledWith({
+        items: [{ productId: cocaCola.id, quantity: 1 }],
+        payments: [{ method: "credit_card", installments: 6 }],
+      }),
+    );
   });
 
   it("confirmar la venta: si el backend rechaza, conserva el carrito y muestra el error", async () => {
@@ -124,6 +166,8 @@ describe("SalesScreen", () => {
 
     await renderWithClient(<SalesScreen />);
     fireEvent.press(await screen.findByText("Coca-Cola 2L"));
+    await waitFor(() => expect(screen.getByTestId("open-checkout")).not.toBeDisabled());
+    fireEvent.press(screen.getByTestId("open-checkout"));
     await waitFor(() => expect(screen.getByTestId("confirm-sale")).not.toBeDisabled());
     fireEvent.press(screen.getByTestId("confirm-sale"));
 

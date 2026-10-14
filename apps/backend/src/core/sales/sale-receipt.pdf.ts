@@ -1,3 +1,5 @@
+import type { SalePaymentDto } from "@stocknegozia/api-contracts";
+import { describePayment, formatMoney, PAYMENT_METHOD_LABELS } from "@stocknegozia/shared";
 import PDFDocument from "pdfkit";
 
 export interface ReceiptLine {
@@ -15,7 +17,6 @@ export interface ReceiptSale {
   status: "completed" | "cancelled";
 }
 
-const currencyFormatter = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 const dateFormatter = new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" });
 
 /** Puntos por milímetro a 72 DPI (unidad nativa de pdfkit). */
@@ -27,6 +28,23 @@ const RECEIPT_WIDTH_MM = 100;
 const PAGE_WIDTH = RECEIPT_WIDTH_MM * MM;
 const MARGIN = 4 * MM;
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
+
+/** Achica la fuente hasta que `text` entre en `maxWidth` — un total de $ 999.999.999.999,99 en
+ *  18pt no entra al lado de "TOTAL" en un ticket de 10cm y se pisaban los textos. */
+function fitFontSize(
+  doc: PDFKit.PDFDocument,
+  text: string,
+  maxWidth: number,
+  size: number,
+): number {
+  let current = size;
+  doc.fontSize(current);
+  while (current > 7 && doc.widthOfString(text) > maxWidth) {
+    current -= 1;
+    doc.fontSize(current);
+  }
+  return current;
+}
 
 function drawDivider(doc: PDFKit.PDFDocument): void {
   doc
@@ -49,6 +67,7 @@ function drawReceiptContent(
   sale: ReceiptSale,
   lines: ReceiptLine[],
   businessName: string,
+  payments: SalePaymentDto[],
 ): void {
   doc
     .font("Helvetica-Bold")
@@ -83,14 +102,14 @@ function drawReceiptContent(
       .text(`${line.productName} (${line.productSku})`, MARGIN, doc.y, { width: CONTENT_WIDTH });
 
     const detailY = doc.y;
-    doc.font("Helvetica").fontSize(12);
-    doc.text(`${line.quantity} x ${currencyFormatter.format(line.unitPrice)}`, MARGIN, detailY, {
-      width: CONTENT_WIDTH * 0.55,
-    });
-    doc.text(currencyFormatter.format(line.subtotal), MARGIN, detailY, {
-      width: CONTENT_WIDTH,
-      align: "right",
-    });
+    doc.font("Helvetica");
+    const unitText = `${line.quantity} x ${formatMoney(line.unitPrice)}`;
+    const subtotalText = formatMoney(line.subtotal);
+    fitFontSize(doc, unitText, CONTENT_WIDTH * 0.5, 12);
+    doc.text(unitText, MARGIN, detailY, { width: CONTENT_WIDTH * 0.5 });
+    fitFontSize(doc, subtotalText, CONTENT_WIDTH * 0.48, 12);
+    doc.text(subtotalText, MARGIN, detailY, { width: CONTENT_WIDTH, align: "right" });
+    doc.fontSize(12);
     doc.moveDown(0.6);
   }
 
@@ -99,11 +118,63 @@ function drawReceiptContent(
 
   doc.font("Helvetica-Bold").fontSize(18);
   const totalY = doc.y;
-  doc.text("TOTAL", MARGIN, totalY, { width: CONTENT_WIDTH * 0.5 });
-  doc.text(currencyFormatter.format(sale.total), MARGIN, totalY, {
-    width: CONTENT_WIDTH,
-    align: "right",
-  });
+  doc.text("TOTAL", MARGIN, totalY, { width: CONTENT_WIDTH * 0.3 });
+  const totalText = formatMoney(sale.total);
+  fitFontSize(doc, totalText, CONTENT_WIDTH * 0.68, 18);
+  doc.text(totalText, MARGIN, totalY, { width: CONTENT_WIDTH, align: "right" });
+  doc.fontSize(18);
+
+  if (payments.length > 0) {
+    doc.moveDown(0.6);
+    doc.font("Helvetica-Bold").fontSize(11).text("Forma de pago", MARGIN, doc.y, {
+      width: CONTENT_WIDTH,
+    });
+    doc.font("Helvetica").fontSize(11);
+    for (const payment of payments) {
+      const label = describePayment(payment);
+      const rowY = doc.y;
+      doc.text(label, MARGIN, rowY, { width: CONTENT_WIDTH * 0.6 });
+      const afterLabelY = doc.y;
+      if (payments.length > 1) {
+        doc.text(formatMoney(payment.amount), MARGIN, rowY, {
+          width: CONTENT_WIDTH,
+          align: "right",
+        });
+      }
+      doc.y = Math.max(doc.y, afterLabelY);
+      if (payment.method === "cash" && payment.amountReceived !== null) {
+        doc
+          .fillColor("#555555")
+          .text(
+            `${PAYMENT_METHOD_LABELS.cash}: recibido ${formatMoney(payment.amountReceived)} · vuelto ${formatMoney(payment.change ?? 0)}`,
+            MARGIN,
+            doc.y,
+            { width: CONTENT_WIDTH },
+          )
+          .fillColor("#000000");
+      }
+    }
+
+    // Recargo por medio de pago: el total de los productos no cambia, pero el cliente paga más —
+    // tiene que quedar explícito en el comprobante.
+    const surcharge = payments.reduce((sum, payment) => sum + payment.surchargeAmount, 0);
+    if (surcharge > 0) {
+      doc.moveDown(0.3);
+      const surchargeY = doc.y;
+      doc.text("Recargo medio de pago", MARGIN, surchargeY, { width: CONTENT_WIDTH * 0.6 });
+      doc.text(formatMoney(surcharge), MARGIN, surchargeY, {
+        width: CONTENT_WIDTH,
+        align: "right",
+      });
+      doc.font("Helvetica-Bold").fontSize(14);
+      const chargedY = doc.y + 2;
+      const chargedText = formatMoney(sale.total + surcharge);
+      doc.text("TOTAL COBRADO", MARGIN, chargedY, { width: CONTENT_WIDTH * 0.45 });
+      fitFontSize(doc, chargedText, CONTENT_WIDTH * 0.52, 14);
+      doc.text(chargedText, MARGIN, chargedY, { width: CONTENT_WIDTH, align: "right" });
+      doc.font("Helvetica").fontSize(11);
+    }
+  }
 
   doc.moveDown(1.2);
   doc
@@ -122,13 +193,14 @@ export function renderSaleReceiptPdf(
   sale: ReceiptSale,
   lines: ReceiptLine[],
   businessName = "StockNegozia",
+  payments: SalePaymentDto[] = [],
 ): Promise<Buffer> {
   // Paso 1: documento descartable con un alto provisorio muy grande, usado sólo para medir cuánto
   // espacio ocupa el contenido real (nombres de producto largos pueden envolver a más de una
   // línea) — pdfkit no soporta alto de página "automático". Nunca se llama `.end()` ni se hace
   // pipe de este documento: se descarta apenas se lee `doc.y`.
   const measurer = new PDFDocument({ margin: 0, size: [PAGE_WIDTH, 10_000] });
-  drawReceiptContent(measurer, sale, lines, businessName);
+  drawReceiptContent(measurer, sale, lines, businessName, payments);
   const contentHeight = measurer.y + MARGIN;
 
   return new Promise((resolve, reject) => {
@@ -138,7 +210,7 @@ export function renderSaleReceiptPdf(
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    drawReceiptContent(doc, sale, lines, businessName);
+    drawReceiptContent(doc, sale, lines, businessName, payments);
     doc.end();
   });
 }

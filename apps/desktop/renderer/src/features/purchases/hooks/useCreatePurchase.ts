@@ -12,6 +12,8 @@ export function useCreatePurchase() {
       void queryClient.invalidateQueries({ queryKey: ["products"] });
       void queryClient.invalidateQueries({ queryKey: ["stock-movements"] });
       void queryClient.invalidateQueries({ queryKey: ["purchases"] });
+      // Las compras aparecen en Finanzas ("Gastos en mercadería").
+      void queryClient.invalidateQueries({ queryKey: ["profits"] });
     },
   });
 }

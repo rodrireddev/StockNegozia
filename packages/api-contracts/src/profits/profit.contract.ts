@@ -1,5 +1,5 @@
 import type { DeviceType } from "../auth/auth.contract";
-import type { CashAdjustmentDto } from "../cash-adjustments/cash-adjustment.contract";
+import type { PaymentMethod } from "../sales/payment.contract";
 
 /**
  * Ganancia de una línea de venta (`sale_items`) — `revenue`/`cost` salen de `unitPrice`/`unitCost`
@@ -29,43 +29,7 @@ export interface ProfitEntryDto {
    */
   deviceName: string | null;
   deviceType: DeviceType | null;
+  /** Medios con que se cobró la venta de esta línea (sin repetir). Vacío = "Sin especificar". */
+  paymentMethods: PaymentMethod[];
   createdAt: string;
 }
-
-/**
- * Ganancia agrupada por día — pensada para el gráfico semanal de la pantalla "Ganancias".
- * `revenue`/`cost` sólo suman ventas (pura economía de venta); `profit` también incluye el
- * impacto de los ajustes de caja (`CashAdjustmentDto`) de ese día — ver
- * `ProfitLedgerEntryDto` para el porqué de esta separación.
- */
-export interface DailyProfitDto {
-  /** `YYYY-MM-DD` en horario local del servidor. */
-  date: string;
-  /** Abreviatura del día en español ("Lun", "Mar"...), lista para el eje X del gráfico. */
-  label: string;
-  revenue: number;
-  cost: number;
-  profit: number;
-}
-
-/** Igual que `DailyProfitDto` pero agrupado por hora (0-23) de un único día — para el gráfico
- *  "Diario" de la pantalla "Ganancias". */
-export interface HourlyProfitDto {
-  /** 0-23, hora local del servidor. */
-  hour: number;
-  /** Ej: "14h", lista para el eje X del gráfico. */
-  label: string;
-  revenue: number;
-  cost: number;
-  profit: number;
-}
-
-/**
- * Una línea del historial combinado de "Ganancias": una venta o un ajuste de caja, distinguibles
- * por `kind`. Un ajuste de caja no está atado a ningún producto — se combina acá, en la capa de
- * lectura, para que el historial (y los totales/gráficos derivados de él) muestren el resultado
- * neto real sin que `sale_items` deje de representar exclusivamente el margen de cada venta.
- */
-export type ProfitLedgerEntryDto =
-  | ({ kind: "sale" } & ProfitEntryDto)
-  | ({ kind: "cashAdjustment" } & CashAdjustmentDto);
