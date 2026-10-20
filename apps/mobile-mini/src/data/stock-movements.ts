@@ -9,7 +9,9 @@ export interface StockMovementQuery {
 
 /** Mismos filtros que el cliente completo (`productId`/`type`/`direction`, sin rango de fechas —
  *  ver `apps/mobile/src/api/endpoints/stock-movements.ts`). */
-export async function fetchStockMovements(query: StockMovementQuery = {}): Promise<StockMovementDto[]> {
+export async function fetchStockMovements(
+  query: StockMovementQuery = {},
+): Promise<StockMovementDto[]> {
   return stockMovementsService.findMany({
     productId: query.productId,
     type: query.type as StockMovementDto["type"] | undefined,

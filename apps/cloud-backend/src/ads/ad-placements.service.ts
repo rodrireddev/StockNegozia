@@ -24,7 +24,9 @@ function toDto(row: NonNullable<PlacementRow>): AdPlacementDto {
 
 @Injectable()
 export class AdPlacementsService {
-  constructor(@Inject(AdPlacementsRepository) private readonly repository: AdPlacementsRepository) {}
+  constructor(
+    @Inject(AdPlacementsRepository) private readonly repository: AdPlacementsRepository,
+  ) {}
 
   async list(): Promise<AdPlacementDto[]> {
     const rows = await this.repository.findAll();
@@ -41,7 +43,10 @@ export class AdPlacementsService {
    * `GET /ads/placements/:key` (cliente) — `null` si no existe o está deshabilitado (kill switch,
    * doc §1bis): el cliente decide su propio fallback, esto no es un error de servidor.
    */
-  async getActiveForClient(key: string, platform: AdPlatform): Promise<ActiveAdPlacementDto | null> {
+  async getActiveForClient(
+    key: string,
+    platform: AdPlatform,
+  ): Promise<ActiveAdPlacementDto | null> {
     const row = await this.repository.findByKeyAndPlatform(key, platform);
     if (!row || !row.placement.enabled) return null;
     return { adNetwork: row.placement.adNetwork, adUnitId: row.placement.adUnitId };

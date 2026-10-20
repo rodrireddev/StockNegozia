@@ -16,7 +16,12 @@ import { SsvKeysService } from "./ssv-keys.service";
 
 @Module({
   imports: [AdminAuthModule, AccountAuthModule, GamificationModule],
-  controllers: [AdPlacementsController, HouseAdsController, AdsClientController, AdRewardCallbackController],
+  controllers: [
+    AdPlacementsController,
+    HouseAdsController,
+    AdsClientController,
+    AdRewardCallbackController,
+  ],
   providers: [
     AdPlacementsService,
     AdPlacementsRepository,

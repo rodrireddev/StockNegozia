@@ -14,7 +14,9 @@ export function useCreateCashAdjustment() {
       // Un ajuste de caja se mezcla con las ventas en el historial/gráfico de Ganancias.
       void queryClient.invalidateQueries({ queryKey: ["profits"] });
       if (status === "authenticated") {
-        fireRecordActivity(variables.direction === "IN" ? "cash_adjustment_in" : "cash_adjustment_out");
+        fireRecordActivity(
+          variables.direction === "IN" ? "cash_adjustment_in" : "cash_adjustment_out",
+        );
         void queryClient.invalidateQueries({ queryKey: ["active-goals"] });
       }
     },

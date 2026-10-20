@@ -1,12 +1,23 @@
-import type { AdPlacementDto, AdPlacementRevisionDto, HouseAdDto } from "@stocknegozia/api-contracts";
-import type { CreateHouseAdInput, UpdateAdPlacementInput, UpdateHouseAdInput } from "@stocknegozia/validation";
+import type {
+  AdPlacementDto,
+  AdPlacementRevisionDto,
+  HouseAdDto,
+} from "@stocknegozia/api-contracts";
+import type {
+  CreateHouseAdInput,
+  UpdateAdPlacementInput,
+  UpdateHouseAdInput,
+} from "@stocknegozia/validation";
 import { apiGet, apiPatch, apiPost } from "@/lib/api-client";
 
 export function fetchAdPlacements(): Promise<AdPlacementDto[]> {
   return apiGet<AdPlacementDto[]>("/admin/ad-placements");
 }
 
-export function fetchAdPlacementRevisions(key: string, platform: string): Promise<AdPlacementRevisionDto[]> {
+export function fetchAdPlacementRevisions(
+  key: string,
+  platform: string,
+): Promise<AdPlacementRevisionDto[]> {
   return apiGet<AdPlacementRevisionDto[]>(
     `/admin/ad-placements/${encodeURIComponent(key)}/${encodeURIComponent(platform)}/revisions`,
   );

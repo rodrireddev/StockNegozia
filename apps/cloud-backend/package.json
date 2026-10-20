@@ -24,7 +24,6 @@
     "@nestjs/jwt": "^11.0.0",
     "@nestjs/platform-express": "^11.0.1",
     "@stocknegozia/api-contracts": "workspace:*",
-    "@stocknegozia/shared": "workspace:*",
     "@stocknegozia/validation": "workspace:*",
     "drizzle-orm": "^0.38.3",
     "pg": "^8.13.1",
@@ -34,14 +33,11 @@
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.0",
-    "@nestjs/testing": "^11.0.1",
     "@stocknegozia/config": "workspace:*",
     "@types/node": "^22.10.5",
     "@types/pg": "^8.11.10",
-    "@types/supertest": "^6.0.2",
     "dotenv": "^16.4.7",
     "drizzle-kit": "^0.30.1",
-    "supertest": "^7.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"

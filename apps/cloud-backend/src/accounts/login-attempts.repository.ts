@@ -13,12 +13,16 @@ export class LoginAttemptsRepository {
     const [row] = await this.db
       .select({ count: sql<number>`count(*)` })
       .from(loginFailedAttempts)
-      .where(and(eq(loginFailedAttempts.ipAddress, ipAddress), gte(loginFailedAttempts.failedAt, since)));
+      .where(
+        and(eq(loginFailedAttempts.ipAddress, ipAddress), gte(loginFailedAttempts.failedAt, since)),
+      );
     return Number(row?.count ?? 0);
   }
 
   async recordFailure(ipAddress: string): Promise<void> {
-    await this.db.insert(loginFailedAttempts).values({ id: randomUUID(), ipAddress, failedAt: new Date() });
+    await this.db
+      .insert(loginFailedAttempts)
+      .values({ id: randomUUID(), ipAddress, failedAt: new Date() });
   }
 
   /** Al primer login exitoso de la IP — arranca de cero (doc: nunca bloquea más de lo necesario). */

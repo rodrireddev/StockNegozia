@@ -7,7 +7,9 @@ export function fetchCreditConfigItems(): Promise<CreditConfigItemDto[]> {
 }
 
 export function fetchCreditConfigRevisions(key: string): Promise<CreditConfigItemRevisionDto[]> {
-  return apiGet<CreditConfigItemRevisionDto[]>(`/admin/credit-config/${encodeURIComponent(key)}/revisions`);
+  return apiGet<CreditConfigItemRevisionDto[]>(
+    `/admin/credit-config/${encodeURIComponent(key)}/revisions`,
+  );
 }
 
 export function updateCreditConfigItem(

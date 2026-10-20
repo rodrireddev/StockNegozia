@@ -27,6 +27,8 @@ export const financeService = {
         .findMany(range)
         .map((row) => ({ ...row, createdAt: new Date(row.createdAt) })),
       pendingPayments: financeRepository.findPendingSettlements(now),
+      customerPayments: financeRepository.findCustomerPayments(range),
+      outstandingReceivables: financeRepository.findOutstandingReceivables(),
     });
   },
 

@@ -2,7 +2,12 @@ import type { BackupResultDto, BackupValidationResultDto } from "@stocknegozia/a
 import { app, BrowserWindow, dialog } from "electron";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { buildBackupFileName, copyDatabaseFiles, deleteDatabaseFiles, moveDatabaseFiles } from "./backup-file-ops";
+import {
+  buildBackupFileName,
+  copyDatabaseFiles,
+  deleteDatabaseFiles,
+  moveDatabaseFiles,
+} from "./backup-file-ops";
 import type { BackendManager } from "./backend-manager";
 import type { DeviceCredentialStore } from "./device-credential-store";
 
@@ -17,8 +22,7 @@ export type SelectAndValidateOutcome =
   | { cancelled: false; error: string };
 
 export type RestoreOutcome =
-  | { success: true; preRestoreBackupFileName: string }
-  | { success: false; error: string };
+  { success: true; preRestoreBackupFileName: string } | { success: false; error: string };
 
 const GENERIC_RESTORE_FAILURE =
   "No se pudo completar la restauración. Los datos anteriores se conservaron.";
@@ -53,7 +57,9 @@ export class BackupManager {
     });
     if (!response.ok) {
       const errorBody = (await response.json().catch(() => null)) as { message?: string } | null;
-      throw new Error(errorBody?.message ?? `Request to ${pathname} failed with status ${response.status}`);
+      throw new Error(
+        errorBody?.message ?? `Request to ${pathname} failed with status ${response.status}`,
+      );
     }
     return response.json() as Promise<T>;
   }
@@ -69,11 +75,14 @@ export class BackupManager {
   async createBackup(): Promise<CreateBackupOutcome> {
     const window = this.getMainWindow();
     const defaultFileName = buildBackupFileName();
-    const dialogResult = await dialog.showSaveDialog(window ?? (undefined as unknown as BrowserWindow), {
-      title: "Guardar backup de StockNegozia",
-      defaultPath: path.join(app.getPath("documents"), defaultFileName),
-      filters: [{ name: "Backup de StockNegozia", extensions: ["db"] }],
-    });
+    const dialogResult = await dialog.showSaveDialog(
+      window ?? (undefined as unknown as BrowserWindow),
+      {
+        title: "Guardar backup de StockNegozia",
+        defaultPath: path.join(app.getPath("documents"), defaultFileName),
+        filters: [{ name: "Backup de StockNegozia", extensions: ["db"] }],
+      },
+    );
 
     if (dialogResult.canceled || !dialogResult.filePath) {
       return { cancelled: true };
@@ -97,11 +106,14 @@ export class BackupManager {
 
   async selectAndValidateRestoreFile(): Promise<SelectAndValidateOutcome> {
     const window = this.getMainWindow();
-    const dialogResult = await dialog.showOpenDialog(window ?? (undefined as unknown as BrowserWindow), {
-      title: "Seleccionar backup de StockNegozia",
-      properties: ["openFile"],
-      filters: [{ name: "Backup de StockNegozia", extensions: ["db"] }],
-    });
+    const dialogResult = await dialog.showOpenDialog(
+      window ?? (undefined as unknown as BrowserWindow),
+      {
+        title: "Seleccionar backup de StockNegozia",
+        properties: ["openFile"],
+        filters: [{ name: "Backup de StockNegozia", extensions: ["db"] }],
+      },
+    );
 
     if (dialogResult.canceled || dialogResult.filePaths.length === 0) {
       return { cancelled: true };
@@ -111,13 +123,16 @@ export class BackupManager {
     this.selectedRestorePath = filePath;
 
     try {
-      const validation = await this.postJson<BackupValidationResultDto>("/backup/validate", { filePath });
+      const validation = await this.postJson<BackupValidationResultDto>("/backup/validate", {
+        filePath,
+      });
       return { cancelled: false, validation };
     } catch (error) {
       this.selectedRestorePath = null;
       return {
         cancelled: false,
-        error: error instanceof Error ? error.message : "No se pudo validar el archivo seleccionado.",
+        error:
+          error instanceof Error ? error.message : "No se pudo validar el archivo seleccionado.",
       };
     }
   }
@@ -160,7 +175,8 @@ export class BackupManager {
     } catch {
       return {
         success: false,
-        error: "No se pudo crear el backup de seguridad de los datos actuales. La restauración no continuó.",
+        error:
+          "No se pudo crear el backup de seguridad de los datos actuales. La restauración no continuó.",
       };
     }
 

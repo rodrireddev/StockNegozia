@@ -34,7 +34,13 @@ interface SeedConfigItem {
 
 /** Números de doc/monetization/ADS_CREDITS_GAMIFICATION.md §1 — punto de partida, no verdad fija. */
 const SEED_CONFIG_ITEMS: SeedConfigItem[] = [
-  { key: "source.welcome_bonus", label: "Bienvenida (una vez)", category: "source", unit: "credits", value: 20 },
+  {
+    key: "source.welcome_bonus",
+    label: "Bienvenida (una vez)",
+    category: "source",
+    unit: "credits",
+    value: 20,
+  },
   {
     key: "source.rewarded_ad_view_1",
     label: "Rewarded ad — 1ra vista del día",
@@ -56,7 +62,13 @@ const SEED_CONFIG_ITEMS: SeedConfigItem[] = [
     unit: "credits",
     value: 1,
   },
-  { key: "cap.rewarded_ad_max_per_day", label: "Tope de rewarded ads/día", category: "source", unit: "count", value: 3 },
+  {
+    key: "cap.rewarded_ad_max_per_day",
+    label: "Tope de rewarded ads/día",
+    category: "source",
+    unit: "count",
+    value: 3,
+  },
   {
     key: "cooldown.rewarded_ad_minutes",
     label: "Cooldown entre rewarded ads",
@@ -64,7 +76,13 @@ const SEED_CONFIG_ITEMS: SeedConfigItem[] = [
     unit: "minutes",
     value: 120,
   },
-  { key: "source.referral_bonus", label: "Referido validado", category: "source", unit: "credits", value: 15 },
+  {
+    key: "source.referral_bonus",
+    label: "Referido validado",
+    category: "source",
+    unit: "credits",
+    value: 15,
+  },
   {
     key: "cap.referral_max_per_month",
     label: "Tope de referidos validados/mes",
@@ -72,7 +90,13 @@ const SEED_CONFIG_ITEMS: SeedConfigItem[] = [
     unit: "count",
     value: 10,
   },
-  { key: "sink.export_report", label: "Exportar reporte (PDF/Excel)", category: "sink", unit: "credits", value: 10 },
+  {
+    key: "sink.export_report",
+    label: "Exportar reporte (PDF/Excel)",
+    category: "sink",
+    unit: "credits",
+    value: 10,
+  },
   {
     key: "sink.cloud_backup_30d",
     label: "Backup en la nube — 30 días",
@@ -124,8 +148,18 @@ interface SeedAdPlacement {
  * está confirmado (ver doc), no hay nada real que sembrar ahí todavía.
  */
 const SEED_AD_PLACEMENTS: SeedAdPlacement[] = [
-  { key: "rewarded_credits", platform: "android", adNetwork: "admob", adUnitId: "ca-app-pub-3940256099942544/5224354917" },
-  { key: "rewarded_credits", platform: "ios", adNetwork: "admob", adUnitId: "ca-app-pub-3940256099942544/1712485313" },
+  {
+    key: "rewarded_credits",
+    platform: "android",
+    adNetwork: "admob",
+    adUnitId: "ca-app-pub-3940256099942544/5224354917",
+  },
+  {
+    key: "rewarded_credits",
+    platform: "ios",
+    adNetwork: "admob",
+    adUnitId: "ca-app-pub-3940256099942544/1712485313",
+  },
 ];
 
 interface SeedAchievementDefinition {
@@ -246,7 +280,10 @@ async function main() {
   const seedAdminEmail = process.env.ADMIN_SEED_EMAIL;
   const seedAdminPassword = process.env.ADMIN_SEED_PASSWORD;
   if (seedAdminEmail && seedAdminPassword) {
-    const [existing] = await db.select().from(adminUsers).where(eq(adminUsers.email, seedAdminEmail));
+    const [existing] = await db
+      .select()
+      .from(adminUsers)
+      .where(eq(adminUsers.email, seedAdminEmail));
     if (existing) {
       console.log(`[seed] admin_users: "${seedAdminEmail}" ya existe, no se toca`);
     } else {
@@ -259,12 +296,17 @@ async function main() {
       console.log(`[seed] admin_users: creado "${seedAdminEmail}"`);
     }
   } else {
-    console.log("[seed] ADMIN_SEED_EMAIL/ADMIN_SEED_PASSWORD no están seteadas, se omite el admin inicial");
+    console.log(
+      "[seed] ADMIN_SEED_EMAIL/ADMIN_SEED_PASSWORD no están seteadas, se omite el admin inicial",
+    );
   }
 
   let inserted = 0;
   for (const item of SEED_CONFIG_ITEMS) {
-    const [existing] = await db.select().from(creditConfigItems).where(eq(creditConfigItems.key, item.key));
+    const [existing] = await db
+      .select()
+      .from(creditConfigItems)
+      .where(eq(creditConfigItems.key, item.key));
     if (existing) continue;
 
     await db.insert(creditConfigItems).values({
@@ -280,14 +322,18 @@ async function main() {
     });
     inserted++;
   }
-  console.log(`[seed] credit_config_items: ${inserted} insertados, ${SEED_CONFIG_ITEMS.length - inserted} ya existían`);
+  console.log(
+    `[seed] credit_config_items: ${inserted} insertados, ${SEED_CONFIG_ITEMS.length - inserted} ya existían`,
+  );
 
   let placementsInserted = 0;
   for (const placement of SEED_AD_PLACEMENTS) {
     const [existing] = await db
       .select()
       .from(adPlacements)
-      .where(and(eq(adPlacements.key, placement.key), eq(adPlacements.platform, placement.platform)));
+      .where(
+        and(eq(adPlacements.key, placement.key), eq(adPlacements.platform, placement.platform)),
+      );
     if (existing) continue;
 
     await db.insert(adPlacements).values({
@@ -308,7 +354,10 @@ async function main() {
 
   let achievementsInserted = 0;
   for (const achievement of SEED_ACHIEVEMENT_DEFINITIONS) {
-    const [existing] = await db.select().from(achievementDefinitions).where(eq(achievementDefinitions.key, achievement.key));
+    const [existing] = await db
+      .select()
+      .from(achievementDefinitions)
+      .where(eq(achievementDefinitions.key, achievement.key));
     if (existing) continue;
 
     const now = new Date();

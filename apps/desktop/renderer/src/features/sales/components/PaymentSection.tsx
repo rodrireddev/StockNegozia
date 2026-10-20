@@ -1,6 +1,7 @@
 import type { CardBrand, PaymentMethod, PaymentTermsDto } from "@stocknegozia/api-contracts";
-import { CARD_BRANDS, MAX_SALE_PAYMENTS, PAYMENT_METHODS } from "@stocknegozia/api-contracts";
+import { CARD_BRANDS, MAX_SALE_PAYMENTS } from "@stocknegozia/api-contracts";
 import {
+  availablePaymentMethods,
   CARD_BRAND_LABELS,
   creditInstallmentOptions,
   DEFAULT_PAYMENT_TERMS,
@@ -22,7 +23,17 @@ import {
   type PaymentDraftLine,
   type PaymentDraftSummary,
 } from "@stocknegozia/shared";
-import { Banknote, CreditCard, Landmark, Plus, QrCode, Split, Wallet, X } from "lucide-react";
+import {
+  Banknote,
+  BookUser,
+  CreditCard,
+  Landmark,
+  Plus,
+  QrCode,
+  Split,
+  Wallet,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/ui/money-input";
@@ -36,6 +47,7 @@ const METHOD_ICONS: Record<PaymentMethod, typeof Banknote> = {
   transfer: Landmark,
   qr: QrCode,
   other: Wallet,
+  account: BookUser,
 };
 
 interface PaymentSectionProps {
@@ -46,6 +58,8 @@ interface PaymentSectionProps {
   /** Condiciones de cobro configuradas — planes de cuotas, recargos y acreditación. */
   terms?: PaymentTermsDto;
   disabled?: boolean;
+  /** Ofrecer "Cuenta corriente" — sólo cuando la venta tiene un cliente elegido. */
+  allowAccount?: boolean;
 }
 
 /**
@@ -62,7 +76,9 @@ export function PaymentSection({
   summary,
   terms = DEFAULT_PAYMENT_TERMS,
   disabled,
+  allowAccount = false,
 }: PaymentSectionProps) {
+  const methods = availablePaymentMethods(allowAccount);
   function updateLine(key: string, update: (line: PaymentDraftLine) => PaymentDraftLine) {
     onChange({
       ...draft,
@@ -108,6 +124,7 @@ export function PaymentSection({
       {single && firstLine ? (
         <>
           <MethodPicker
+            methods={methods}
             value={firstLine.method}
             disabled={disabled}
             onChange={(method) =>
@@ -140,7 +157,7 @@ export function PaymentSection({
                     )
                   }
                 >
-                  {PAYMENT_METHODS.map((method) => (
+                  {methods.map((method) => (
                     <option key={method} value={method}>
                       {PAYMENT_METHOD_SHORT_LABELS[method]}
                     </option>
@@ -226,17 +243,19 @@ export function PaymentSection({
 }
 
 function MethodPicker({
+  methods,
   value,
   onChange,
   disabled,
 }: {
+  methods: PaymentMethod[];
   value: PaymentMethod;
   onChange: (method: PaymentMethod) => void;
   disabled?: boolean;
 }) {
   return (
     <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Medio de pago">
-      {PAYMENT_METHODS.map((method) => {
+      {methods.map((method) => {
         const Icon = METHOD_ICONS[method];
         const selected = method === value;
         return (

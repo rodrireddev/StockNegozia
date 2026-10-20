@@ -278,7 +278,9 @@ describe("M14: lastSeenAt en API_ACCESS_MODE=development", () => {
     const repository = moduleRef.get(DevicesRepository);
     expect(repository.findById(deviceId)?.lastSeenAt).toBeNull();
 
-    await request(app.getHttpServer()).get("/products").set("Authorization", `Bearer ${adminCredential}`);
+    await request(app.getHttpServer())
+      .get("/products")
+      .set("Authorization", `Bearer ${adminCredential}`);
 
     expect(repository.findById(deviceId)?.lastSeenAt).toBeInstanceOf(Date);
   });

@@ -5,7 +5,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useCreditConfigRevisions } from "../hooks/useCreditConfigRevisions";
 
 export function RevisionsDialog({
@@ -30,7 +37,9 @@ export function RevisionsDialog({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Historial — {itemLabel}</DialogTitle>
-          <DialogDescription>Todos los cambios de valor de este ítem, más reciente primero.</DialogDescription>
+          <DialogDescription>
+            Todos los cambios de valor de este ítem, más reciente primero.
+          </DialogDescription>
         </DialogHeader>
         {revisionsQuery.isLoading && <p className="text-sm text-muted-foreground">Cargando…</p>}
         {revisionsQuery.data && revisionsQuery.data.length === 0 && (

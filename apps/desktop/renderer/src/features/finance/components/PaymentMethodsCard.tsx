@@ -4,7 +4,16 @@ import {
   PAYMENT_METHOD_LABELS,
   UNSPECIFIED_PAYMENT_LABEL,
 } from "@stocknegozia/shared";
-import { Banknote, CreditCard, HelpCircle, Landmark, Loader2, QrCode, Wallet } from "lucide-react";
+import {
+  Banknote,
+  BookUser,
+  CreditCard,
+  HelpCircle,
+  Landmark,
+  Loader2,
+  QrCode,
+  Wallet,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const METHOD_ICONS: Record<PaymentMethod, typeof Banknote> = {
@@ -14,6 +23,7 @@ const METHOD_ICONS: Record<PaymentMethod, typeof Banknote> = {
   transfer: Landmark,
   qr: QrCode,
   other: Wallet,
+  account: BookUser,
 };
 
 interface PaymentMethodsCardProps {

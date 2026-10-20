@@ -179,11 +179,18 @@ describe("StockMovementsService", () => {
     }
 
     it("un desktop con vendedor configurado snapshotea el nombre del vendedor, no el del equipo", () => {
-      const { deviceId } = devicesService.register("Electron Desktop", "desktop", { isAdmin: true });
+      const { deviceId } = devicesService.register("Electron Desktop", "desktop", {
+        isAdmin: true,
+      });
       devicesService.updateSellerName(deviceId, "Rodrigo");
 
       const movement = RequestContext.run({ requestId: "req-1" }, () => {
-        RequestContext.setDevice({ id: deviceId, name: "Electron Desktop", type: "desktop", sellerName: "Rodrigo" });
+        RequestContext.setDevice({
+          id: deviceId,
+          name: "Electron Desktop",
+          type: "desktop",
+          sellerName: "Rodrigo",
+        });
         return recordMovement();
       });
 
@@ -192,10 +199,17 @@ describe("StockMovementsService", () => {
     });
 
     it("un desktop sin vendedor configurado sigue snapshoteando el nombre del equipo", () => {
-      const { deviceId } = devicesService.register("Electron Desktop", "desktop", { isAdmin: true });
+      const { deviceId } = devicesService.register("Electron Desktop", "desktop", {
+        isAdmin: true,
+      });
 
       const movement = RequestContext.run({ requestId: "req-2" }, () => {
-        RequestContext.setDevice({ id: deviceId, name: "Electron Desktop", type: "desktop", sellerName: null });
+        RequestContext.setDevice({
+          id: deviceId,
+          name: "Electron Desktop",
+          type: "desktop",
+          sellerName: null,
+        });
         return recordMovement();
       });
 

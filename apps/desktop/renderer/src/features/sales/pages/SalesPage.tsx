@@ -12,6 +12,7 @@ import { fetchProducts } from "@/features/products/api/products.api";
 import { useDebouncedValue } from "@/features/products/hooks/useDebouncedValue";
 import { useProducts } from "@/features/products/hooks/useProducts";
 import { Input } from "@/components/ui/input";
+import { CustomerPicker } from "@/features/customers/components/CustomerPicker";
 import { getUserFriendlyError } from "@/lib/errors";
 import { useMe } from "@/features/devices/hooks/useMe";
 import { usePaymentTerms } from "@/features/settings/hooks/usePaymentTerms";
@@ -64,6 +65,7 @@ export function SalesPage() {
   const [generateReceipt, setGenerateReceipt] = useState(false);
   const [receiptNotice, setReceiptNotice] = useState<string | null>(null);
   const [paymentDraft, setPaymentDraft] = useState<PaymentDraft>(() => createPaymentDraft());
+  const [customerId, setCustomerId] = useState<number | null>(null);
 
   const debouncedSearch = useDebouncedValue(searchTerm);
   const trimmedDebouncedSearch = debouncedSearch.trim();
@@ -272,6 +274,14 @@ export function SalesPage() {
     }
   }
 
+  function handleCustomerChange(next: number | null) {
+    setCustomerId(next);
+    // Sin cliente no hay cuenta corriente: si estaba elegida, se vuelve al medio por defecto.
+    if (next === null && paymentDraft.lines.some((line) => line.method === "account")) {
+      setPaymentDraft(createPaymentDraft());
+    }
+  }
+
   async function handleConfirm() {
     if (cart.isEmpty || createSale.isPending) return;
     setConfirmError(null);
@@ -304,9 +314,11 @@ export function SalesPage() {
       sale = await createSale.mutateAsync({
         items: cart.items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
         payments: paymentSummary.payments,
+        customerId: customerId ?? undefined,
       });
       // El carrito solo se limpia después de que el backend confirmó la venta — nunca antes.
       cart.clear();
+      setCustomerId(null);
       // La próxima venta arranca con el mismo medio (lo más común es cobrar igual varias veces
       // seguidas), pero sin montos ni referencias de esta.
       setPaymentDraft((draft) => createPaymentDraft(draft.lines[0]?.method));
@@ -333,7 +345,14 @@ export function SalesPage() {
 
   return (
     <div className="flex h-full flex-col gap-4">
-      <h1 className="text-xl font-semibold">Nueva venta</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-xl font-semibold">Nueva venta</h1>
+        <CustomerPicker
+          value={customerId}
+          onChange={handleCustomerChange}
+          disabled={createSale.isPending}
+        />
+      </div>
 
       <div>
         <Input
@@ -373,6 +392,7 @@ export function SalesPage() {
           onPaymentDraftChange={setPaymentDraft}
           paymentSummary={paymentSummary}
           paymentTerms={paymentTerms.data}
+          allowAccount={customerId !== null}
         />
       </div>
 

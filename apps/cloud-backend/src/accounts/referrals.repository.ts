@@ -26,7 +26,9 @@ export class ReferralsRepository {
 
   /** Para el tope mensual del doc §1 ("15, tope 10/mes con retorno completo"). */
   async countValidatedThisMonthByReferrer(referrerUserId: string): Promise<number> {
-    const startOfMonth = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1));
+    const startOfMonth = new Date(
+      Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1),
+    );
     const rows = await this.db
       .select({ count: sql<number>`count(*)` })
       .from(referrals)

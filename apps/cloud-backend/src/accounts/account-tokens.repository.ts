@@ -36,7 +36,10 @@ export class AccountTokensRepository {
   }
 
   async markConsumed(id: string) {
-    await this.db.update(accountTokens).set({ consumedAt: new Date() }).where(eq(accountTokens.id, id));
+    await this.db
+      .update(accountTokens)
+      .set({ consumedAt: new Date() })
+      .where(eq(accountTokens.id, id));
   }
 
   /** Antes de emitir un token nuevo — nunca queda más de uno vivo por usuario y propósito. */

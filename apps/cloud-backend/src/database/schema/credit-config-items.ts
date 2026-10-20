@@ -5,7 +5,10 @@ import { adminUsers } from "./admin-users";
  * Espeja la separación fuentes/sinks del doc §1 — el panel admin (doc §7) agrupa por esto en la
  * tabla editable.
  */
-export const creditConfigItemCategoryEnum = pgEnum("credit_config_item_category", ["source", "sink"]);
+export const creditConfigItemCategoryEnum = pgEnum("credit_config_item_category", [
+  "source",
+  "sink",
+]);
 
 /**
  * Unidad de `value` — la mayoría de los ítems son montos en créditos, pero la misma tabla también

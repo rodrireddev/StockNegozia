@@ -11,13 +11,13 @@ construirla después sobre estos endpoints, sin necesitar ningún cambio de back
 
 ## Endpoints
 
-| Método | Ruta                         | Quién puede llamarlo                  | Qué hace                              |
-| ------ | ---------------------------- | -------------------------------------- | --------------------------------------- |
-| `GET`  | `/auth/devices`              | Solo dispositivo administrador          | Lista todos los dispositivos.           |
-| `GET`  | `/auth/devices/me`           | Cualquier dispositivo autenticado       | Info del dispositivo que hace la request. |
-| `GET`  | `/auth/devices/:id`          | Solo dispositivo administrador          | Info de un dispositivo puntual.         |
-| `PATCH`| `/auth/devices/:id`          | Solo dispositivo administrador          | Renombra un dispositivo (`{ "name": "..." }`). |
-| `POST` | `/auth/devices/:id/revoke`   | Solo dispositivo administrador          | Revoca un dispositivo permanentemente.  |
+| Método  | Ruta                       | Quién puede llamarlo              | Qué hace                                       |
+| ------- | -------------------------- | --------------------------------- | ---------------------------------------------- |
+| `GET`   | `/auth/devices`            | Solo dispositivo administrador    | Lista todos los dispositivos.                  |
+| `GET`   | `/auth/devices/me`         | Cualquier dispositivo autenticado | Info del dispositivo que hace la request.      |
+| `GET`   | `/auth/devices/:id`        | Solo dispositivo administrador    | Info de un dispositivo puntual.                |
+| `PATCH` | `/auth/devices/:id`        | Solo dispositivo administrador    | Renombra un dispositivo (`{ "name": "..." }`). |
+| `POST`  | `/auth/devices/:id/revoke` | Solo dispositivo administrador    | Revoca un dispositivo permanentemente.         |
 
 Ningún endpoint de esta lista es `@Public()` — todos exigen, como mínimo, estar autenticado
 (`ApiAccessGuard`); los marcados "solo dispositivo administrador" exigen además pasar
@@ -61,7 +61,7 @@ en el orden en que se declaran los métodos, así que si `:id` se declarara prim
 
 No existe (todavía) un sistema de usuarios/roles/permisos — ver `NEXT_STEPS.md` y la sección
 "No implementar" de este milestone. Sin uno, dejar `GET/PATCH/POST /auth/devices*` abiertos a
-*cualquier* dispositivo autenticado significaría que un celular emparejado podría listar, renombrar
+_cualquier_ dispositivo autenticado significaría que un celular emparejado podría listar, renombrar
 o revocar cualquier otro dispositivo, incluido el propio desktop administrador — inaceptable.
 
 La solución mínima: un campo `devices.is_admin` (boolean, default `false`). El dispositivo creado
@@ -99,6 +99,22 @@ AdminDeviceGuard       (autoriza — 403 si no es admin; solo en rutas admin-onl
    ↓
 DevicesController → DevicesService → DevicesRepository → SQLite
 ```
+
+## Roles: Encargado / Cajero
+
+Además de `isAdmin`, cada dispositivo tiene `role` (`devices.role`, migración `0021`):
+
+- `manager` (**Encargado**, default — los dispositivos existentes no pierden acceso).
+- `cashier` (**Cajero**): `ManagerDeviceGuard` le devuelve `403` en finanzas (`/finance`,
+  `/profits`), compras (`/purchases`), ajustes de caja (`/cash-adjustments`), escrituras de
+  productos, proveedores y configuración, y `POST /sales/:id/cancel`. Puede vender, consultar
+  productos/stock/movimientos y cargar clientes.
+
+Solo el administrador lo cambia: `PATCH /auth/devices/:id/role` con `{ "role": "cashier" }`
+(`AdminDeviceGuard`). El administrador pasa siempre, figure con el rol que figure. Igual que el resto
+de los guards, en `API_ACCESS_MODE=development` no restringe nada. El Desktop lo expone como un
+selector en cada tarjeta de _Dispositivos_; Mobile oculta las secciones bloqueadas a un cajero
+(`apps/mobile/src/devices/useIsCashier.ts`). Tests: `apps/backend/src/auth/device-roles.e2e.spec.ts`.
 
 ## Renombrar un dispositivo
 
@@ -208,14 +224,14 @@ administrador, no es un actor sin ninguna credential probando IDs al azar.
 Reutiliza `AppLogger`/`RequestContext`/`GlobalExceptionFilter` — mismo sistema del Milestone 4, sin
 duplicar nada. Eventos:
 
-| Evento                  | Nivel | Cuándo                                                        |
-| ------------------------ | ----- | ---------------------------------------------------------------- |
-| `device.listed`          | INFO  | `GET /auth/devices`.                                              |
-| `device.viewed`          | INFO  | `GET /auth/devices/:id` o `/me`.                                  |
-| `device.updated`         | INFO  | `PATCH /auth/devices/:id` (renombrado exitoso).                   |
-| `device.revoked`         | INFO  | `POST /auth/devices/:id/revoke` exitoso.                          |
-| `device.access.denied`   | WARN  | `AdminDeviceGuard` rechazó a un dispositivo no administrador.     |
-| `device.created`         | INFO  | Ya existía desde Milestone 6 — compartido entre bootstrap y pairing. |
+| Evento                 | Nivel | Cuándo                                                               |
+| ---------------------- | ----- | -------------------------------------------------------------------- |
+| `device.listed`        | INFO  | `GET /auth/devices`.                                                 |
+| `device.viewed`        | INFO  | `GET /auth/devices/:id` o `/me`.                                     |
+| `device.updated`       | INFO  | `PATCH /auth/devices/:id` (renombrado exitoso).                      |
+| `device.revoked`       | INFO  | `POST /auth/devices/:id/revoke` exitoso.                             |
+| `device.access.denied` | WARN  | `AdminDeviceGuard` rechazó a un dispositivo no administrador.        |
+| `device.created`       | INFO  | Ya existía desde Milestone 6 — compartido entre bootstrap y pairing. |
 
 Metadata incluida cuando es útil: `deviceId`, `deviceType`, `requestedBy` (el `deviceId` de quien
 hizo la request administrativa), `requestId` (automático, vía `RequestContext`).
@@ -231,6 +247,7 @@ requestId=abc
     ↓
 device.updated  (deviceId=123, requestedBy=<adminId>)
 ```
+
 ```
 requestId=def
     ↓
@@ -243,13 +260,13 @@ Mismo `GlobalExceptionFilter` existente — sin sistema paralelo. Nunca se devue
 hashes, credentials, ni detalle interno de autenticación. Resumen de códigos usados en
 `/auth/devices/*`:
 
-| Código | Cuándo                                                                 |
-| ------ | ------------------------------------------------------------------------ |
-| `400`  | `:id` con formato inválido (no UUID), o body que no pasa `updateDeviceSchema`. |
-| `401`  | Sin credential o credential inválida/revocada (`ApiAccessGuard`).         |
+| Código | Cuándo                                                                          |
+| ------ | ------------------------------------------------------------------------------- |
+| `400`  | `:id` con formato inválido (no UUID), o body que no pasa `updateDeviceSchema`.  |
+| `401`  | Sin credential o credential inválida/revocada (`ApiAccessGuard`).               |
 | `403`  | Credential válida pero el dispositivo no es administrador (`AdminDeviceGuard`). |
-| `404`  | `id` con formato válido pero inexistente.                                 |
-| `409`  | Intento de auto-revocar el único dispositivo administrador activo.        |
+| `404`  | `id` con formato válido pero inexistente.                                       |
+| `409`  | Intento de auto-revocar el único dispositivo administrador activo.              |
 
 ## `pairing_sessions.device_id`
 

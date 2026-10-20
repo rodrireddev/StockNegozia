@@ -44,9 +44,7 @@ export function SupplierForm() {
             value={name}
             onChange={(event) => setName(event.target.value)}
           />
-          {fieldErrors.name && (
-            <p className="text-sm text-destructive">{fieldErrors.name[0]}</p>
-          )}
+          {fieldErrors.name && <p className="text-sm text-destructive">{fieldErrors.name[0]}</p>}
         </div>
         <div className="flex-1 space-y-1.5">
           <Label htmlFor="supplier-phone">Teléfono (opcional)</Label>
@@ -56,9 +54,7 @@ export function SupplierForm() {
             value={phone}
             onChange={(event) => setPhone(event.target.value)}
           />
-          {fieldErrors.phone && (
-            <p className="text-sm text-destructive">{fieldErrors.phone[0]}</p>
-          )}
+          {fieldErrors.phone && <p className="text-sm text-destructive">{fieldErrors.phone[0]}</p>}
         </div>
         <Button type="submit" disabled={createSupplier.isPending}>
           {createSupplier.isPending ? "Guardando…" : "Agregar"}

@@ -1,0 +1,8 @@
+# LF siempre (Prettier usa endOfLine: lf): sin esto, git en Windows con core.autocrlf=true
+# convierte a CRLF al hacer checkout y `pnpm format:check` falla en local.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary
+*.apk binary
+*.exe binary

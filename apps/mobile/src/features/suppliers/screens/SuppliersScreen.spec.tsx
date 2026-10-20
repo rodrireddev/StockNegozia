@@ -66,7 +66,10 @@ describe("SuppliersScreen", () => {
     await renderWithClient(<SuppliersScreen />);
     await screen.findByText(/no tenés proveedores todavía/i);
 
-    await fireEvent.changeText(screen.getByPlaceholderText("Nombre del proveedor"), "Nuevo Proveedor");
+    await fireEvent.changeText(
+      screen.getByPlaceholderText("Nombre del proveedor"),
+      "Nuevo Proveedor",
+    );
     await fireEvent.changeText(screen.getByPlaceholderText("Teléfono"), "011 4444-5555");
     await fireEvent.press(screen.getByText("Agregar"));
 

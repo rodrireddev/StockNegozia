@@ -1,3 +1,4 @@
+import { ConfigService } from "@nestjs/config";
 import { INestApplication } from "@nestjs/common";
 import { APP_FILTER } from "@nestjs/core";
 import { Test } from "@nestjs/testing";
@@ -50,6 +51,8 @@ describe("Purchases: flujo HTTP completo", () => {
       ],
       providers: [
         { provide: AppLogger, useValue: logger },
+        // ManagerDeviceGuard (roles) lo necesita; en "development" no restringe nada.
+        { provide: ConfigService, useValue: { get: () => ({ accessMode: "development" }) } },
         { provide: APP_FILTER, useClass: GlobalExceptionFilter },
         { provide: DRIZZLE_CLIENT, useValue: db },
         ProductsRepository,
@@ -164,7 +167,10 @@ describe("Purchases: flujo HTTP completo", () => {
 
     await request(app.getHttpServer())
       .post("/purchases")
-      .send({ supplierId: supplier.id, items: [{ productId: product.id, quantity: 1, unitCost: 10 }] });
+      .send({
+        supplierId: supplier.id,
+        items: [{ productId: product.id, quantity: 1, unitCost: 10 }],
+      });
 
     const list = await request(app.getHttpServer()).get("/purchases");
     expect(list.status).toBe(200);
@@ -190,7 +196,10 @@ describe("Purchases: flujo HTTP completo", () => {
 
     const res = await request(app.getHttpServer())
       .post("/purchases")
-      .send({ supplierId: supplier.id, items: [{ productId: 999_999, quantity: 1, unitCost: 10 }] });
+      .send({
+        supplierId: supplier.id,
+        items: [{ productId: 999_999, quantity: 1, unitCost: 10 }],
+      });
 
     expect(res.status).toBe(404);
   });
@@ -211,7 +220,10 @@ describe("Purchases: flujo HTTP completo", () => {
 
     const res = await request(app.getHttpServer())
       .post("/purchases")
-      .send({ supplierId: supplier.id, items: [{ productId: product.id, quantity: 1, unitCost: -1 }] });
+      .send({
+        supplierId: supplier.id,
+        items: [{ productId: product.id, quantity: 1, unitCost: -1 }],
+      });
 
     expect(res.status).toBe(400);
   });

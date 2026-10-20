@@ -16,7 +16,13 @@ export class ActivityEventsRepository {
    * que el caller sepa si tiene que reevaluar objetivos (un reintento no debería volver a evaluar).
    */
   async insert(
-    data: { id: string; userId: string; metricType: TrackableMetricType; occurredOn: string; clientEventId: string },
+    data: {
+      id: string;
+      userId: string;
+      metricType: TrackableMetricType;
+      occurredOn: string;
+      clientEventId: string;
+    },
     executor: DrizzleExecutor = this.db,
   ): Promise<boolean> {
     const inserted = await executor

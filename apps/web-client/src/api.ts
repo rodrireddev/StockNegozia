@@ -1,4 +1,9 @@
-import type { DeviceDto, HealthStatus, PairingConfirmResult, ProductDto } from "@stocknegozia/api-contracts";
+import type {
+  DeviceDto,
+  HealthStatus,
+  PairingConfirmResult,
+  ProductDto,
+} from "@stocknegozia/api-contracts";
 import { resolveApiUrl } from "./config";
 import { clearStoredCredential, getStoredCredential } from "./credential-store";
 
@@ -46,7 +51,10 @@ function get<T>(path: string): Promise<T> {
 }
 
 function post<T>(path: string, body?: unknown): Promise<T> {
-  return request<T>(path, { method: "POST", body: body !== undefined ? JSON.stringify(body) : undefined });
+  return request<T>(path, {
+    method: "POST",
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
 }
 
 async function extractErrorMessage(response: Response, path: string): Promise<string> {
@@ -81,7 +89,10 @@ export async function confirmPairing(input: {
   deviceName?: string;
 }): Promise<PairingConfirmResult> {
   try {
-    return await post<PairingConfirmResult>("/auth/pairing/confirm", { ...input, deviceType: "web" });
+    return await post<PairingConfirmResult>("/auth/pairing/confirm", {
+      ...input,
+      deviceType: "web",
+    });
   } catch (error) {
     if (error instanceof AuthRequiredError) {
       throw new Error("No se pudo emparejar: código o datos incorrectos, o el pairing expiró.");

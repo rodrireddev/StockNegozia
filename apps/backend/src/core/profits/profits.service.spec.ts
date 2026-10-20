@@ -1,3 +1,5 @@
+import { CustomersRepository } from "../customers/customers.repository";
+import { CustomersService } from "../customers/customers.service";
 import type { CreateProductInput } from "@stocknegozia/validation";
 import { beforeEach, describe, expect, it } from "vitest";
 import { RequestContext } from "../../common/logger/request-context";
@@ -57,6 +59,7 @@ describe("ProfitsService", () => {
       productsService,
       settingsService,
       logger,
+      new CustomersService(new CustomersRepository(db), db),
     );
     profitsService = new ProfitsService(new ProfitsRepository(db));
     defaultSupplierId = suppliersService.create({ name: "Proveedor de prueba" }).id;

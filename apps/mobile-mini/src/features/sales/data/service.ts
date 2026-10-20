@@ -7,9 +7,10 @@ import type {
   SaleSummaryDto,
 } from "@stocknegozia/api-contracts";
 import type { CreateSaleInput, SaleItemInput, SalePaymentInput } from "@stocknegozia/validation";
-import { computePaymentCharges, DEFAULT_PAYMENT_TERMS } from "@stocknegozia/shared";
+import { computePaymentCharges, DEFAULT_PAYMENT_TERMS, roundMoney } from "@stocknegozia/shared";
 import { db } from "@/database/client";
 import { ConflictError, NotFoundError, BadRequestError } from "@/database/errors";
+import { customersService } from "@/features/customers/data/service";
 import { productsService } from "@/features/products/data/service";
 import type { sales } from "@/database/schema";
 import { salesRepository, type NewSalePaymentRecord } from "./repository";
@@ -17,11 +18,6 @@ import { salesRepository, type NewSalePaymentRecord } from "./repository";
 type SaleRow = typeof sales.$inferSelect;
 type SaleItemRow = ReturnType<typeof salesRepository.findItemsBySaleId>[number];
 type SalePaymentRow = ReturnType<typeof salesRepository.findPaymentsBySaleId>[number];
-
-/** Mismo criterio monetario que `productsService`/`purchasesService` (duplicado a propósito). */
-function roundMoney(value: number): number {
-  return Math.round(value * 100) / 100;
-}
 
 /** Suma cantidades de items que repiten el mismo producto, para no crear más de una línea por
  *  producto dentro de una misma venta. */
@@ -43,6 +39,7 @@ function toSummaryDto(row: SaleRow, paymentMethods: PaymentMethod[]): SaleSummar
     total: row.total,
     createdAt: row.createdAt.toISOString(),
     cancelledAt: row.cancelledAt ? row.cancelledAt.toISOString() : null,
+    customerId: row.customerId,
     paymentMethods,
   };
 }
@@ -135,12 +132,6 @@ function toItemDto(row: SaleItemRow): SaleItemDto {
 /** Mismas reglas que `apps/backend/src/core/sales/sales.service.ts` — ver ese archivo para el
  *  razonamiento completo. */
 export const salesService = {
-  findMany(): SaleSummaryDto[] {
-    const rows = salesRepository.findMany();
-    const methodsBySale = salesRepository.findPaymentMethodsBySaleIds(rows.map((row) => row.id));
-    return rows.map((row) => toSummaryDto(row, methodsBySale.get(row.id) ?? []));
-  },
-
   findById(id: number): SaleDto {
     const sale = salesRepository.findById(id);
     if (!sale) throw new NotFoundError("Venta no encontrada");
@@ -164,7 +155,12 @@ export const salesService = {
   create(input: CreateSaleInput, terms: PaymentTermsDto = DEFAULT_PAYMENT_TERMS): SaleDto {
     const normalizedItems = normalizeItems(input.items);
 
+    // Mismo refine que `createSaleSchema` del backend (acá no pasa por zod).
+    if (!input.customerId && input.payments?.some((payment) => payment.method === "account")) {
+      throw new BadRequestError("Para vender a cuenta corriente elegí un cliente");
+    }
     const saleId = db.transaction((tx) => {
+      if (input.customerId) customersService.findById(input.customerId, tx); // 404 si no existe
       const lines = normalizedItems.map((item) => {
         const product = productsService.findById(item.productId, tx); // 404 si no existe
         const subtotal = roundMoney(product.salePrice * item.quantity);
@@ -181,7 +177,10 @@ export const salesService = {
       const total = roundMoney(lines.reduce((sum, line) => sum + line.subtotal, 0));
 
       const createdAt = new Date();
-      const sale = salesRepository.insertSale({ status: "completed", total, createdAt }, tx);
+      const sale = salesRepository.insertSale(
+        { status: "completed", total, createdAt, customerId: input.customerId ?? null },
+        tx,
+      );
       salesRepository.insertSaleItems(
         lines.map((line) => ({ ...line, saleId: sale.id })),
         tx,
@@ -207,20 +206,17 @@ export const salesService = {
   },
 
   /**
-   * Cancela una venta `completed`, restaurando el stock de todos sus items en una única
-   * transacción. Una venta ya cancelada no puede volver a cancelarse, y nunca vuelve a
-   * `completed`.
+   * Anula una venta `completed` y devuelve al stock todos sus items, en una única transacción.
+   * Una venta anulada no vuelve a `completed` ni se puede anular dos veces.
    */
   cancel(id: number): SaleDto {
     const saleId = db.transaction((tx) => {
       const sale = salesRepository.findById(id, tx);
       if (!sale) throw new NotFoundError("Venta no encontrada");
-      if (sale.status === "cancelled") throw new ConflictError("La venta ya está cancelada");
+      if (sale.status === "cancelled") throw new ConflictError("La venta ya está anulada");
 
-      const items = salesRepository.findItemsBySaleId(id, tx);
-      for (const item of items) {
-        // Restaura stock — genera un movimiento nuevo (SALE_CANCELLATION), nunca edita el
-        // movimiento SALE original.
+      for (const item of salesRepository.findItemsBySaleId(id, tx)) {
+        // Movimiento nuevo (SALE_CANCELLATION): el SALE original nunca se edita.
         productsService.adjustStock(item.productId, item.quantity, tx, {
           type: "SALE_CANCELLATION",
           saleId: id,

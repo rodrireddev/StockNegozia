@@ -13,6 +13,7 @@ import {
   Wallet,
   type LucideProps,
 } from "lucide-react-native";
+import { CASHIER_HIDDEN_HREFS, useIsCashier } from "@/devices/useIsCashier";
 import { useDeviceSize } from "@/hooks/useDeviceSize";
 import { useTheme } from "@/theme/useTheme";
 import { minTouchTarget, spacing, typography } from "@/theme/tokens";
@@ -53,11 +54,14 @@ export function AdaptiveShell() {
   const { isTablet } = useDeviceSize();
   const pathname = usePathname();
   const { colors } = useTheme();
+  const isCashier = useIsCashier();
 
-  const items = (isTablet ? TABLET_NAV_ITEMS : PHONE_NAV_ITEMS).map((item) => ({
-    ...item,
-    active: pathname === item.href || pathname.startsWith(`${item.href}/`),
-  }));
+  const items = (isTablet ? TABLET_NAV_ITEMS : PHONE_NAV_ITEMS)
+    .filter((item) => !isCashier || !CASHIER_HIDDEN_HREFS.includes(item.href as string))
+    .map((item) => ({
+      ...item,
+      active: pathname === item.href || pathname.startsWith(`${item.href}/`),
+    }));
 
   if (isTablet) {
     return (

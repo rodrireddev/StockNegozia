@@ -24,6 +24,8 @@ interface SaleCartPanelProps {
   onPaymentDraftChange: (draft: PaymentDraft) => void;
   paymentSummary: PaymentDraftSummary;
   paymentTerms?: PaymentTermsDto;
+  /** Hay cliente elegido: se puede vender a cuenta corriente. */
+  allowAccount?: boolean;
 }
 
 export function SaleCartPanel({
@@ -43,6 +45,7 @@ export function SaleCartPanel({
   onPaymentDraftChange,
   paymentSummary,
   paymentTerms,
+  allowAccount,
 }: SaleCartPanelProps) {
   const paymentError = items.length > 0 ? paymentSummary.error : null;
   return (
@@ -136,6 +139,7 @@ export function SaleCartPanel({
               onChange={onPaymentDraftChange}
               summary={paymentSummary}
               terms={paymentTerms}
+              allowAccount={allowAccount}
               disabled={isSubmitting}
             />
           </div>

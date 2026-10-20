@@ -2,7 +2,8 @@ import type { TrackableMetricType } from "../gamification/trackable-metrics";
 
 export type AchievementDefinitionCategory = "setup_quest" | "streak_milestone" | "scheduled_goal";
 
-export type AchievementScheduleType = "once" | "streak" | "daily" | "weekly" | "monthly" | "specific_date";
+export type AchievementScheduleType =
+  "once" | "streak" | "daily" | "weekly" | "monthly" | "specific_date";
 
 /** Solo se usa cuando `scheduleType === "specific_date"`. */
 export interface AchievementScheduleConfig {

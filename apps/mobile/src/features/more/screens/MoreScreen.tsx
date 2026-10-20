@@ -15,6 +15,7 @@ import {
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { Card } from "@/components/Card";
 import { useCloudAccountStatus } from "@/devices/useCloudAccountStatus";
+import { CASHIER_HIDDEN_HREFS, useIsCashier } from "@/devices/useIsCashier";
 import { useTheme } from "@/theme/useTheme";
 import { minTouchTarget, spacing, typography } from "@/theme/tokens";
 
@@ -80,7 +81,10 @@ export function MoreScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const cloudAccountStatus = useCloudAccountStatus();
-  const items = cloudAccountStatus.data?.linked ? [...ITEMS, BENEFITS_ITEM] : ITEMS;
+  const isCashier = useIsCashier();
+  const items = (cloudAccountStatus.data?.linked ? [...ITEMS, BENEFITS_ITEM] : ITEMS).filter(
+    (item) => !isCashier || !CASHIER_HIDDEN_HREFS.includes(item.href as string),
+  );
 
   return (
     <ScreenContainer>

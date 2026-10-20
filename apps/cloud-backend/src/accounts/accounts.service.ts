@@ -1,4 +1,10 @@
-import { BadRequestException, ConflictException, Inject, Injectable, UnauthorizedException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { ConfigService, ConfigType } from "@nestjs/config";
 import type { AccountAuthResult, AccountMeDto } from "@stocknegozia/api-contracts";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -42,7 +48,8 @@ export class AccountsService {
     @Inject(EmailService) private readonly emailService: EmailService,
     @Inject(ConfigService) private readonly configService: ConfigService,
     @Inject(TurnstileService) private readonly turnstileService: TurnstileService,
-    @Inject(LoginAttemptsRepository) private readonly loginAttemptsRepository: LoginAttemptsRepository,
+    @Inject(LoginAttemptsRepository)
+    private readonly loginAttemptsRepository: LoginAttemptsRepository,
   ) {}
 
   /**
@@ -104,7 +111,12 @@ export class AccountsService {
    * últimos 15 min (`LOGIN_CAPTCHA_FAILURE_THRESHOLD`), para no pedirle Turnstile a cada login
    * legítimo. El contador se limpia en cuanto la IP loguea bien una vez.
    */
-  async login(email: string, password: string, ip: string | undefined, turnstileToken?: string): Promise<AccountAuthResult> {
+  async login(
+    email: string,
+    password: string,
+    ip: string | undefined,
+    turnstileToken?: string,
+  ): Promise<AccountAuthResult> {
     if (ip) {
       const recentFailures = await this.loginAttemptsRepository.countSince(
         ip,
@@ -120,7 +132,11 @@ export class AccountsService {
         }
         const verified = await this.turnstileService.verify(turnstileToken, ip);
         if (!verified) {
-          throw new BadRequestException({ statusCode: 400, code: "CAPTCHA_REQUIRED", message: CAPTCHA_INVALID_MESSAGE });
+          throw new BadRequestException({
+            statusCode: 400,
+            code: "CAPTCHA_REQUIRED",
+            message: CAPTCHA_INVALID_MESSAGE,
+          });
         }
       }
     }
@@ -190,14 +206,22 @@ export class AccountsService {
    * antes de tocar esa lógica: un captcha inválido sí puede rechazarse distinto sin filtrar nada
    * sobre el email (el rechazo pasa igual para cualquier email).
    */
-  async requestPasswordReset(email: string, turnstileToken: string, ip: string | undefined): Promise<{ devToken?: string }> {
+  async requestPasswordReset(
+    email: string,
+    turnstileToken: string,
+    ip: string | undefined,
+  ): Promise<{ devToken?: string }> {
     const verified = await this.turnstileService.verify(turnstileToken, ip);
     if (!verified) throw new BadRequestException(CAPTCHA_INVALID_MESSAGE);
 
     const user = await this.usersRepository.findByEmail(email);
     if (!user) return {};
 
-    const rawToken = await this.accountTokensService.issue(user.id, "password_reset", PASSWORD_RESET_TTL_MS);
+    const rawToken = await this.accountTokensService.issue(
+      user.id,
+      "password_reset",
+      PASSWORD_RESET_TTL_MS,
+    );
     // Sin `await` a propósito — mandar el email es best-effort (`EmailService.send` ya nunca tira,
     // pero el SMTP real puede tardar varios segundos), no algo que el cliente tenga que esperar
     // para recibir una respuesta (doc "nunca bloquea nada, en ningún nivel").
@@ -218,8 +242,15 @@ export class AccountsService {
     return this.issueToken(userId, user!.email!);
   }
 
-  private async sendVerificationEmail(userId: string, email: string): Promise<{ devToken?: string }> {
-    const rawToken = await this.accountTokensService.issue(userId, "email_verification", EMAIL_VERIFICATION_TTL_MS);
+  private async sendVerificationEmail(
+    userId: string,
+    email: string,
+  ): Promise<{ devToken?: string }> {
+    const rawToken = await this.accountTokensService.issue(
+      userId,
+      "email_verification",
+      EMAIL_VERIFICATION_TTL_MS,
+    );
     // Sin `await` a propósito — ver el mismo comentario en `requestPasswordReset`.
     void this.emailService.send({
       to: email,

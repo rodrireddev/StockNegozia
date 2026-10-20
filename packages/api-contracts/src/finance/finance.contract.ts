@@ -58,6 +58,9 @@ export interface FinanceSummaryDto {
     net: number;
     byMethod: PaymentMethodTotalDto[];
   };
+  /** Cuenta corriente (fiado). `soldOnAccount` y `received` son del período; `outstanding` es el
+   *  saldo total adeudado por clientes HOY. Nada de esto está incluido en `collections`. */
+  receivables: { soldOnAccount: number; received: number; outstanding: number };
   /** Pagos con tarjeta/QR/transferencia todavía no acreditados — a HOY, no al período. */
   pendingSettlement: { amount: number; count: number; nextDate: string | null };
   series: FinanceSeriesPointDto[];

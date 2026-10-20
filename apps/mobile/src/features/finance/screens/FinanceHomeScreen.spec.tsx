@@ -41,6 +41,7 @@ function makeSummary(): FinanceSummaryDto {
     purchases: { count: 1, total: 80_000 },
     cash: { withdrawals: 90_000, withdrawalsCount: 3, deposits: 0, depositsCount: 0 },
     collections: { total: 400_000_000, surcharges: 0, fees: 0, net: 400_000_000, byMethod: [] },
+    receivables: { soldOnAccount: 0, received: 0, outstanding: 0 },
     pendingSettlement: { amount: 200_000_000, count: 2, nextDate: "2026-10-12T03:00:00.000Z" },
     series: [],
   };

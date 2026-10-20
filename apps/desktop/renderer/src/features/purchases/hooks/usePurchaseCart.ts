@@ -6,11 +6,7 @@ import {
   type PurchaseCartProduct,
 } from "@stocknegozia/shared";
 
-export type {
-  PurchaseCartAction,
-  PurchaseCartItem,
-  PurchaseCartState,
-} from "@stocknegozia/shared";
+export type { PurchaseCartAction, PurchaseCartItem, PurchaseCartState } from "@stocknegozia/shared";
 
 /**
  * Mismo patrón que `useCart` de Ventas (M10), pero independiente: una compra no tiene el

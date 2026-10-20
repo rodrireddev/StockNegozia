@@ -4,6 +4,7 @@ import { Stack } from "expo-router";
 import { PackagePlus } from "lucide-react-native";
 import { roundMoney } from "@stocknegozia/shared";
 import { Card } from "@/components/Card";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
@@ -84,6 +85,16 @@ export function FinancePurchasesScreen() {
           </SectionCard>
 
           <SectionCard title="Detalle de compras">
+            <ExportCsvButton
+              fileName="compras"
+              rows={purchases.data}
+              columns={[
+                { header: "Fecha", value: (p) => dateFormatter.format(new Date(p.createdAt)) },
+                { header: "Compra N°", value: (p) => p.id },
+                { header: "Proveedor", value: (p) => p.supplierName },
+                { header: "Total", value: (p) => p.total },
+              ]}
+            />
             {purchases.data.slice(0, visible).map((purchase) => (
               <ListRow
                 key={purchase.id}

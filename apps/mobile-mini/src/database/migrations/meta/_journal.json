@@ -57,6 +57,13 @@
       "when": 1791954462909,
       "tag": "0007_backfill_legacy_sale_payments",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1792538937181,
+      "tag": "0008_customers",
+      "breakpoints": true
     }
   ]
 }

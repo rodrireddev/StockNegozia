@@ -43,7 +43,11 @@ function normalizeBase64(value: string): string {
  * expone `verifier-keys.json`: una clave EC, no RSA) — Node infiere el algoritmo desde el tipo de
  * la clave PEM, y `dsaEncoding` default de `verify()` ya es DER.
  */
-export function verifySsvSignature(content: string, signature: string, publicKeyPem: string): boolean {
+export function verifySsvSignature(
+  content: string,
+  signature: string,
+  publicKeyPem: string,
+): boolean {
   const signatureBuffer = Buffer.from(normalizeBase64(signature), "base64");
   const verifier = createVerify("SHA256");
   verifier.update(content, "utf8");

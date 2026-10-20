@@ -53,7 +53,7 @@ El backend de auth/pairing/device-management **ya existía** (Milestones 6/7) �
 reescribió. Lo nuevo:
 
 1. **`GET /auth/pairing/:id`** — estado de una sesión de pairing (`pending | confirmed | expired |
-   cancelled`), para que quien generó el QR sepa cuándo el otro dispositivo confirmó. Protegido
+cancelled`), para que quien generó el QR sepa cuándo el otro dispositivo confirmó. Protegido
    igual que `create`/`cancel`; nunca expone el token ni el código.
 2. **`deviceId` en los logs HTTP** — `RequestContextMiddleware` ahora incluye
    `metadata.deviceId` en `http.request.completed`/`failed` cuando el request está autenticado.

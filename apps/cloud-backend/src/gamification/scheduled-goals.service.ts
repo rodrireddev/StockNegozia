@@ -1,4 +1,8 @@
-import type { ActiveGoalDto, CompletedGoalResult, TrackableMetricType } from "@stocknegozia/api-contracts";
+import type {
+  ActiveGoalDto,
+  CompletedGoalResult,
+  TrackableMetricType,
+} from "@stocknegozia/api-contracts";
 import { Inject, Injectable } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import { AchievementDefinitionsRepository } from "../achievements/achievement-definitions.repository";
@@ -25,10 +29,12 @@ function todayUtcDateString(): string {
 @Injectable()
 export class ScheduledGoalsService {
   constructor(
-    @Inject(ActivityEventsRepository) private readonly activityEventsRepository: ActivityEventsRepository,
+    @Inject(ActivityEventsRepository)
+    private readonly activityEventsRepository: ActivityEventsRepository,
     @Inject(AchievementDefinitionsRepository)
     private readonly achievementDefinitionsRepository: AchievementDefinitionsRepository,
-    @Inject(AchievementClaimsRepository) private readonly achievementClaimsRepository: AchievementClaimsRepository,
+    @Inject(AchievementClaimsRepository)
+    private readonly achievementClaimsRepository: AchievementClaimsRepository,
     @Inject(CreditsService) private readonly creditsService: CreditsService,
   ) {}
 
@@ -57,7 +63,8 @@ export class ScheduledGoalsService {
     });
     if (!inserted) return [];
 
-    const goals = await this.achievementDefinitionsRepository.findActiveScheduledGoalsByMetric(metricType);
+    const goals =
+      await this.achievementDefinitionsRepository.findActiveScheduledGoalsByMetric(metricType);
     const completed: CompletedGoalResult[] = [];
 
     for (const goal of goals) {
@@ -93,7 +100,8 @@ export class ScheduledGoalsService {
       // `onConflictDoNothing` puede devolver vacío bajo una carrera real (dos eventos casi
       // simultáneos) — en ese caso el crédito ya se otorgó una vez por `idempotencyKey`, así que
       // no hace falta acreditar de nuevo, pero tampoco reportarlo como recién completado acá.
-      if (claim) completed.push({ key: goal.key, label: goal.label, creditsAwarded: goal.creditsAwarded });
+      if (claim)
+        completed.push({ key: goal.key, label: goal.label, creditsAwarded: goal.creditsAwarded });
     }
 
     return completed;
@@ -111,7 +119,11 @@ export class ScheduledGoalsService {
       if (!range) continue;
 
       const [claim, progress] = await Promise.all([
-        this.achievementClaimsRepository.findByUserDefinitionAndPeriod(userId, goal.id, range.periodKey),
+        this.achievementClaimsRepository.findByUserDefinitionAndPeriod(
+          userId,
+          goal.id,
+          range.periodKey,
+        ),
         this.activityEventsRepository.countInRange(userId, goal.metricType, range.from, range.to),
       ]);
 

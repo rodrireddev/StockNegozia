@@ -5,6 +5,9 @@ import type { ProductDto } from "@stocknegozia/api-contracts";
 import { DEFAULT_PAYMENT_TERMS } from "@stocknegozia/shared";
 import { SalesScreen } from "./SalesScreen";
 
+jest.mock("@/api/endpoints/customers", () => ({
+  fetchCustomers: jest.fn(async () => []),
+}));
 jest.mock("@/api/endpoints/products", () => ({
   fetchProducts: jest.fn(),
 }));
@@ -81,18 +84,25 @@ describe("SalesScreen", () => {
 
   it("el botón de confirmar venta está deshabilitado con el carrito vacío", async () => {
     await renderWithClient(<SalesScreen />);
-    await screen.findByText("Coca-Cola 2L");
 
     expect(screen.getByTestId("open-checkout")).toBeDisabled();
   });
 
-  it("tocar un producto lo agrega al carrito; tocarlo de nuevo incrementa la cantidad sin duplicar la línea", async () => {
+  it("sin búsqueda no lista el catálogo: el carrito y sus +/- quedan a la vista", async () => {
     await renderWithClient(<SalesScreen />);
-    const row = await screen.findByText("Coca-Cola 2L");
+    await waitFor(() => expect(mockedFetchProducts).toHaveBeenCalled());
 
-    fireEvent.press(row);
-    await waitFor(() => expect(screen.getAllByText("Coca-Cola 2L")).toHaveLength(2));
-    fireEvent.press(row);
+    expect(screen.queryByText("Coca-Cola 2L")).toBeNull();
+  });
+
+  it("tocar un resultado lo agrega al carrito, limpia la búsqueda y el + incrementa la cantidad", async () => {
+    await renderWithClient(<SalesScreen />);
+    fireEvent.changeText(screen.getByPlaceholderText("Nombre, SKU o código de barras…"), "Coca");
+    fireEvent.press(await screen.findByText("Coca-Cola 2L"));
+
+    // Sólo queda la línea del carrito (los resultados se ocultan al limpiar la búsqueda).
+    await waitFor(() => expect(screen.getAllByText("Coca-Cola 2L")).toHaveLength(1));
+    fireEvent.press(screen.getByLabelText("Sumar uno"));
 
     await waitFor(() => expect(screen.getByText("2")).toBeTruthy());
     expect(screen.getByTestId("open-checkout")).not.toBeDisabled();
@@ -111,6 +121,7 @@ describe("SalesScreen", () => {
     });
 
     await renderWithClient(<SalesScreen />);
+    fireEvent.changeText(screen.getByPlaceholderText("Nombre, SKU o código de barras…"), "Coca");
     fireEvent.press(await screen.findByText("Coca-Cola 2L"));
     // Espera a que el botón refleje el carrito ya actualizado antes de tocarlo — sin esto, el
     // segundo `fireEvent.press` puede llegar antes de que React confirme el re-render disparado
@@ -139,6 +150,7 @@ describe("SalesScreen", () => {
     });
 
     await renderWithClient(<SalesScreen />);
+    fireEvent.changeText(screen.getByPlaceholderText("Nombre, SKU o código de barras…"), "Coca");
     fireEvent.press(await screen.findByText("Coca-Cola 2L"));
     await waitFor(() => expect(screen.getByTestId("open-checkout")).not.toBeDisabled());
     fireEvent.press(screen.getByTestId("open-checkout"));
@@ -165,6 +177,7 @@ describe("SalesScreen", () => {
     mockedCreateSale.mockRejectedValue(new Error("Stock insuficiente"));
 
     await renderWithClient(<SalesScreen />);
+    fireEvent.changeText(screen.getByPlaceholderText("Nombre, SKU o código de barras…"), "Coca");
     fireEvent.press(await screen.findByText("Coca-Cola 2L"));
     await waitFor(() => expect(screen.getByTestId("open-checkout")).not.toBeDisabled());
     fireEvent.press(screen.getByTestId("open-checkout"));
@@ -172,6 +185,6 @@ describe("SalesScreen", () => {
     fireEvent.press(screen.getByTestId("confirm-sale"));
 
     await waitFor(() => expect(screen.getByText("Stock insuficiente")).toBeTruthy());
-    expect(screen.getAllByText("Coca-Cola 2L")).toHaveLength(2);
+    expect(screen.getByText("Coca-Cola 2L")).toBeTruthy();
   });
 });

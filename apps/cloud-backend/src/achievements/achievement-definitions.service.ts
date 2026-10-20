@@ -34,7 +34,8 @@ function toDto(row: NonNullable<DefinitionRow>): AchievementDefinitionDto {
 @Injectable()
 export class AchievementDefinitionsService {
   constructor(
-    @Inject(AchievementDefinitionsRepository) private readonly repository: AchievementDefinitionsRepository,
+    @Inject(AchievementDefinitionsRepository)
+    private readonly repository: AchievementDefinitionsRepository,
   ) {}
 
   async list(): Promise<AchievementDefinitionDto[]> {
@@ -86,7 +87,11 @@ export class AchievementDefinitionsService {
    * `UpdateAchievementInput`, ver validation). "Borrar" desde el panel es `active: false` acá
    * (borrado suave, ver comentario en el schema de Postgres).
    */
-  async update(key: string, input: UpdateAchievementInput, adminId: string): Promise<AchievementDefinitionDto> {
+  async update(
+    key: string,
+    input: UpdateAchievementInput,
+    adminId: string,
+  ): Promise<AchievementDefinitionDto> {
     const row = await this.repository.findByKey(key);
     if (!row) throw new NotFoundException(`No existe un logro con key "${key}"`);
     const { note, ...changes } = input;
@@ -137,22 +142,31 @@ export class AchievementDefinitionsService {
     }));
   }
 
-  private validateCategoryShape(category: "scheduled_goal" | "streak_milestone", input: CreateAchievementInput): void {
+  private validateCategoryShape(
+    category: "scheduled_goal" | "streak_milestone",
+    input: CreateAchievementInput,
+  ): void {
     if (category === "scheduled_goal") {
-      if (!input.metricType) throw new BadRequestException("Un objetivo programado necesita `metricType`");
+      if (!input.metricType)
+        throw new BadRequestException("Un objetivo programado necesita `metricType`");
       if (!input.target) throw new BadRequestException("Un objetivo programado necesita `target`");
       if (input.scheduleType === "once" || input.scheduleType === "streak") {
-        throw new BadRequestException(`scheduleType "${input.scheduleType}" no aplica a un objetivo programado`);
+        throw new BadRequestException(
+          `scheduleType "${input.scheduleType}" no aplica a un objetivo programado`,
+        );
       }
       if (input.scheduleType === "specific_date" && !input.scheduleConfig?.date) {
-        throw new BadRequestException('scheduleType "specific_date" necesita `scheduleConfig.date`');
+        throw new BadRequestException(
+          'scheduleType "specific_date" necesita `scheduleConfig.date`',
+        );
       }
       return;
     }
 
     // streak_milestone
     if (input.metricType) throw new BadRequestException("Un hito de racha no usa `metricType`");
-    if (!input.target) throw new BadRequestException("Un hito de racha necesita `target` (el día de racha)");
+    if (!input.target)
+      throw new BadRequestException("Un hito de racha necesita `target` (el día de racha)");
     if (input.scheduleType !== "streak") {
       throw new BadRequestException('Un hito de racha necesita scheduleType "streak"');
     }

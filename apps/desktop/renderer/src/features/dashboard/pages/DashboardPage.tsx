@@ -28,7 +28,8 @@ export function DashboardPage() {
                 </span>
               </p>
               <p>
-                Tiempo activo: <span className="font-medium">{Math.round(data.uptimeSeconds)}s</span>
+                Tiempo activo:{" "}
+                <span className="font-medium">{Math.round(data.uptimeSeconds)}s</span>
               </p>
             </>
           )}

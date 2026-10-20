@@ -87,7 +87,9 @@ function EditItemDialogContent({
               onChange={(event) => setNote(event.target.value)}
             />
           </div>
-          {updateMutation.isError && <Alert variant="destructive">{updateMutation.error.message}</Alert>}
+          {updateMutation.isError && (
+            <Alert variant="destructive">{updateMutation.error.message}</Alert>
+          )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar

@@ -18,7 +18,8 @@ import { AchievementClaimsRepository } from "./achievement-claims.repository";
 @Injectable()
 export class AchievementsService {
   constructor(
-    @Inject(AchievementClaimsRepository) private readonly achievementClaims: AchievementClaimsRepository,
+    @Inject(AchievementClaimsRepository)
+    private readonly achievementClaims: AchievementClaimsRepository,
     @Inject(ReferralsRepository) private readonly referrals: ReferralsRepository,
     @Inject(UsersRepository) private readonly users: UsersRepository,
   ) {}
@@ -33,7 +34,11 @@ export class AchievementsService {
     const achievements: AchievementDto[] = [];
 
     for (const row of claimRows) {
-      if (row.definition.category !== "setup_quest" && row.definition.category !== "streak_milestone") continue;
+      if (
+        row.definition.category !== "setup_quest" &&
+        row.definition.category !== "streak_milestone"
+      )
+        continue;
       achievements.push({
         key: row.definition.key,
         category: row.definition.category,

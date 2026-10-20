@@ -3,3 +3,5 @@ pnpm-lock.yaml
 **/build/**
 **/out/**
 **/database/migrations/**
+**/.astro/**
+**/.expo/**

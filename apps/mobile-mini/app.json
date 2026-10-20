@@ -7,21 +7,16 @@
     "icon": "./assets/images/icon.png",
     "scheme": "stocknegozia-mini",
     "userInterfaceStyle": "automatic",
-    "platforms": [
-      "android"
-    ],
+    "platforms": ["android"],
     "android": {
       "package": "com.stocknegozia.mobilemini",
-      "versionCode": 2,
+      "versionCode": 4,
       "adaptiveIcon": {
         "backgroundImage": "./assets/images/android-icon-background.png",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.MODIFY_AUDIO_SETTINGS"
-      ],
+      "permissions": ["android.permission.CAMERA", "android.permission.MODIFY_AUDIO_SETTINGS"],
       "predictiveBackGestureEnabled": true
     },
     "web": {

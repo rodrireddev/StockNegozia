@@ -138,9 +138,9 @@ describe("ProductsService.applyStockAdjustment", () => {
   });
 
   it("producto inexistente: devuelve el mismo error de dominio que el resto de Products (404)", () => {
-    expect(() =>
-      productsService.applyStockAdjustment(999_999, 10, "Conteo físico"),
-    ).toThrow(NotFoundException);
+    expect(() => productsService.applyStockAdjustment(999_999, 10, "Conteo físico")).toThrow(
+      NotFoundException,
+    );
   });
 
   it("atomicidad: si falla la creación del movimiento, products.stock no queda modificado", () => {

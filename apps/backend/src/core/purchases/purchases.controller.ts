@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Inject, Param, ParseIntPipe, Post, Query } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
+import { ManagerDeviceGuard } from "../../auth/guards/manager-device.guard";
 import type { PurchaseDto, PurchaseSummaryDto } from "@stocknegozia/api-contracts";
 import {
   createPurchaseSchema,
@@ -9,6 +20,7 @@ import {
 import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
 import { PurchasesService } from "./purchases.service";
 
+@UseGuards(ManagerDeviceGuard)
 @Controller("purchases")
 export class PurchasesController {
   // @Inject explícito: la inyección automática por tipo de NestJS depende de metadata que `tsc`

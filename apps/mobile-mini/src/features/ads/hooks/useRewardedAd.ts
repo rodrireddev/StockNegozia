@@ -125,28 +125,34 @@ export function useRewardedAd(): UseRewardedAdResult {
       setStatus("showing");
       ad.show();
     });
-    const unsubscribeEarned = ad.addAdEventListener(nativeAds.RewardedAdEventType.EARNED_REWARD, () => {
-      // El SDK ya confirmó que se vio completo — recién ahí tiene sentido pedirle al backend que
-      // acredite. Sin cuenta no hay nada que acreditar (el módulo entero vive detrás de login).
-      if (accountStatus !== "authenticated") return;
-      claimRewardedAd()
-        .then((result) => {
-          setLastClaim(result);
-          if (result.granted) void refetchMe();
-          refetchEligibility();
-        })
-        .catch((err) => setError(err instanceof Error ? err.message : "No se pudo acreditar"));
-    });
+    const unsubscribeEarned = ad.addAdEventListener(
+      nativeAds.RewardedAdEventType.EARNED_REWARD,
+      () => {
+        // El SDK ya confirmó que se vio completo — recién ahí tiene sentido pedirle al backend que
+        // acredite. Sin cuenta no hay nada que acreditar (el módulo entero vive detrás de login).
+        if (accountStatus !== "authenticated") return;
+        claimRewardedAd()
+          .then((result) => {
+            setLastClaim(result);
+            if (result.granted) void refetchMe();
+            refetchEligibility();
+          })
+          .catch((err) => setError(err instanceof Error ? err.message : "No se pudo acreditar"));
+      },
+    );
     const unsubscribeClosed = ad.addAdEventListener(nativeAds.AdEventType.CLOSED, () => {
       // Se cerró el anuncio (con o sin reward) — hay que pedir uno nuevo para la próxima vez, un
       // `RewardedAd` de esta librería se consume una sola vez.
       setStatus("idle");
     });
-    const unsubscribeError = ad.addAdEventListener(nativeAds.AdEventType.ERROR, (adError: Error) => {
-      pendingShowRef.current = false;
-      setStatus("error");
-      setError(adError.message);
-    });
+    const unsubscribeError = ad.addAdEventListener(
+      nativeAds.AdEventType.ERROR,
+      (adError: Error) => {
+        pendingShowRef.current = false;
+        setStatus("error");
+        setError(adError.message);
+      },
+    );
 
     return () => {
       unsubscribeLoaded();

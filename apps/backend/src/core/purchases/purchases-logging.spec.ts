@@ -37,7 +37,10 @@ describe("Purchases — secuencia de eventos de logging", () => {
     const categoriesRepository = new CategoriesRepository(db);
     const categoriesService = new CategoriesService(categoriesRepository);
     const productsRepository = new ProductsRepository(db);
-    const stockMovementsService = new StockMovementsService(new StockMovementsRepository(db), logger);
+    const stockMovementsService = new StockMovementsService(
+      new StockMovementsRepository(db),
+      logger,
+    );
     suppliersService = new SuppliersService(new SuppliersRepository(db));
     const purchasesRepository = new PurchasesRepository(db);
     productsService = new ProductsService(

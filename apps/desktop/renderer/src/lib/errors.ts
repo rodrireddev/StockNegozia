@@ -1,6 +1,7 @@
 const NETWORK_ERROR_MESSAGE =
   "No pudimos conectar con la aplicación. Verificá que esté funcionando e intentá nuevamente.";
-const SERVER_ERROR_MESSAGE = "No pudimos completar la operación. Intentá nuevamente en unos segundos.";
+const SERVER_ERROR_MESSAGE =
+  "No pudimos completar la operación. Intentá nuevamente en unos segundos.";
 const UNKNOWN_ERROR_MESSAGE = "Ocurrió un error inesperado. Intentá nuevamente.";
 
 // Coincide con el mensaje de fallback genérico de `parseErrorMessage` en `api-client.ts`

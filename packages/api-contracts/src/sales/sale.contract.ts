@@ -17,6 +17,8 @@ export interface SaleSummaryDto {
   total: number;
   createdAt: string;
   cancelledAt: string | null;
+  /** `null` = venta de mostrador sin cliente asociado. */
+  customerId?: number | null;
   /** Medios de pago usados (sin repetir). Vacío en ventas anteriores a los medios de pago. */
   paymentMethods: PaymentMethod[];
 }

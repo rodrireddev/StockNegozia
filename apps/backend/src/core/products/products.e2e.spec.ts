@@ -1,3 +1,4 @@
+import { ConfigService } from "@nestjs/config";
 import { INestApplication } from "@nestjs/common";
 import { APP_FILTER } from "@nestjs/core";
 import { Test } from "@nestjs/testing";
@@ -43,6 +44,8 @@ describe("Products: sin bypass de stock por HTTP", () => {
       controllers: [ProductsController, StockMovementsController],
       providers: [
         { provide: AppLogger, useValue: logger },
+        // ManagerDeviceGuard (roles) lo necesita; en "development" no restringe nada.
+        { provide: ConfigService, useValue: { get: () => ({ accessMode: "development" }) } },
         { provide: APP_FILTER, useClass: GlobalExceptionFilter },
         { provide: DRIZZLE_CLIENT, useValue: db },
         ProductsRepository,

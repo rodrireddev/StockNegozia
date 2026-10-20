@@ -2,7 +2,14 @@ import { useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { HouseAdFormDialog, type HouseAdFormState } from "../components/HouseAdFormDialog";
 import { useHouseAds } from "../hooks/useHouseAds";
 
@@ -16,7 +23,8 @@ export function HouseAdsPage() {
         <div>
           <h1 className="text-lg font-semibold">House ads</h1>
           <p className="text-sm text-muted-foreground">
-            Fallback propio cuando AdMob no tiene fill — se muestra el habilitado de mayor prioridad.
+            Fallback propio cuando AdMob no tiene fill — se muestra el habilitado de mayor
+            prioridad.
           </p>
         </div>
         <Button onClick={() => setFormState({ mode: "create" })}>Nuevo</Button>
@@ -62,10 +70,16 @@ export function HouseAdsPage() {
                         </span>
                       </TableCell>
                       <TableCell>{houseAd.impressionCount}</TableCell>
-                      <TableCell className="text-muted-foreground">{houseAd.updatedByAdminEmail ?? "—"}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {houseAd.updatedByAdminEmail ?? "—"}
+                      </TableCell>
                       <TableCell>
                         <div className="flex justify-end">
-                          <Button variant="outline" size="sm" onClick={() => setFormState({ mode: "edit", houseAd })}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setFormState({ mode: "edit", houseAd })}
+                          >
                             Editar
                           </Button>
                         </div>

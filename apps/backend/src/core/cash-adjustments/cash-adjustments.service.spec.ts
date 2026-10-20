@@ -11,12 +11,19 @@ describe("CashAdjustmentsService", () => {
 
   beforeEach(() => {
     db = createTestDb();
-    service = new CashAdjustmentsService(new CashAdjustmentsRepository(db), createSilentTestLogger());
+    service = new CashAdjustmentsService(
+      new CashAdjustmentsRepository(db),
+      createSilentTestLogger(),
+    );
   });
 
   describe("create", () => {
     it("crea un retiro conservando dirección, monto y motivo", () => {
-      const adjustment = service.create({ direction: "OUT", amount: 3000, reason: "Pago sueldo Juan" });
+      const adjustment = service.create({
+        direction: "OUT",
+        amount: 3000,
+        reason: "Pago sueldo Juan",
+      });
 
       expect(adjustment.direction).toBe("OUT");
       expect(adjustment.amount).toBe(3000);

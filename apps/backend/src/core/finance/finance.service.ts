@@ -38,6 +38,8 @@ export class FinanceService {
         .findMany(range)
         .map((row) => ({ ...row, createdAt: new Date(row.createdAt) })),
       pendingPayments: this.repository.findPendingSettlements(now),
+      customerPayments: this.repository.findCustomerPayments(range),
+      outstandingReceivables: this.repository.findOutstandingReceivables(),
     });
   }
 

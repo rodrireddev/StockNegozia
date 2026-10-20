@@ -15,6 +15,7 @@ export function useCreateSale() {
       void queryClient.invalidateQueries({ queryKey: ["stock-movements"] });
       // También genera una nueva entrada de ganancia (ver `features/profits`).
       void queryClient.invalidateQueries({ queryKey: ["profits"] });
+      void queryClient.invalidateQueries({ queryKey: ["customers"] });
       // Venta = "algo real" para la racha (doc §2) + posible logro de primera venta (doc §1).
       if (status === "authenticated") {
         fireRecordActivity("sale_completed");

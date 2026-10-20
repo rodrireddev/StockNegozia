@@ -20,7 +20,9 @@ function toDto(row: NonNullable<ItemRow>): CreditConfigItemDto {
 
 @Injectable()
 export class CreditConfigService {
-  constructor(@Inject(CreditConfigRepository) private readonly repository: CreditConfigRepository) {}
+  constructor(
+    @Inject(CreditConfigRepository) private readonly repository: CreditConfigRepository,
+  ) {}
 
   async list(): Promise<CreditConfigItemDto[]> {
     const rows = await this.repository.findAll();

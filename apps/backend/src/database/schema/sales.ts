@@ -1,4 +1,5 @@
 import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core";
+import { customers } from "./customers";
 import { products } from "./products";
 
 export const sales = sqliteTable(
@@ -9,12 +10,15 @@ export const sales = sqliteTable(
       .notNull()
       .default("completed"),
     total: real("total").notNull(),
+    // Opcional: la venta de mostrador anónima es el caso normal.
+    customerId: integer("customer_id").references(() => customers.id),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
     cancelledAt: integer("cancelled_at", { mode: "timestamp" }),
   },
   (table) => ({
     statusIdx: index("sales_status_idx").on(table.status),
     createdAtIdx: index("sales_created_at_idx").on(table.createdAt),
+    customerIdIdx: index("sales_customer_id_idx").on(table.customerId),
   }),
 );
 
@@ -64,7 +68,7 @@ export const salePayments = sqliteTable(
       .notNull()
       .references(() => sales.id),
     method: text("method", {
-      enum: ["cash", "debit_card", "credit_card", "transfer", "qr", "other"],
+      enum: ["cash", "debit_card", "credit_card", "transfer", "qr", "other", "account"],
     }).notNull(),
     amount: real("amount").notNull(),
     installments: integer("installments"),

@@ -20,7 +20,8 @@ const LOG_LEVELS_BY_MIN_LEVEL: Record<string, LogLevel[]> = {
 async function bootstrap() {
   // Se lee `process.env` directo acá (no vía `ConfigService`/`appConfig`) porque el nivel de log
   // tiene que decidirse ANTES de crear la app — para entonces `configService` todavía no existe.
-  const logLevels = LOG_LEVELS_BY_MIN_LEVEL[process.env.LOG_LEVEL ?? "info"] ?? LOG_LEVELS_BY_MIN_LEVEL.info;
+  const logLevels =
+    LOG_LEVELS_BY_MIN_LEVEL[process.env.LOG_LEVEL ?? "info"] ?? LOG_LEVELS_BY_MIN_LEVEL.info;
   const app = await NestFactory.create(AppModule, { logger: logLevels });
   const configService = app.get(ConfigService);
   const config = configService.get<ConfigType<typeof appConfig>>("app")!;
@@ -33,7 +34,9 @@ async function bootstrap() {
   // Allowlist explícita (panel de administración, futuros clientes) — mismo patrón que
   // apps/backend, sin el caso especial de LAN que no aplica a un backend multi-tenant por
   // internet.
-  app.enableCors({ origin: config.corsAllowedOrigins.length > 0 ? config.corsAllowedOrigins : false });
+  app.enableCors({
+    origin: config.corsAllowedOrigins.length > 0 ? config.corsAllowedOrigins : false,
+  });
 
   await app.listen(config.port);
   console.log(`[cloud-backend] StockNegozia cloud backend listening on port ${config.port}`);

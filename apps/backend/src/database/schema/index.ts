@@ -5,6 +5,7 @@ export * from "./sales";
 export * from "./devices";
 export * from "./pairing-sessions";
 export * from "./suppliers";
+export * from "./customers";
 export * from "./purchases";
 export * from "./stock-movements";
 export * from "./cash-adjustments";

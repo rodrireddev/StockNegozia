@@ -5,14 +5,10 @@ import { BadRequestError, NotFoundError } from "@/database/errors";
 import { productsService } from "@/features/products/data/service";
 import { suppliersService } from "@/features/suppliers/data/service";
 import { purchasesRepository } from "./repository";
+import { roundMoney } from "@stocknegozia/shared";
 
 type PurchaseRow = ReturnType<typeof purchasesRepository.findById>;
 type PurchaseItemRow = ReturnType<typeof purchasesRepository.findItemsByPurchaseId>[number];
-
-/** Mismo criterio monetario que `productsService`/`salesService` (duplicado a propósito). */
-function roundMoney(value: number): number {
-  return Math.round(value * 100) / 100;
-}
 
 function toSummaryDto(row: NonNullable<PurchaseRow>): PurchaseSummaryDto {
   return {

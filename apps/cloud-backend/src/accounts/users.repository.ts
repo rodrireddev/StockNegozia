@@ -67,11 +67,17 @@ export class UsersRepository {
   }
 
   async markEmailVerified(id: string) {
-    await this.db.update(users).set({ emailVerifiedAt: new Date(), updatedAt: new Date() }).where(eq(users.id, id));
+    await this.db
+      .update(users)
+      .set({ emailVerifiedAt: new Date(), updatedAt: new Date() })
+      .where(eq(users.id, id));
   }
 
   async updatePasswordHash(id: string, passwordHash: string) {
-    await this.db.update(users).set({ passwordHash, updatedAt: new Date() }).where(eq(users.id, id));
+    await this.db
+      .update(users)
+      .set({ passwordHash, updatedAt: new Date() })
+      .where(eq(users.id, id));
   }
 
   /**
@@ -89,7 +95,9 @@ export class UsersRepository {
     await this.db.transaction(async (tx) => {
       await tx.delete(featureVotes).where(eq(featureVotes.userId, id));
       await tx.delete(featureRequests).where(eq(featureRequests.createdByUserId, id));
-      await tx.delete(referrals).where(or(eq(referrals.referrerUserId, id), eq(referrals.referredUserId, id)));
+      await tx
+        .delete(referrals)
+        .where(or(eq(referrals.referrerUserId, id), eq(referrals.referredUserId, id)));
       await tx.update(users).set({ referredByUserId: null }).where(eq(users.referredByUserId, id));
       await tx.delete(houseAdImpressions).where(eq(houseAdImpressions.userId, id));
       await tx.delete(adRewardCallbacks).where(eq(adRewardCallbacks.userId, id));

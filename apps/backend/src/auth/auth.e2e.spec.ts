@@ -97,7 +97,11 @@ describe("Auth: control de acceso", () => {
       .set("Authorization", `Bearer ${credential}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.device).toMatchObject({ id: deviceId, name: "Electron Desktop", type: "desktop" });
+    expect(res.body.device).toMatchObject({
+      id: deviceId,
+      name: "Electron Desktop",
+      type: "desktop",
+    });
   });
 
   it("development: una credential inválida no rompe el acceso — sigue permitiendo la request, solo sin device", async () => {

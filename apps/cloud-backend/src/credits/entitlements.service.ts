@@ -1,5 +1,9 @@
 import { BadRequestException, Inject, Injectable } from "@nestjs/common";
-import type { EntitlementCatalogItemDto, EntitlementDto, PurchaseEntitlementResult } from "@stocknegozia/api-contracts";
+import type {
+  EntitlementCatalogItemDto,
+  EntitlementDto,
+  PurchaseEntitlementResult,
+} from "@stocknegozia/api-contracts";
 import { randomUUID } from "node:crypto";
 import { CreditConfigService } from "../credit-config/credit-config.service";
 import { CreditsService, type CreditReason } from "./credits.service";
@@ -93,7 +97,9 @@ export class EntitlementsService {
 
     const balance = await this.creditsService.getBalance(userId);
     if (balance < cost) {
-      throw new BadRequestException(`Saldo insuficiente: hacen falta ${cost} créditos, tenés ${balance}`);
+      throw new BadRequestException(
+        `Saldo insuficiente: hacen falta ${cost} créditos, tenés ${balance}`,
+      );
     }
 
     await this.creditsService.grant(userId, -cost, config.creditReason, {

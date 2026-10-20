@@ -71,7 +71,12 @@ export function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void 
       <TurnstileWidget resetKey={turnstileNonce} onToken={setTurnstileToken} />
       {error ? <Text style={[typography.caption, { color: colors.danger }]}>{error}</Text> : null}
       <Button label="Crear cuenta" onPress={handleSubmit} loading={submitting} />
-      <Button label="Ya tengo cuenta" variant="ghost" onPress={onSwitchToLogin} disabled={submitting} />
+      <Button
+        label="Ya tengo cuenta"
+        variant="ghost"
+        onPress={onSwitchToLogin}
+        disabled={submitting}
+      />
     </View>
   );
 }

@@ -35,8 +35,3 @@ export async function setBackendUrl(url: string): Promise<void> {
   cachedUrl = normalized;
   await AsyncStorage.setItem(STORAGE_KEY, normalized);
 }
-
-export async function clearBackendUrl(): Promise<void> {
-  cachedUrl = null;
-  await AsyncStorage.removeItem(STORAGE_KEY);
-}

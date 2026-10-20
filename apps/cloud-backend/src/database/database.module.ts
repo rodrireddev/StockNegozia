@@ -37,7 +37,9 @@ const PG_POOL = Symbol("PG_POOL");
         // Se resuelve desde el árbol fuente (no desde dist/) para evitar condiciones de carrera
         // entre la copia de assets y el watcher de "nest start --watch" — mismo motivo que
         // apps/backend/src/database/database.module.ts.
-        await migrate(db, { migrationsFolder: path.join(process.cwd(), "src/database/migrations") });
+        await migrate(db, {
+          migrationsFolder: path.join(process.cwd(), "src/database/migrations"),
+        });
         return db;
       },
     },

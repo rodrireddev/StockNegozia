@@ -16,6 +16,14 @@ extraResources:
   - from: ../../assets/branding/generated/splash
     to: assets/branding/generated/splash
 icon: ../../assets/branding/generated/windows/icon.ico
+# Auto-actualización (electron/main/auto-updater.ts): la app instalada lee `latest.yml` de los
+# Releases de este repo. `pnpm --filter @stocknegozia/desktop release:win` (con GH_TOKEN) sube el
+# instalador + `latest.yml` + `.blockmap` a un Release borrador; publicarlo lo habilita.
+publish:
+  provider: github
+  owner: rodrireddev
+  repo: StockNegozia
+  releaseType: draft
 win:
   target:
     - target: nsis

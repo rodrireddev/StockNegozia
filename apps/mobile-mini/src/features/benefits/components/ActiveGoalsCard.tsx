@@ -19,7 +19,12 @@ export function ActiveGoalsCard() {
       {goals.map((goal: ActiveGoalDto) => (
         <View key={goal.key} style={{ gap: 2 }}>
           <Text style={[typography.body, { color: colors.mutedForeground }]}>{goal.label}</Text>
-          <Text style={[typography.caption, { color: goal.alreadyClaimed ? colors.success : colors.foreground }]}>
+          <Text
+            style={[
+              typography.caption,
+              { color: goal.alreadyClaimed ? colors.success : colors.foreground },
+            ]}
+          >
             {goal.alreadyClaimed ? "¡Completado!" : `Progreso: ${goal.progress}/${goal.target}`}
           </Text>
         </View>

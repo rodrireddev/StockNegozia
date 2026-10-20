@@ -2,6 +2,9 @@ import type { DeviceDto } from "@stocknegozia/api-contracts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select } from "@/components/ui/select";
+import { getUserFriendlyError } from "@/lib/errors";
+import { useUpdateDeviceRole } from "../hooks/useUpdateDeviceRole";
 
 const relativeTimeFormatter = new Intl.RelativeTimeFormat("es-AR", { numeric: "auto" });
 
@@ -39,6 +42,7 @@ interface DeviceCardProps {
  * revocar este dispositivo tiene que hacerlo desde otro dispositivo administrador.
  */
 export function DeviceCard({ device, isSelf, onRevoke }: DeviceCardProps) {
+  const updateRole = useUpdateDeviceRole(device.id);
   return (
     <Card>
       <CardHeader className="flex-row items-start justify-between gap-2 space-y-0">
@@ -60,12 +64,32 @@ export function DeviceCard({ device, isSelf, onRevoke }: DeviceCardProps) {
             ? `Visto ${formatRelativeTime(device.lastSeenAt)}`
             : "Todavía no se conectó"}
         </p>
-        {device.active && !isSelf && (
-          <Button variant="outline" size="sm" onClick={() => onRevoke(device)}>
-            Revocar
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* El administrador siempre tiene acceso completo: no tiene sentido ofrecerle un rol. */}
+          {device.active && !device.isAdmin && (
+            <Select
+              aria-label={`Rol de ${device.name}`}
+              className="h-8 w-32"
+              value={device.role}
+              disabled={updateRole.isPending}
+              onChange={(event) => updateRole.mutate(event.target.value as DeviceDto["role"])}
+            >
+              <option value="manager">Encargado</option>
+              <option value="cashier">Cajero</option>
+            </Select>
+          )}
+          {device.active && !isSelf && (
+            <Button variant="outline" size="sm" onClick={() => onRevoke(device)}>
+              Revocar
+            </Button>
+          )}
+        </div>
       </CardContent>
+      {updateRole.isError && (
+        <p className="px-6 pb-4 text-sm text-destructive">
+          {getUserFriendlyError(updateRole.error)}
+        </p>
+      )}
     </Card>
   );
 }

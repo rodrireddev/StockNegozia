@@ -1,8 +1,9 @@
-import type {
-  CardBrand,
-  PaymentMethod,
-  PaymentTermsDto,
-  SalePaymentDto,
+import {
+  PAYMENT_METHODS,
+  type CardBrand,
+  type PaymentMethod,
+  type PaymentTermsDto,
+  type SalePaymentDto,
 } from "@stocknegozia/api-contracts";
 import { formatMoney, moneyToInputText, parseMoneyInput, roundMoney } from "../money/money";
 import { computePaymentCharges, formatPercent, type PaymentCharges } from "./payment-terms";
@@ -14,6 +15,7 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   transfer: "Transferencia",
   qr: "QR / Billetera virtual",
   other: "Otro",
+  account: "Cuenta corriente",
 };
 
 /** Etiquetas cortas — para chips/botones de selección y badges en listados. */
@@ -24,7 +26,13 @@ export const PAYMENT_METHOD_SHORT_LABELS: Record<PaymentMethod, string> = {
   transfer: "Transferencia",
   qr: "QR",
   other: "Otro",
+  account: "Cta. cte.",
 };
+
+/** Medios ofrecidos en la venta: "Cuenta corriente" sólo si hay un cliente elegido. */
+export function availablePaymentMethods(hasCustomer: boolean): PaymentMethod[] {
+  return PAYMENT_METHODS.filter((method) => hasCustomer || method !== "account");
+}
 
 export const CARD_BRAND_LABELS: Record<CardBrand, string> = {
   visa: "Visa",

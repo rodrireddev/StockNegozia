@@ -9,6 +9,7 @@ export interface NewSaleRecord {
   status: "completed";
   total: number;
   createdAt: Date;
+  customerId?: number | null;
 }
 
 export interface NewSaleItemRecord {
@@ -89,8 +90,13 @@ export class SalesRepository {
     return executor.select().from(sales).where(eq(sales.id, id)).get();
   }
 
-  findMany(executor: DrizzleExecutor = this.db) {
-    return executor.select().from(sales).orderBy(desc(sales.createdAt)).all();
+  findMany(customerId?: number, executor: DrizzleExecutor = this.db) {
+    return executor
+      .select()
+      .from(sales)
+      .where(customerId ? eq(sales.customerId, customerId) : undefined)
+      .orderBy(desc(sales.createdAt))
+      .all();
   }
 
   findItemsBySaleId(saleId: number, executor: DrizzleExecutor = this.db) {

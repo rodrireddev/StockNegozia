@@ -16,6 +16,9 @@ import { SalesScreen } from "./SalesScreen";
 // reintentar la corrida antes de asumir una regresión real — no se encontró una forma de eliminar
 // esta fuente de flakiness sin degradar la suite completa (se intentó un drenaje global de timers en
 // `setupFilesAfterEnv` y empeoró tanto la tasa de fallos como el tiempo total, ver historial).
+jest.mock("@/api/endpoints/customers", () => ({
+  fetchCustomers: jest.fn(async () => []),
+}));
 jest.mock("@/api/endpoints/products", () => ({
   fetchProducts: jest.fn(),
 }));
@@ -101,6 +104,7 @@ describe("SalesScreen — recibo PDF", () => {
 
   it("sin tildar el checkbox (default), confirmar la venta no descarga ningún recibo", async () => {
     await renderWithClient(<SalesScreen />);
+    fireEvent.changeText(screen.getByPlaceholderText("Nombre, SKU o código de barras…"), "Coca");
     fireEvent.press(await screen.findByText("Coca-Cola 2L"));
     await waitFor(() => expect(screen.getByTestId("open-checkout")).not.toBeDisabled());
     fireEvent.press(screen.getByTestId("open-checkout"));
@@ -115,6 +119,7 @@ describe("SalesScreen — recibo PDF", () => {
     mockedDownloadSaleReceipt.mockResolvedValue(undefined);
 
     await renderWithClient(<SalesScreen />);
+    fireEvent.changeText(screen.getByPlaceholderText("Nombre, SKU o código de barras…"), "Coca");
     fireEvent.press(await screen.findByText("Coca-Cola 2L"));
     await waitFor(() => expect(screen.getByTestId("open-checkout")).not.toBeDisabled());
     fireEvent.press(screen.getByTestId("open-checkout"));
@@ -133,6 +138,7 @@ describe("SalesScreen — recibo PDF", () => {
     mockedDownloadSaleReceipt.mockRejectedValue(new Error("No se pudo conectar con el backend"));
 
     await renderWithClient(<SalesScreen />);
+    fireEvent.changeText(screen.getByPlaceholderText("Nombre, SKU o código de barras…"), "Coca");
     fireEvent.press(await screen.findByText("Coca-Cola 2L"));
     await waitFor(() => expect(screen.getByTestId("open-checkout")).not.toBeDisabled());
     fireEvent.press(screen.getByTestId("open-checkout"));

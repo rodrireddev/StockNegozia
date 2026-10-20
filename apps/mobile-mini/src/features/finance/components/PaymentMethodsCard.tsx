@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import {
   Banknote,
+  BookUser,
   CircleQuestionMark,
   CreditCard,
   Landmark,
@@ -25,6 +26,7 @@ const METHOD_ICONS: Record<PaymentMethod, LucideIcon> = {
   transfer: Landmark,
   qr: QrCode,
   other: Wallet,
+  account: BookUser,
 };
 
 interface PaymentMethodsCardProps {

@@ -1,3 +1,5 @@
+import { CustomersRepository } from "../customers/customers.repository";
+import { CustomersService } from "../customers/customers.service";
 import type { CreateProductInput } from "@stocknegozia/validation";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createSilentTestLogger } from "../../test/create-test-logger";
@@ -63,6 +65,7 @@ describe("Stock movements — precio histórico", () => {
       productsService,
       settingsService,
       logger,
+      new CustomersService(new CustomersRepository(db), db),
     );
     // El proveedor es obligatorio para crear un producto con stock inicial > 0 (ver
     // ProductsService.create()) — distinto del proveedor de `createSupplier()`, que los tests de

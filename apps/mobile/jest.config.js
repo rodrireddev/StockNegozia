@@ -36,5 +36,8 @@ module.exports = {
     "/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|standard-navigation|lucide-react-native))",
     ...jestExpoPreset.transformIgnorePatterns.slice(1),
   ],
+  // Con turbo corriendo todas las suites en paralelo (local o CI), el render inicial de una
+  // pantalla puede pasar los 5s por defecto aunque el test esté bien.
+  testTimeout: 20_000,
   testPathIgnorePatterns: ["/node_modules/", "/.expo/"],
 };

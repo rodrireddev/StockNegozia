@@ -10,7 +10,9 @@ import { DevicesService } from "../devices/devices.service";
 import { PairingRepository } from "./pairing.repository";
 import { PairingService } from "./pairing.service";
 
-function createFakeConfigService(overrides: { pairingExpirationMinutes?: number } = {}): ConfigService {
+function createFakeConfigService(
+  overrides: { pairingExpirationMinutes?: number } = {},
+): ConfigService {
   const config = {
     port: 38123,
     pairingExpirationMinutes: overrides.pairingExpirationMinutes ?? 5,
@@ -38,7 +40,11 @@ describe("PairingService", () => {
   beforeEach(() => {
     db = createTestDb();
     credentialService = new CredentialService();
-    devicesService = new DevicesService(new DevicesRepository(db), credentialService, createSilentTestLogger());
+    devicesService = new DevicesService(
+      new DevicesRepository(db),
+      credentialService,
+      createSilentTestLogger(),
+    );
     pairingRepository = new PairingRepository(db);
   });
 
@@ -191,7 +197,9 @@ describe("PairingService", () => {
       }
 
       expect(caught).toBeInstanceOf(UnauthorizedException);
-      expect(JSON.stringify((caught as UnauthorizedException).getResponse())).not.toContain("token");
+      expect(JSON.stringify((caught as UnauthorizedException).getResponse())).not.toContain(
+        "token",
+      );
     });
 
     it("un código de verificación incorrecto falla con un error genérico", () => {

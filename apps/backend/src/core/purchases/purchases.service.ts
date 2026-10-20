@@ -8,15 +8,10 @@ import type { Database } from "../../database/database.types";
 import { ProductsService } from "../products/products.service";
 import { SuppliersService } from "../suppliers/suppliers.service";
 import { PurchasesRepository } from "./purchases.repository";
+import { roundMoney } from "@stocknegozia/shared";
 
 type PurchaseRow = ReturnType<PurchasesRepository["findById"]>;
 type PurchaseItemRow = ReturnType<PurchasesRepository["findItemsByPurchaseId"]>[number];
-
-/** Evita arrastrar errores de punto flotante al multiplicar costo × cantidad (mismo criterio
- *  monetario que Sales, que ya usa `real`/float para sus montos). */
-function roundMoney(value: number): number {
-  return Math.round(value * 100) / 100;
-}
 
 function toSummaryDto(row: NonNullable<PurchaseRow>): PurchaseSummaryDto {
   return {

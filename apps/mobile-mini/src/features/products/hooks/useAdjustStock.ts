@@ -16,14 +16,19 @@ export function useAdjustStock() {
   const queryClient = useQueryClient();
   const { status } = useAccount();
   return useMutation({
-    mutationFn: ({ id, stock, reason }: AdjustStockVariables) => adjustProductStock(id, { stock, reason }),
+    mutationFn: ({ id, stock, reason }: AdjustStockVariables) =>
+      adjustProductStock(id, { stock, reason }),
     onSuccess: (_data, variables) => {
       // El ajuste genera un stock_movement ADJUSTMENT — invalida también el historial.
       void queryClient.invalidateQueries({ queryKey: ["products"] });
       void queryClient.invalidateQueries({ queryKey: ["stock-movements"] });
       // Movimiento de stock = "algo real" para la racha (doc §2) + métrica de logros (whitelist).
       if (status === "authenticated" && variables.stock !== variables.previousStock) {
-        fireRecordActivity(variables.stock > variables.previousStock ? "stock_adjustment_in" : "stock_adjustment_out");
+        fireRecordActivity(
+          variables.stock > variables.previousStock
+            ? "stock_adjustment_in"
+            : "stock_adjustment_out",
+        );
         void queryClient.invalidateQueries({ queryKey: ["active-goals"] });
       }
     },

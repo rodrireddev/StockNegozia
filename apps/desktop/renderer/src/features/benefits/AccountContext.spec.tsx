@@ -96,7 +96,10 @@ describe("AccountContext (apps/desktop)", () => {
 
   it("login exitoso guarda el token (vía window.cloudAccount.setToken) y pasa a authenticated", async () => {
     setCloudAccountBridge(null);
-    loginMock.mockResolvedValue({ accessToken: "jwt-nuevo", expiresAt: "2030-01-01T00:00:00.000Z" });
+    loginMock.mockResolvedValue({
+      accessToken: "jwt-nuevo",
+      expiresAt: "2030-01-01T00:00:00.000Z",
+    });
     getMeMock.mockResolvedValue(me);
 
     render(
@@ -111,7 +114,10 @@ describe("AccountContext (apps/desktop)", () => {
     });
 
     await waitFor(() => expect(screen.getByTestId("status")).toHaveTextContent("authenticated"));
-    expect(window.cloudAccount.setToken).toHaveBeenCalledWith("jwt-nuevo", "2030-01-01T00:00:00.000Z");
+    expect(window.cloudAccount.setToken).toHaveBeenCalledWith(
+      "jwt-nuevo",
+      "2030-01-01T00:00:00.000Z",
+    );
   });
 
   it("signOut borra el token (vía window.cloudAccount.clearToken) y vuelve a unauthenticated", async () => {

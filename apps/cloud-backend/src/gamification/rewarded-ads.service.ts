@@ -97,7 +97,8 @@ export class RewardedAdsService {
     }
 
     const sequenceInDay = eligibility.countToday + 1;
-    const creditConfigKey = CREDIT_CONFIG_KEY_BY_SEQUENCE[sequenceInDay] ?? CREDIT_CONFIG_KEY_BY_SEQUENCE[3]!;
+    const creditConfigKey =
+      CREDIT_CONFIG_KEY_BY_SEQUENCE[sequenceInDay] ?? CREDIT_CONFIG_KEY_BY_SEQUENCE[3]!;
     const amount = await this.creditConfigService.getValueByKey(creditConfigKey);
 
     // Sin idempotencyKey a propósito: mirar un anuncio es repetible, no "de una vez" (mismo
@@ -123,6 +124,12 @@ export class RewardedAdsService {
 
     // `.returning()` de Drizzle tipa como posiblemente vacío el array — un insert recién hecho
     // siempre devuelve la fila (mismo criterio que `accounts.service.ts`/`users.repository.ts`).
-    return { granted: true, creditsAwarded: amount, sequenceInDay, ledgerEntryId: ledgerEntry!.id, goalsCompleted };
+    return {
+      granted: true,
+      creditsAwarded: amount,
+      sequenceInDay,
+      ledgerEntryId: ledgerEntry!.id,
+      goalsCompleted,
+    };
   }
 }

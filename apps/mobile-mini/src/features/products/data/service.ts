@@ -1,5 +1,9 @@
 import type { ProductDto, StockMovementType, StockStatus } from "@stocknegozia/api-contracts";
-import type { CreateProductInput, ProductQueryInput, UpdateProductInput } from "@stocknegozia/validation";
+import type {
+  CreateProductInput,
+  ProductQueryInput,
+  UpdateProductInput,
+} from "@stocknegozia/validation";
 import { db } from "@/database/client";
 import type { DrizzleExecutor } from "@/database/database.types";
 import { BadRequestError, ConflictError, NotFoundError } from "@/database/errors";
@@ -8,6 +12,7 @@ import { purchasesRepository } from "@/features/purchases/data/repository";
 import { stockMovementsService } from "@/features/inventory/data/stock-movements.service";
 import { suppliersService } from "@/features/suppliers/data/service";
 import { productsRepository } from "./repository";
+import { roundMoney } from "@stocknegozia/shared";
 
 type ProductRow = ReturnType<typeof productsRepository.findById>;
 
@@ -15,12 +20,6 @@ type ProductRow = ReturnType<typeof productsRepository.findById>;
  *  `apps/backend/src/core/products/products.service.ts`. Si llega, se desenvuelve y se usa el
  *  resto como identificador exacto. */
 const QR_PRODUCT_PREFIX = "STOCKNEGOZIA:PRODUCT:";
-
-/** Mismo `roundMoney` que `salesService`/`purchasesService` (duplicado a propósito, no hay una
- *  utilidad monetaria compartida — mismo criterio que el backend). */
-function roundMoney(value: number): number {
-  return Math.round(value * 100) / 100;
-}
 
 /** Contexto de negocio opcional para `adjustStock()` — determina qué `type` de stock movement se
  *  registra. Por defecto `"ADJUSTMENT"`. */
@@ -95,7 +94,9 @@ function assertBarcodeAvailable(barcode: string | undefined, excludeId?: number)
   if (!barcode) return;
   const existing = productsRepository.findByBarcode(barcode);
   if (existing && existing.id !== excludeId) {
-    throw new ConflictError(`El código de barras ya está en uso por el producto "${existing.name}"`);
+    throw new ConflictError(
+      `El código de barras ya está en uso por el producto "${existing.name}"`,
+    );
   }
 }
 
@@ -163,7 +164,12 @@ export const productsService = {
         const subtotal = roundMoney(input.purchasePrice * input.stock);
 
         const purchase = purchasesRepository.insertPurchase(
-          { supplierId: supplier.id, supplierName: supplier.name, total: subtotal, createdAt: new Date() },
+          {
+            supplierId: supplier.id,
+            supplierName: supplier.name,
+            total: subtotal,
+            createdAt: new Date(),
+          },
           tx,
         );
         purchasesRepository.insertPurchaseItems(
@@ -225,7 +231,9 @@ export const productsService = {
     const delta = targetStock - current.stock;
     if (delta === 0) return current;
 
-    return db.transaction((tx) => productsService.adjustStock(id, delta, tx, { type: "ADJUSTMENT", reason }));
+    return db.transaction((tx) =>
+      productsService.adjustStock(id, delta, tx, { type: "ADJUSTMENT", reason }),
+    );
   },
 
   /**

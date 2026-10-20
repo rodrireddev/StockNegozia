@@ -3,8 +3,7 @@ import { ConfigService, ConfigType } from "@nestjs/config";
 import { appConfig } from "../config/configuration";
 
 export type CloudProxyResult<T> =
-  | { ok: true; body: T }
-  | { ok: false; status: "not_linked" | "upstream_error" };
+  { ok: true; body: T } | { ok: false; status: "not_linked" | "upstream_error" };
 
 /**
  * Mantiene en memoria el JWT de cuenta cloud que Electron main empuja (`PUT /cloud-account/session`)

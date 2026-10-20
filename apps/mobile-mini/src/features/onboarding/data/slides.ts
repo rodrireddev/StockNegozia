@@ -27,6 +27,6 @@ export const ONBOARDING_SLIDES: OnboardingSlide[] = [
   {
     icon: HeartHandshake,
     title: "¿Por qué no cobramos todos los meses?",
-    body: "Sabemos que un comercio chico no siempre tiene para pagar una suscripción fija. Por eso elegimos que la app se sostenga con anuncios opcionales, no con tu bolsillo: vos decidís cuándo \"pagar\" con un minuto de tu tiempo, nunca con dinero.",
+    body: 'Sabemos que un comercio chico no siempre tiene para pagar una suscripción fija. Por eso elegimos que la app se sostenga con anuncios opcionales, no con tu bolsillo: vos decidís cuándo "pagar" con un minuto de tu tiempo, nunca con dinero.',
   },
 ];

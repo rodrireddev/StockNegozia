@@ -4,7 +4,12 @@ import { alias } from "drizzle-orm/pg-core";
 import { randomUUID } from "node:crypto";
 import { DRIZZLE_CLIENT } from "../database/database.constants";
 import type { Database } from "../database/database.types";
-import { adminUsers, adPlacementRevisions, adPlacements, type adPlatformEnum } from "../database/schema";
+import {
+  adminUsers,
+  adPlacementRevisions,
+  adPlacements,
+  type adPlatformEnum,
+} from "../database/schema";
 
 type Platform = (typeof adPlatformEnum.enumValues)[number];
 

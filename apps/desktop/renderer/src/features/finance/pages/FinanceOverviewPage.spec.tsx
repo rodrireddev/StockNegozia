@@ -29,6 +29,7 @@ function makeSummary(overrides: Partial<FinanceSummaryDto> = {}): FinanceSummary
     purchases: { count: 2, total: 50_000 },
     cash: { withdrawals: 70_000, withdrawalsCount: 2, deposits: 0, depositsCount: 0 },
     collections: { total: 300_000_000, surcharges: 0, fees: 0, net: 300_000_000, byMethod: [] },
+    receivables: { soldOnAccount: 0, received: 0, outstanding: 0 },
     pendingSettlement: { amount: 100_000_000, count: 1, nextDate: "2026-10-12T03:00:00.000Z" },
     series: [
       {

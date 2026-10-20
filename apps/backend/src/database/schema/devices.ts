@@ -9,7 +9,9 @@ export const devices = sqliteTable("devices", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   type: text("type", { enum: ["desktop", "mobile", "tablet", "web", "other"] }).notNull(),
-  status: text("status", { enum: ["active", "revoked"] }).notNull().default("active"),
+  status: text("status", { enum: ["active", "revoked"] })
+    .notNull()
+    .default("active"),
   credentialHash: text("credential_hash").notNull().unique(),
   /**
    * Distingue el dispositivo administrador (el creado por bootstrap) de los dispositivos cliente
@@ -18,6 +20,15 @@ export const devices = sqliteTable("devices", {
    * Management no quede abierto a cualquier dispositivo autenticado.
    */
   isAdmin: integer("is_admin", { mode: "boolean" }).notNull().default(false),
+  /**
+   * Qué puede hacer el dispositivo con los datos del negocio (distinto de `isAdmin`, que solo
+   * habilita administrar OTROS dispositivos): `cashier` vende y consulta, pero no ve finanzas,
+   * no registra compras/ajustes de caja, no edita productos/precios ni cancela ventas — ver
+   * `ManagerDeviceGuard`. Default `manager` para que los dispositivos existentes no pierdan acceso.
+   */
+  role: text("role", { enum: ["manager", "cashier"] })
+    .notNull()
+    .default("manager"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   lastSeenAt: integer("last_seen_at", { mode: "timestamp" }),
   /**

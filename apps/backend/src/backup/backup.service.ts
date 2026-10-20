@@ -1,11 +1,19 @@
 import { Inject, Injectable, InternalServerErrorException } from "@nestjs/common";
-import type { BackupResultDto, BackupValidationResultDto, BackupValidationStatus } from "@stocknegozia/api-contracts";
+import type {
+  BackupResultDto,
+  BackupValidationResultDto,
+  BackupValidationStatus,
+} from "@stocknegozia/api-contracts";
 import RawDatabase from "better-sqlite3";
 import { existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { AppLogger } from "../common/logger/app-logger.service";
 import { DRIZZLE_CLIENT } from "../database/database.constants";
-import { getRawSqliteClient, type Database, type RawSqliteConnection } from "../database/database.types";
+import {
+  getRawSqliteClient,
+  type Database,
+  type RawSqliteConnection,
+} from "../database/database.types";
 
 /**
  * Subconjunto de tablas de negocio que identifican a un backup como "de StockNegozia" — ver
@@ -42,10 +50,7 @@ interface MigrationJournal {
 function readCurrentSchemaState(): CurrentSchemaState {
   // Mismo criterio de resolución de ruta que `DatabaseModule` para el folder de migraciones: desde
   // el árbol fuente (no `dist/`), ver database.module.ts.
-  const journalPath = path.join(
-    process.cwd(),
-    "src/database/migrations/meta/_journal.json",
-  );
+  const journalPath = path.join(process.cwd(), "src/database/migrations/meta/_journal.json");
   const journal = JSON.parse(readFileSync(journalPath, "utf-8")) as MigrationJournal;
   const lastEntry = journal.entries.at(-1);
   return {
@@ -174,7 +179,13 @@ export class BackupService {
     const fileName = path.basename(filePath);
 
     if (!existsSync(filePath)) {
-      return this.buildResult("not_found", "No se encontró el archivo seleccionado.", fileName, null, null);
+      return this.buildResult(
+        "not_found",
+        "No se encontró el archivo seleccionado.",
+        fileName,
+        null,
+        null,
+      );
     }
 
     const stats = statSync(filePath);

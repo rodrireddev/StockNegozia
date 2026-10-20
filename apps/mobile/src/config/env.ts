@@ -12,14 +12,6 @@
  *   editable desde la pantalla de pairing — igual que la persona ya tiene que escribir la IP LAN
  *   a mano en `apps/web-client/.env` durante desarrollo, acá la escribe una vez en la app.
  */
-export type AppEnv = "development" | "preview" | "production";
-
-/** `expo-constants`/`process.env.EXPO_PUBLIC_*` distinguen el canal por `releaseChannel`/`__DEV__`. */
-export function resolveAppEnv(): AppEnv {
-  if (__DEV__) return "development";
-  return "production";
-}
-
 /** Solo usado como valor por defecto sugerido en desarrollo — nunca hardcodeado como IP de producción. */
 export function getDefaultDevApiUrl(): string | null {
   const configured = process.env.EXPO_PUBLIC_API_URL?.trim();

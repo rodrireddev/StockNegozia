@@ -45,11 +45,6 @@ export class SuppliersRepository {
   }
 
   update(id: number, data: UpdateSupplierRecord, executor: DrizzleExecutor = this.db) {
-    return executor
-      .update(suppliers)
-      .set(data)
-      .where(eq(suppliers.id, id))
-      .returning()
-      .get();
+    return executor.update(suppliers).set(data).where(eq(suppliers.id, id)).returning().get();
   }
 }

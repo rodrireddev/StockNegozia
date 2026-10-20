@@ -52,12 +52,20 @@ export function periodRangeFor(
       return { periodKey: occurredOn, from: occurredOn, to: occurredOn };
     case "weekly": {
       const { year: isoYear, week, monday, sunday } = isoWeekOf(date);
-      return { periodKey: `${isoYear}-W${pad(week)}`, from: toDateString(monday), to: toDateString(sunday) };
+      return {
+        periodKey: `${isoYear}-W${pad(week)}`,
+        from: toDateString(monday),
+        to: toDateString(sunday),
+      };
     }
     case "monthly": {
       const from = `${year}-${pad(month!)}-01`;
       const lastDay = new Date(Date.UTC(year!, month!, 0)).getUTCDate();
-      return { periodKey: `${year}-${pad(month!)}`, from, to: `${year}-${pad(month!)}-${pad(lastDay)}` };
+      return {
+        periodKey: `${year}-${pad(month!)}`,
+        from,
+        to: `${year}-${pad(month!)}-${pad(lastDay)}`,
+      };
     }
     case "specific_date":
       if (!scheduleConfig || scheduleConfig.date !== occurredOn) return null;

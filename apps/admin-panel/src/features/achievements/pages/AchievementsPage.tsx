@@ -1,10 +1,23 @@
 import { useState } from "react";
-import type { AchievementDefinitionCategory, AchievementDefinitionDto } from "@stocknegozia/api-contracts";
+import type {
+  AchievementDefinitionCategory,
+  AchievementDefinitionDto,
+} from "@stocknegozia/api-contracts";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AchievementFormDialog, type AchievementFormState } from "../components/AchievementFormDialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  AchievementFormDialog,
+  type AchievementFormState,
+} from "../components/AchievementFormDialog";
 import { AchievementRevisionsDialog } from "../components/AchievementRevisionsDialog";
 import { useAchievements } from "../hooks/useAchievements";
 import { useUpdateAchievement } from "../hooks/useUpdateAchievement";
@@ -15,7 +28,11 @@ const CATEGORY_LABELS: Record<AchievementDefinitionCategory, string> = {
   setup_quest: "Setup quests",
 };
 
-const CATEGORY_ORDER: AchievementDefinitionCategory[] = ["scheduled_goal", "streak_milestone", "setup_quest"];
+const CATEGORY_ORDER: AchievementDefinitionCategory[] = [
+  "scheduled_goal",
+  "streak_milestone",
+  "setup_quest",
+];
 
 function scheduleSummary(achievement: AchievementDefinitionDto): string {
   if (achievement.category === "setup_quest") return "una vez";
@@ -23,7 +40,9 @@ function scheduleSummary(achievement: AchievementDefinitionDto): string {
   const base =
     achievement.scheduleType === "specific_date"
       ? `fecha ${achievement.scheduleConfig?.date ?? "—"}`
-      : { daily: "diario", weekly: "semanal", monthly: "mensual" }[achievement.scheduleType as "daily" | "weekly" | "monthly"];
+      : { daily: "diario", weekly: "semanal", monthly: "mensual" }[
+          achievement.scheduleType as "daily" | "weekly" | "monthly"
+        ];
   return `${base} · ${achievement.target} (${achievement.metricType})`;
 }
 
@@ -46,14 +65,17 @@ export function AchievementsPage() {
         <div>
           <h1 className="text-lg font-semibold">Logros</h1>
           <p className="text-sm text-muted-foreground">
-            Objetivos programados y hitos de racha — crear/editar/desactivar acá no requiere deploy de la app.
+            Objetivos programados y hitos de racha — crear/editar/desactivar acá no requiere deploy
+            de la app.
           </p>
         </div>
         <Button onClick={() => setFormState({ mode: "create" })}>Nuevo logro</Button>
       </div>
 
       {achievementsQuery.isLoading && <p className="text-sm text-muted-foreground">Cargando…</p>}
-      {achievementsQuery.isError && <Alert variant="destructive">{achievementsQuery.error.message}</Alert>}
+      {achievementsQuery.isError && (
+        <Alert variant="destructive">{achievementsQuery.error.message}</Alert>
+      )}
 
       {groups.map(({ category, items }) =>
         items.length === 0 ? null : (
@@ -84,17 +106,29 @@ export function AchievementsPage() {
                       <TableCell className="text-sm">{scheduleSummary(achievement)}</TableCell>
                       <TableCell>{achievement.creditsAwarded}</TableCell>
                       <TableCell>
-                        <span className={achievement.active ? "text-green-600" : "text-destructive"}>
+                        <span
+                          className={achievement.active ? "text-green-600" : "text-destructive"}
+                        >
                           {achievement.active ? "Activo" : "Desactivado"}
                         </span>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">{achievement.updatedByAdminEmail ?? "— (seed)"}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {achievement.updatedByAdminEmail ?? "— (seed)"}
+                      </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm" onClick={() => setRevisionsFor(achievement)}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setRevisionsFor(achievement)}
+                          >
                             Historial
                           </Button>
-                          <Button variant="outline" size="sm" onClick={() => setFormState({ mode: "edit", achievement })}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setFormState({ mode: "edit", achievement })}
+                          >
                             Editar
                           </Button>
                           <Button
@@ -121,7 +155,10 @@ export function AchievementsPage() {
         ),
       )}
 
-      <AchievementFormDialog state={formState} onOpenChange={(open) => !open && setFormState(null)} />
+      <AchievementFormDialog
+        state={formState}
+        onOpenChange={(open) => !open && setFormState(null)}
+      />
       <AchievementRevisionsDialog
         achievementKey={revisionsFor?.key ?? null}
         achievementLabel={revisionsFor?.label ?? null}

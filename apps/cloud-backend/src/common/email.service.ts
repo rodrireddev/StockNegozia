@@ -36,7 +36,9 @@ export class EmailService {
 
   async send(email: OutgoingEmail): Promise<void> {
     if (!this.apiKey || !this.fromEmail) {
-      this.logger.log(`[EMAIL simulado] Para: ${email.to} | Asunto: ${email.subject}\n${email.body}`);
+      this.logger.log(
+        `[EMAIL simulado] Para: ${email.to} | Asunto: ${email.subject}\n${email.body}`,
+      );
       return;
     }
 
@@ -65,7 +67,9 @@ export class EmailService {
 
       if (!response.ok) {
         const errorBody = await response.text().catch(() => "");
-        this.logger.error(`No se pudo mandar el email a ${email.to}: ${response.status} ${errorBody}`);
+        this.logger.error(
+          `No se pudo mandar el email a ${email.to}: ${response.status} ${errorBody}`,
+        );
         return;
       }
       this.logger.log(`Email enviado a ${email.to} | Asunto: ${email.subject}`);

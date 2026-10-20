@@ -48,7 +48,12 @@ export class CreditsService {
    * pisarse. Aceptable para v1 (doc §5, "mínimo indispensable"); si en producción aparecen
    * carreras reales, esto es lo primero a reforzar.
    */
-  async grant(userId: string, amount: number, reason: CreditReason, options: GrantCreditsOptions = {}) {
+  async grant(
+    userId: string,
+    amount: number,
+    reason: CreditReason,
+    options: GrantCreditsOptions = {},
+  ) {
     if (options.idempotencyKey) {
       const existing = await this.repository.findByIdempotencyKey(options.idempotencyKey);
       if (existing) return existing;

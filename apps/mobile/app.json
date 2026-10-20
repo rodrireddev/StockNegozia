@@ -7,9 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "stocknegozia",
     "userInterfaceStyle": "automatic",
-    "platforms": [
-      "android"
-    ],
+    "platforms": ["android"],
     "android": {
       "package": "com.stocknegozia.mobile",
       "versionCode": 1,
@@ -18,10 +16,7 @@
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.MODIFY_AUDIO_SETTINGS"
-      ],
+      "permissions": ["android.permission.CAMERA", "android.permission.MODIFY_AUDIO_SETTINGS"],
       "predictiveBackGestureEnabled": true
     },
     "web": {

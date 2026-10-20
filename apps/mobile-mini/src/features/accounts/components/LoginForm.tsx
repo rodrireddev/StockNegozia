@@ -29,7 +29,11 @@ export function LoginForm({
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit() {
-    const parsed = accountLoginSchema.safeParse({ email, password, turnstileToken: turnstileToken ?? undefined });
+    const parsed = accountLoginSchema.safeParse({
+      email,
+      password,
+      turnstileToken: turnstileToken ?? undefined,
+    });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? "Datos inválidos");
       return;
@@ -65,11 +69,23 @@ export function LoginForm({
         secureTextEntry
         autoComplete="current-password"
       />
-      {captchaRequired ? <TurnstileWidget resetKey={turnstileNonce} onToken={setTurnstileToken} /> : null}
+      {captchaRequired ? (
+        <TurnstileWidget resetKey={turnstileNonce} onToken={setTurnstileToken} />
+      ) : null}
       {error ? <Text style={[typography.caption, { color: colors.danger }]}>{error}</Text> : null}
       <Button label="Ingresar" onPress={handleSubmit} loading={submitting} />
-      <Button label="Olvidé mi contraseña" variant="ghost" onPress={onForgotPassword} disabled={submitting} />
-      <Button label="Crear cuenta" variant="ghost" onPress={onSwitchToRegister} disabled={submitting} />
+      <Button
+        label="Olvidé mi contraseña"
+        variant="ghost"
+        onPress={onForgotPassword}
+        disabled={submitting}
+      />
+      <Button
+        label="Crear cuenta"
+        variant="ghost"
+        onPress={onSwitchToRegister}
+        disabled={submitting}
+      />
     </View>
   );
 }

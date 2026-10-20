@@ -185,6 +185,10 @@ export interface FinanceSummaryInput {
   cashAdjustments: FinanceCashRow[];
   /** Pagos todavía no acreditados a `now`, de cualquier fecha (no sólo del período). */
   pendingPayments: FinancePaymentRow[];
+  /** Pagos de cuenta corriente recibidos en el período (opcional: sin clientes, vacío). */
+  customerPayments?: { amount: number }[];
+  /** Saldo total adeudado por clientes a `now`. */
+  outstandingReceivables?: number;
 }
 
 export function buildFinanceSummary(input: FinanceSummaryInput): FinanceSummaryDto {
@@ -231,7 +235,18 @@ export function buildFinanceSummary(input: FinanceSummaryInput): FinanceSummaryD
     }
   }
 
-  const byMethod = buildPaymentMethodTotals(input.payments);
+  // El fiado no es plata cobrada: se informa aparte, en `receivables`.
+  const soldOnAccount = roundMoney(
+    input.payments
+      .filter((row) => row.method === "account")
+      .reduce((sum, row) => sum + (row.amount ?? 0), 0),
+  );
+  const received = roundMoney(
+    (input.customerPayments ?? []).reduce((sum, row) => sum + row.amount, 0),
+  );
+  const byMethod = buildPaymentMethodTotals(
+    input.payments.filter((row) => row.method !== "account"),
+  );
   const collected = roundMoney(byMethod.reduce((sum, row) => sum + row.amount, 0));
   const surcharges = roundMoney(byMethod.reduce((sum, row) => sum + row.surchargeAmount, 0));
   const fees = roundMoney(byMethod.reduce((sum, row) => sum + row.feeAmount, 0));
@@ -255,6 +270,11 @@ export function buildFinanceSummary(input: FinanceSummaryInput): FinanceSummaryD
     purchases: { count: input.purchases.length, total: purchasesTotal },
     cash,
     collections: { total, surcharges, fees, net: roundMoney(total - fees), byMethod },
+    receivables: {
+      soldOnAccount,
+      received,
+      outstanding: roundMoney(input.outstandingReceivables ?? 0),
+    },
     pendingSettlement: {
       amount: roundMoney(pending.reduce((sum, item) => sum + item.netAmount, 0)),
       count: pending.length,

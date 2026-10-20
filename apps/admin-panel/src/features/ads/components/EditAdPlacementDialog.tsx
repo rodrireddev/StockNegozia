@@ -54,7 +54,9 @@ function EditAdPlacementDialogContent({
           <DialogTitle>
             {placement.key} · {placement.platform}
           </DialogTitle>
-          <DialogDescription>Cambiar de red/ad unit o usar el kill switch sin release nuevo.</DialogDescription>
+          <DialogDescription>
+            Cambiar de red/ad unit o usar el kill switch sin release nuevo.
+          </DialogDescription>
         </DialogHeader>
         <form
           className="flex flex-col gap-4"
@@ -72,11 +74,21 @@ function EditAdPlacementDialogContent({
         >
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="ap-network">Red</Label>
-            <Input id="ap-network" value={adNetwork} onChange={(event) => setAdNetwork(event.target.value)} required />
+            <Input
+              id="ap-network"
+              value={adNetwork}
+              onChange={(event) => setAdNetwork(event.target.value)}
+              required
+            />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="ap-unit">Ad unit ID</Label>
-            <Input id="ap-unit" value={adUnitId} onChange={(event) => setAdUnitId(event.target.value)} required />
+            <Input
+              id="ap-unit"
+              value={adUnitId}
+              onChange={(event) => setAdUnitId(event.target.value)}
+              required
+            />
           </div>
           <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
             <Label htmlFor="ap-enabled" className="cursor-pointer">
@@ -101,7 +113,9 @@ function EditAdPlacementDialogContent({
               onChange={(event) => setNote(event.target.value)}
             />
           </div>
-          {updateMutation.isError && <Alert variant="destructive">{updateMutation.error.message}</Alert>}
+          {updateMutation.isError && (
+            <Alert variant="destructive">{updateMutation.error.message}</Alert>
+          )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar

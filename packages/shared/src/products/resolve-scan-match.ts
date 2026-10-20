@@ -11,16 +11,11 @@ import type { ProductDto } from "@stocknegozia/api-contracts";
  * que devuelve varias coincidencias parciales (ej. "coca" con dos gaseosas distintas), no agrega
  * nada — evita sumar el producto equivocado por una confirmación apurada.
  */
-export function resolveScanMatch(
-  products: ProductDto[],
-  rawQuery: string,
-): ProductDto | undefined {
+export function resolveScanMatch(products: ProductDto[], rawQuery: string): ProductDto | undefined {
   const query = rawQuery.trim();
   if (!query) return undefined;
 
-  const exactMatch = products.find(
-    (product) => product.sku === query || product.barcode === query,
-  );
+  const exactMatch = products.find((product) => product.sku === query || product.barcode === query);
   if (exactMatch) return exactMatch;
 
   if (products.length === 1) return products[0];

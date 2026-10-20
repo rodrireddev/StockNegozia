@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Inject, Param, ParseIntPipe, Patch, Post } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  UseGuards,
+} from "@nestjs/common";
+import { ManagerDeviceGuard } from "../../auth/guards/manager-device.guard";
 import type { SupplierDto } from "@stocknegozia/api-contracts";
 import {
   createSupplierSchema,
@@ -25,6 +36,7 @@ export class SuppliersController {
     return this.suppliersService.findById(id);
   }
 
+  @UseGuards(ManagerDeviceGuard)
   @Post()
   create(
     @Body(new ZodValidationPipe(createSupplierSchema)) body: CreateSupplierInput,
@@ -32,6 +44,7 @@ export class SuppliersController {
     return this.suppliersService.create(body);
   }
 
+  @UseGuards(ManagerDeviceGuard)
   @Patch(":id")
   update(
     @Param("id", ParseIntPipe) id: number,

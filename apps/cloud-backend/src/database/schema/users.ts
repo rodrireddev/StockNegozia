@@ -1,4 +1,14 @@
-import { boolean, date, integer, pgEnum, pgTable, text, timestamp, uuid, type AnyPgColumn } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  date,
+  integer,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  type AnyPgColumn,
+} from "drizzle-orm/pg-core";
 
 /**
  * Bronce/Plata/Oro/Pro (doc §2). Denormalizado acá para lecturas baratas — se recalcula desde el

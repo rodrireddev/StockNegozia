@@ -21,7 +21,11 @@ export function CashAdjustmentsSection() {
 
   return (
     <View style={styles.container}>
-      <Button label="+ Nuevo ajuste" onPress={() => setFormOpen(true)} testID="new-cash-adjustment" />
+      <Button
+        label="+ Nuevo ajuste"
+        onPress={() => setFormOpen(true)}
+        testID="new-cash-adjustment"
+      />
 
       {query.isPending ? (
         <LoadingState message="Cargando ajustes de caja…" />

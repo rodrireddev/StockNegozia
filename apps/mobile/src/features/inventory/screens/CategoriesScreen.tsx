@@ -30,9 +30,11 @@ export function CategoriesScreen() {
         Categorías
       </Text>
       <InventoryTabs active="categories" />
-      <Text style={[typography.caption, { color: colors.mutedForeground, marginBottom: spacing.md }]}>
-        Las categorías se crean automáticamente al asignarlas a un producto — no hay una acción
-        para crear o borrar categorías por separado todavía.
+      <Text
+        style={[typography.caption, { color: colors.mutedForeground, marginBottom: spacing.md }]}
+      >
+        Las categorías se crean automáticamente al asignarlas a un producto — no hay una acción para
+        crear o borrar categorías por separado todavía.
       </Text>
 
       {isLoading ? (

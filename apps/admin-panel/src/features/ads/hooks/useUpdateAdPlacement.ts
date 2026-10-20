@@ -17,7 +17,9 @@ export function useUpdateAdPlacement() {
     }) => updateAdPlacement(key, platform, input),
     onSuccess: (_result, { key, platform }) => {
       void queryClient.invalidateQueries({ queryKey: ["ad-placements"] });
-      void queryClient.invalidateQueries({ queryKey: ["ad-placements", key, platform, "revisions"] });
+      void queryClient.invalidateQueries({
+        queryKey: ["ad-placements", key, platform, "revisions"],
+      });
     },
   });
 }

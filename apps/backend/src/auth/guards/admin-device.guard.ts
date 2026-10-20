@@ -1,4 +1,10 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Inject, Injectable } from "@nestjs/common";
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Inject,
+  Injectable,
+} from "@nestjs/common";
 import { ConfigService, ConfigType } from "@nestjs/config";
 import { appConfig } from "../../config/configuration";
 import { AppLogger } from "../../common/logger/app-logger.service";

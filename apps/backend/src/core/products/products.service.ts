@@ -19,6 +19,7 @@ import { PurchasesRepository } from "../purchases/purchases.repository";
 import { StockMovementsService } from "../stock-movements/stock-movements.service";
 import { SuppliersService } from "../suppliers/suppliers.service";
 import { ProductsRepository } from "./products.repository";
+import { roundMoney } from "@stocknegozia/shared";
 
 type ProductRow = ReturnType<ProductsRepository["findById"]>;
 
@@ -29,12 +30,6 @@ type ProductRow = ReturnType<ProductsRepository["findById"]>;
  * funciona con este mismo lookup sin cambios adicionales.
  */
 const QR_PRODUCT_PREFIX = "STOCKNEGOZIA:PRODUCT:";
-
-/** Mismo `roundMoney` que ya usan `PurchasesService`/`SalesService` (duplicado deliberadamente,
- *  no se introdujo una utilidad monetaria compartida nueva — mismo criterio que esos dos). */
-function roundMoney(value: number): number {
-  return Math.round(value * 100) / 100;
-}
 
 /**
  * Contexto de negocio opcional para `adjustStock()` — determina qué `type` de stock movement se

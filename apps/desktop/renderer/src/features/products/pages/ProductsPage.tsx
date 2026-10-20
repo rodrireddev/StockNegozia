@@ -1,6 +1,7 @@
 import { Loader2, Package } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { Button } from "@/components/ui/button";
 import { ProductsFilterBar, type ProductFiltersState } from "../components/ProductsFilterBar";
 import { ProductsTable } from "../components/ProductsTable";
@@ -43,7 +44,24 @@ export function ProductsPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Productos</h1>
-        <Button onClick={() => navigate("/products/new")}>+ Nuevo producto</Button>
+        <div className="flex gap-2">
+          <ExportCsvButton
+            fileName="productos"
+            rows={products}
+            columns={[
+              { header: "Nombre", value: (p) => p.name },
+              { header: "SKU", value: (p) => p.sku },
+              { header: "Código de barras", value: (p) => p.barcode },
+              { header: "Categoría", value: (p) => p.categoryName },
+              { header: "Precio de costo", value: (p) => p.purchasePrice },
+              { header: "Precio de venta", value: (p) => p.salePrice },
+              { header: "Stock", value: (p) => p.stock },
+              { header: "Stock mínimo", value: (p) => p.minimumStock },
+              { header: "Activo", value: (p) => p.active },
+            ]}
+          />
+          <Button onClick={() => navigate("/products/new")}>+ Nuevo producto</Button>
+        </div>
       </div>
 
       <ProductsFilterBar

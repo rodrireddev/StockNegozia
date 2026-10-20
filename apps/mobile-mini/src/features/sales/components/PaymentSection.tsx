@@ -1,6 +1,7 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   Banknote,
+  BookUser,
   CreditCard,
   Landmark,
   Plus,
@@ -13,12 +14,12 @@ import {
 import {
   CARD_BRANDS,
   MAX_SALE_PAYMENTS,
-  PAYMENT_METHODS,
   type CardBrand,
   type PaymentMethod,
   type PaymentTermsDto,
 } from "@stocknegozia/api-contracts";
 import {
+  availablePaymentMethods,
   CARD_BRAND_LABELS,
   changePaymentLineMethod,
   creditInstallmentOptions,
@@ -54,6 +55,7 @@ const METHOD_ICONS: Record<PaymentMethod, LucideIcon> = {
   transfer: Landmark,
   qr: QrCode,
   other: Wallet,
+  account: BookUser,
 };
 
 const NO_BRAND = "none";
@@ -65,6 +67,8 @@ interface PaymentSectionProps {
   summary: PaymentDraftSummary;
   /** Condiciones de cobro configuradas — planes de cuotas, recargos y acreditación. */
   terms?: PaymentTermsDto;
+  /** Ofrecer "Cuenta corriente" — sólo cuando la venta tiene un cliente elegido. */
+  allowAccount?: boolean;
 }
 
 /**
@@ -79,8 +83,10 @@ export function PaymentSection({
   onChange,
   summary,
   terms = DEFAULT_PAYMENT_TERMS,
+  allowAccount = false,
 }: PaymentSectionProps) {
   const { colors } = useTheme();
+  const methods = availablePaymentMethods(allowAccount);
   const single = !draft.split;
   // "Pagos completos" sólo cuando realmente se puede confirmar: una línea con el monto vacío deja
   // `remaining` en 0 pero igual tiene error ("Completá el monto del pago 2").
@@ -127,6 +133,7 @@ export function PaymentSection({
       {single && firstLine ? (
         <>
           <MethodPicker
+            methods={methods}
             value={firstLine.method}
             onChange={(method) =>
               updateLine(firstLine.key, (line) => changePaymentLineMethod(line, method))
@@ -168,7 +175,7 @@ export function PaymentSection({
               <Select
                 label="Medio"
                 value={line.method}
-                options={PAYMENT_METHODS.map((method) => ({
+                options={methods.map((method) => ({
                   value: method,
                   label: PAYMENT_METHOD_SHORT_LABELS[method],
                 }))}
@@ -238,16 +245,18 @@ export function PaymentSection({
 }
 
 function MethodPicker({
+  methods,
   value,
   onChange,
 }: {
+  methods: PaymentMethod[];
   value: PaymentMethod;
   onChange: (method: PaymentMethod) => void;
 }) {
   const { colors } = useTheme();
   return (
     <View style={styles.methodGrid} accessibilityRole="radiogroup">
-      {PAYMENT_METHODS.map((method) => {
+      {methods.map((method) => {
         const Icon = METHOD_ICONS[method];
         const selected = method === value;
         const foreground = selected ? colors.primaryForeground : colors.foreground;

@@ -1,0 +1,1 @@
+ALTER TABLE `devices` ADD `role` text DEFAULT 'manager' NOT NULL;

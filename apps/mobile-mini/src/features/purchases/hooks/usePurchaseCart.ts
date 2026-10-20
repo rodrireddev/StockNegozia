@@ -6,11 +6,7 @@ import {
   type PurchaseCartProduct,
 } from "@stocknegozia/shared";
 
-export type {
-  PurchaseCartAction,
-  PurchaseCartItem,
-  PurchaseCartState,
-} from "@stocknegozia/shared";
+export type { PurchaseCartAction, PurchaseCartItem, PurchaseCartState } from "@stocknegozia/shared";
 
 /** Reducer compartido con Desktop, ver `@stocknegozia/shared` — a diferencia de Ventas, una
  *  compra necesita `unitCost` editable por línea (no tiene concepto de stock disponible). */

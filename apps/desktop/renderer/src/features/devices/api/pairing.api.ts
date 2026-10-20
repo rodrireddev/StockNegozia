@@ -1,7 +1,4 @@
-import type {
-  PairingCreateResult,
-  PairingStatusResult,
-} from "@stocknegozia/api-contracts";
+import type { PairingCreateResult, PairingStatusResult } from "@stocknegozia/api-contracts";
 import { apiGet, apiPost } from "@/lib/api-client";
 
 export function createPairing(): Promise<PairingCreateResult> {

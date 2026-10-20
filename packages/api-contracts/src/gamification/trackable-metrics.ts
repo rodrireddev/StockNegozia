@@ -68,7 +68,9 @@ export const TRACKABLE_METRICS = [
 
 export type TrackableMetricType = (typeof TRACKABLE_METRICS)[number]["key"];
 
-export const TRACKABLE_METRIC_KEYS = TRACKABLE_METRICS.map((metric) => metric.key) as TrackableMetricType[];
+export const TRACKABLE_METRIC_KEYS = TRACKABLE_METRICS.map(
+  (metric) => metric.key,
+) as TrackableMetricType[];
 
 export function isTrackableMetricType(value: string): value is TrackableMetricType {
   return (TRACKABLE_METRIC_KEYS as string[]).includes(value);

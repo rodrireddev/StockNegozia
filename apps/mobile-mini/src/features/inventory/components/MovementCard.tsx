@@ -41,7 +41,8 @@ export function MovementCard({
       </View>
       <View style={styles.metaRow}>
         <Text style={[typography.caption, { color: colors.mutedForeground }]}>
-          {dateFormatter.format(new Date(movement.createdAt))} · {MOVEMENT_TYPE_LABELS[movement.type]}
+          {dateFormatter.format(new Date(movement.createdAt))} ·{" "}
+          {MOVEMENT_TYPE_LABELS[movement.type]}
         </Text>
         <Text style={[typography.caption, { color: colors.mutedForeground }]}>
           {formatMovementUnitValue(movement.unitValue)}

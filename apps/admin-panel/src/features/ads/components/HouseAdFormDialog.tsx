@@ -65,7 +65,10 @@ function HouseAdFormDialogContent({
     if (state.mode === "create") {
       createMutation.mutate(payload, { onSuccess: () => onOpenChange(false) });
     } else {
-      updateMutation.mutate({ id: state.houseAd.id, input: payload }, { onSuccess: () => onOpenChange(false) });
+      updateMutation.mutate(
+        { id: state.houseAd.id, input: payload },
+        { onSuccess: () => onOpenChange(false) },
+      );
     }
   }
 
@@ -79,7 +82,9 @@ function HouseAdFormDialogContent({
     >
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{state.mode === "create" ? "Nuevo house ad" : "Editar house ad"}</DialogTitle>
+          <DialogTitle>
+            {state.mode === "create" ? "Nuevo house ad" : "Editar house ad"}
+          </DialogTitle>
           <DialogDescription>
             Se muestra cuando AdMob no tiene fill — el habilitado de mayor prioridad.
           </DialogDescription>
@@ -87,11 +92,22 @@ function HouseAdFormDialogContent({
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="ha-title">Título</Label>
-            <Input id="ha-title" value={title} onChange={(event) => setTitle(event.target.value)} required maxLength={120} />
+            <Input
+              id="ha-title"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              required
+              maxLength={120}
+            />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="ha-body">Texto (opcional)</Label>
-            <Textarea id="ha-body" value={body} onChange={(event) => setBody(event.target.value)} maxLength={500} />
+            <Textarea
+              id="ha-body"
+              value={body}
+              onChange={(event) => setBody(event.target.value)}
+              maxLength={500}
+            />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="ha-image">URL de imagen (opcional)</Label>

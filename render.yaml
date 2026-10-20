@@ -29,7 +29,7 @@ services:
     runtime: node
     plan: free
     # `turbo run build` (no `pnpm --filter ... build` directo) — Turbo compila primero los
-    # paquetes compartidos que este servicio necesita (`validation`, `api-contracts`, `shared`,
+    # paquetes compartidos que este servicio necesita (`validation`, `api-contracts`,
     # ver `turbo.json`: `build` depende de `^build`), algo que un `pnpm --filter` suelto no
     # garantiza en una máquina de CI limpia sin esos `dist/` ya generados.
     #

@@ -30,7 +30,9 @@ export class TurnstileService {
       if (config.nodeEnv === "production") {
         throw new InternalServerErrorException("Turnstile no está configurado");
       }
-      this.logger.warn("TURNSTILE_SECRET_KEY no configurada — se omite la verificación del captcha (solo dev)");
+      this.logger.warn(
+        "TURNSTILE_SECRET_KEY no configurada — se omite la verificación del captcha (solo dev)",
+      );
       return true;
     }
 

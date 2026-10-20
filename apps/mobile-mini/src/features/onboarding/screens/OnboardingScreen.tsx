@@ -63,7 +63,18 @@ const styles = StyleSheet.create({
   container: { justifyContent: "space-between" },
   skipRow: { alignItems: "flex-end" },
   skipRowHidden: { opacity: 0 },
-  content: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.lg, padding: spacing.lg },
-  dots: { flexDirection: "row", justifyContent: "center", gap: spacing.sm, marginBottom: spacing.lg },
+  content: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.lg,
+    padding: spacing.lg,
+  },
+  dots: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
   dot: { width: 8, height: 8, borderRadius: 4 },
 });

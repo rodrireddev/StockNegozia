@@ -30,11 +30,14 @@ export class ReceiptManager {
   async downloadSaleReceipt(saleId: number): Promise<DownloadReceiptOutcome> {
     const window = this.getMainWindow();
     const defaultFileName = `recibo-venta-${saleId}.pdf`;
-    const dialogResult = await dialog.showSaveDialog(window ?? (undefined as unknown as BrowserWindow), {
-      title: "Guardar recibo de venta",
-      defaultPath: path.join(app.getPath("documents"), defaultFileName),
-      filters: [{ name: "Recibo PDF", extensions: ["pdf"] }],
-    });
+    const dialogResult = await dialog.showSaveDialog(
+      window ?? (undefined as unknown as BrowserWindow),
+      {
+        title: "Guardar recibo de venta",
+        defaultPath: path.join(app.getPath("documents"), defaultFileName),
+        filters: [{ name: "Recibo PDF", extensions: ["pdf"] }],
+      },
+    );
 
     if (dialogResult.canceled || !dialogResult.filePath) {
       return { cancelled: true };

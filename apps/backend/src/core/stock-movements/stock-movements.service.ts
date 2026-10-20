@@ -3,7 +3,11 @@ import type { StockMovementDto } from "@stocknegozia/api-contracts";
 import { AppLogger } from "../../common/logger/app-logger.service";
 import { RequestContext } from "../../common/logger/request-context";
 import type { DrizzleExecutor } from "../../database/database.types";
-import { StockMovementsRepository, type NewStockMovementRecord, type StockMovementFilters } from "./stock-movements.repository";
+import {
+  StockMovementsRepository,
+  type NewStockMovementRecord,
+  type StockMovementFilters,
+} from "./stock-movements.repository";
 
 type StockMovementRow = ReturnType<StockMovementsRepository["findMany"]>[number];
 type InsertedStockMovementRow = ReturnType<StockMovementsRepository["insert"]>;
@@ -83,7 +87,8 @@ export class StockMovementsService {
     // vendedor (la persona) en vez del equipo — reemplaza `device.name`, no lo acompaña (ver
     // docs/inventory/STOCK_MOVEMENTS.md §Trazabilidad). Mobile no tiene este concepto: siempre
     // snapshotea el nombre del dispositivo, sin importar si `sellerName` viniera cargado.
-    const deviceName = device?.type === "desktop" && device.sellerName ? device.sellerName : device?.name;
+    const deviceName =
+      device?.type === "desktop" && device.sellerName ? device.sellerName : device?.name;
     const row = this.repository.insert(
       {
         ...input,
@@ -122,7 +127,10 @@ export class StockMovementsService {
     return this.repository.findMany(filters).map(toDto);
   }
 
-  findByProduct(productId: number, filters: Omit<StockMovementFilters, "productId"> = {}): StockMovementDto[] {
+  findByProduct(
+    productId: number,
+    filters: Omit<StockMovementFilters, "productId"> = {},
+  ): StockMovementDto[] {
     return this.findMany({ ...filters, productId });
   }
 }

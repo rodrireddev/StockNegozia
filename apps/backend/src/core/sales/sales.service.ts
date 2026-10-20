@@ -14,12 +14,13 @@ import type {
   SaleSummaryDto,
 } from "@stocknegozia/api-contracts";
 import type { CreateSaleInput, SaleItemInput, SalePaymentInput } from "@stocknegozia/validation";
-import { computePaymentCharges, formatMoney } from "@stocknegozia/shared";
+import { computePaymentCharges, formatMoney, roundMoney } from "@stocknegozia/shared";
 import { AppLogger } from "../../common/logger/app-logger.service";
 import { errorLogLevel } from "../../common/logger/error-utils";
 import { DRIZZLE_CLIENT } from "../../database/database.constants";
 import type { Database } from "../../database/database.types";
 import type { sales } from "../../database/schema";
+import { CustomersService } from "../customers/customers.service";
 import { ProductsService } from "../products/products.service";
 import { SettingsService } from "../settings/settings.service";
 import { renderSaleReceiptPdf } from "./sale-receipt.pdf";
@@ -28,12 +29,6 @@ import { SalesRepository, type NewSalePaymentRecord } from "./sales.repository";
 type SaleRow = typeof sales.$inferSelect;
 type SaleItemRow = ReturnType<SalesRepository["findItemsBySaleId"]>[number];
 type SalePaymentRow = ReturnType<SalesRepository["findPaymentsBySaleId"]>[number];
-
-/** Evita arrastrar errores de punto flotante al multiplicar precio × cantidad (mismo criterio
- *  monetario que Products, que ya usa `real`/float para sus precios). */
-function roundMoney(value: number): number {
-  return Math.round(value * 100) / 100;
-}
 
 /** Suma cantidades de items que repiten el mismo producto, para no crear más de una línea por
  *  producto dentro de una misma venta. */
@@ -55,6 +50,7 @@ function toSummaryDto(row: SaleRow, paymentMethods: PaymentMethod[]): SaleSummar
     total: row.total,
     createdAt: row.createdAt.toISOString(),
     cancelledAt: row.cancelledAt ? row.cancelledAt.toISOString() : null,
+    customerId: row.customerId,
     paymentMethods,
   };
 }
@@ -175,10 +171,11 @@ export class SalesService {
     private readonly productsService: ProductsService,
     private readonly settingsService: SettingsService,
     private readonly logger: AppLogger,
+    @Inject(CustomersService) private readonly customersService: CustomersService,
   ) {}
 
-  findMany(): SaleSummaryDto[] {
-    const rows = this.repository.findMany();
+  findMany(customerId?: number): SaleSummaryDto[] {
+    const rows = this.repository.findMany(customerId);
     const methodsBySale = this.repository.findPaymentMethodsBySaleIds(rows.map((row) => row.id));
     return rows.map((row) => toSummaryDto(row, methodsBySale.get(row.id) ?? []));
   }
@@ -241,6 +238,7 @@ export class SalesService {
       });
 
       const saleId = this.db.transaction((tx) => {
+        if (input.customerId) this.customersService.findById(input.customerId, tx); // 404 si no existe
         const lines = normalizedItems.map((item) => {
           const product = this.productsService.findById(item.productId, tx); // 404 si no existe
           const subtotal = roundMoney(product.salePrice * item.quantity);
@@ -257,7 +255,10 @@ export class SalesService {
         const total = roundMoney(lines.reduce((sum, line) => sum + line.subtotal, 0));
 
         const createdAt = new Date();
-        const sale = this.repository.insertSale({ status: "completed", total, createdAt }, tx);
+        const sale = this.repository.insertSale(
+          { status: "completed", total, createdAt, customerId: input.customerId ?? null },
+          tx,
+        );
         this.repository.insertSaleItems(
           lines.map((line) => ({ ...line, saleId: sale.id })),
           tx,

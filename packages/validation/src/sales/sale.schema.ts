@@ -20,7 +20,7 @@ export const saleItemInputSchema = z.object({
     .max(MAX_ITEM_QUANTITY, "La cantidad es demasiado grande"),
 });
 
-const moneyAmount = (label: string) =>
+export const moneyAmount = (label: string) =>
   z.coerce
     .number({ invalid_type_error: `${label} es inválido` })
     .finite(`${label} es inválido`)
@@ -86,21 +86,31 @@ export const salePaymentInputSchema = z
     }
   });
 
-export const createSaleSchema = z.object({
-  items: z.array(saleItemInputSchema).min(1, "La venta debe tener al menos un ítem"),
-  /**
-   * Opcional por compatibilidad con clientes viejos: una venta sin `payments` queda registrada
-   * sin medio de pago ("Sin especificar"). Todas las pantallas de venta actuales lo envían.
-   */
-  payments: z
-    .array(salePaymentInputSchema)
-    .min(1, "Indicá al menos un medio de pago")
-    .max(MAX_SALE_PAYMENTS, `Máximo ${MAX_SALE_PAYMENTS} pagos por venta`)
-    .refine((payments) => payments.length === 1 || payments.every((p) => p.amount !== undefined), {
-      message: "Con pago mixto cada pago tiene que indicar su monto",
-    })
-    .optional(),
-});
+export const createSaleSchema = z
+  .object({
+    items: z.array(saleItemInputSchema).min(1, "La venta debe tener al menos un ítem"),
+    /** Opcional — venta de mostrador anónima si se omite. */
+    customerId: z.number().int().positive().optional(),
+    /**
+     * Opcional por compatibilidad con clientes viejos: una venta sin `payments` queda registrada
+     * sin medio de pago ("Sin especificar"). Todas las pantallas de venta actuales lo envían.
+     */
+    payments: z
+      .array(salePaymentInputSchema)
+      .min(1, "Indicá al menos un medio de pago")
+      .max(MAX_SALE_PAYMENTS, `Máximo ${MAX_SALE_PAYMENTS} pagos por venta`)
+      .refine(
+        (payments) => payments.length === 1 || payments.every((p) => p.amount !== undefined),
+        {
+          message: "Con pago mixto cada pago tiene que indicar su monto",
+        },
+      )
+      .optional(),
+  })
+  .refine(
+    (sale) => sale.customerId !== undefined || !sale.payments?.some((p) => p.method === "account"),
+    { path: ["customerId"], message: "Para vender a cuenta corriente elegí un cliente" },
+  );
 
 export type SaleItemInput = z.infer<typeof saleItemInputSchema>;
 export type SalePaymentInput = z.infer<typeof salePaymentInputSchema>;

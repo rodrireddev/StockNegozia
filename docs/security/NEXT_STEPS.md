@@ -37,7 +37,13 @@ razonamiento completo. Resumen de las preguntas que quedaron abiertas acá:
   devices no se eliminan físicamente (ver `DEVICE_MANAGEMENT.md` §Revocación permanente) — si eso
   cambiara alguna vez, habría que revisar esta FK entonces, no antes.
 
-### 2. Validar `PAIRING_HOST`
+### 2. Validar `PAIRING_HOST` — ✅ Implementado
+
+**Resuelto:** `backendEnvSchema` (`packages/validation/src/env/backend-env.schema.ts`) acepta solo
+IPv4 o hostname, sin protocolo/puerto/espacios, y rechaza `localhost`/`127.x`. Un valor inválido
+frena el arranque del backend con un mensaje claro en vez de generar un QR roto. IPv6 y `.local`
+(mDNS) siguen fuera de alcance. Tests: `apps/backend/src/config/pairing-host.spec.ts`. Contexto
+original:
 
 Actualmente `PAIRING_HOST` es un override opcional (`packages/validation/src/env/backend-env.schema.ts`,
 tipado como `z.string().optional()`, sin validación de formato). El sistema usa
@@ -210,19 +216,19 @@ el comportamiento existente de `confirmPairing`/`cancelPairing`/`CredentialServi
 
 ### 8. Tabla resumen
 
-| Pendiente                              | Cuándo revisar      | Prioridad | Estado         |
-| ---------------------------------------- | -------------------- | ---------: | -------------- |
-| `pairing_sessions.device_id` FK          | Device Management     |      Media | Implementado   |
-| Validación `PAIRING_HOST`                | Frontend/LAN config    |      Media | Pendiente      |
-| Generación visual de QR                  | Frontend Pairing       |       Alta | Implementado (M14) |
-| Seguridad de datos sensibles en UI       | Frontend Pairing       |       Alta | Implementado (M14) |
-| UX de estados del pairing                | Frontend Pairing       |      Media | Implementado (M14) |
-| Regla de revocación permanente           | Device Management      |       Alta | Implementada   |
-| API de Device Management (backend)       | Device Management      |       Alta | Implementado   |
-| UI de Device Management (frontend)       | Frontend Device Mgmt.  |       Alta | Implementado (M14) |
-| Pairing real desde un cliente LAN (Web Client) | Frontend LAN     |       Alta | Implementado (M14) |
-| CORS restringido a orígenes conocidos    | LAN/M14                |      Media | Implementado (M14) |
-| Promoción de device cliente a admin      | Device Management (futuro) |  Baja | Pendiente      |
+| Pendiente                                      | Cuándo revisar             | Prioridad | Estado             |
+| ---------------------------------------------- | -------------------------- | --------: | ------------------ |
+| `pairing_sessions.device_id` FK                | Device Management          |     Media | Implementado       |
+| Validación `PAIRING_HOST`                      | Frontend/LAN config        |     Media | Implementado       |
+| Generación visual de QR                        | Frontend Pairing           |      Alta | Implementado (M14) |
+| Seguridad de datos sensibles en UI             | Frontend Pairing           |      Alta | Implementado (M14) |
+| UX de estados del pairing                      | Frontend Pairing           |     Media | Implementado (M14) |
+| Regla de revocación permanente                 | Device Management          |      Alta | Implementada       |
+| API de Device Management (backend)             | Device Management          |      Alta | Implementado       |
+| UI de Device Management (frontend)             | Frontend Device Mgmt.      |      Alta | Implementado (M14) |
+| Pairing real desde un cliente LAN (Web Client) | Frontend LAN               |      Alta | Implementado (M14) |
+| CORS restringido a orígenes conocidos          | LAN/M14                    |     Media | Implementado (M14) |
+| Promoción de device cliente a admin            | Device Management (futuro) |      Baja | Pendiente          |
 
 Estados posibles: `Pendiente` (no resuelto todavía) · `Definido`/`Definida` (la decisión ya está
 tomada, falta implementarla) · `Implementado`/`Implementada` (ya resuelto en código).

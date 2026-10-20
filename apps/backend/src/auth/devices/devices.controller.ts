@@ -13,9 +13,11 @@ import {
 } from "@nestjs/common";
 import type { DeviceDto } from "@stocknegozia/api-contracts";
 import {
+  updateDeviceRoleSchema,
   updateDeviceSchema,
   updateSellerNameSchema,
   type UpdateDeviceInput,
+  type UpdateDeviceRoleInput,
   type UpdateSellerNameInput,
 } from "@stocknegozia/validation";
 import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
@@ -67,7 +69,10 @@ export class DevicesController {
 
   @UseGuards(AdminDeviceGuard)
   @Get(":id")
-  getById(@Param("id", new ParseUUIDPipe()) id: string, @Req() request: RequestWithDevice): DeviceDto {
+  getById(
+    @Param("id", new ParseUUIDPipe()) id: string,
+    @Req() request: RequestWithDevice,
+  ): DeviceDto {
     return this.devicesService.getById(id, request.device?.id);
   }
 
@@ -82,8 +87,21 @@ export class DevicesController {
   }
 
   @UseGuards(AdminDeviceGuard)
+  @Patch(":id/role")
+  updateRole(
+    @Param("id", new ParseUUIDPipe()) id: string,
+    @Body(new ZodValidationPipe(updateDeviceRoleSchema)) body: UpdateDeviceRoleInput,
+    @Req() request: RequestWithDevice,
+  ): DeviceDto {
+    return this.devicesService.updateRole(id, body.role, request.device?.id);
+  }
+
+  @UseGuards(AdminDeviceGuard)
   @Post(":id/revoke")
-  revoke(@Param("id", new ParseUUIDPipe()) id: string, @Req() request: RequestWithDevice): DeviceDto {
+  revoke(
+    @Param("id", new ParseUUIDPipe()) id: string,
+    @Req() request: RequestWithDevice,
+  ): DeviceDto {
     return this.devicesService.revoke(id, request.device?.id);
   }
 }

@@ -36,10 +36,16 @@ export async function updateProduct(id: number, input: UpdateProductInput): Prom
   return productsService.update(id, input);
 }
 
-export async function adjustProductStock(id: number, input: StockAdjustmentInput): Promise<ProductDto> {
+export async function adjustProductStock(
+  id: number,
+  input: StockAdjustmentInput,
+): Promise<ProductDto> {
   return productsService.applyStockAdjustment(id, input.stock, input.reason);
 }
 
-export async function updateProductActive(id: number, input: ActiveUpdateInput): Promise<ProductDto> {
+export async function updateProductActive(
+  id: number,
+  input: ActiveUpdateInput,
+): Promise<ProductDto> {
   return productsService.updateActive(id, input.active);
 }

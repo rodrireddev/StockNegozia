@@ -11,7 +11,11 @@ Sales, Purchases, Customers, Users y Permissions.
   implementación real: entidades en SQLite, repositorio, servicio y controller. Ver el propio
   módulo de Ventas para el detalle de cómo se integra con el stock de Productos, y
   docs/inventory/PURCHASES.md para Compras/Proveedores.
-- `inventory/`, `customers/`, `users/` y `permissions/` siguen siendo **placeholders
+- `customers/` tiene implementación real (alta/edición, historial de compras; `sales.customer_id`
+  opcional). Los permisos se resolvieron por dispositivo (rol Encargado/Cajero, ver
+  `auth/guards/manager-device.guard.ts` y docs/security/DEVICE_MANAGEMENT.md §Roles), no en este
+  módulo.
+- `inventory/`, `users/` y `permissions/` siguen siendo **placeholders
   estructurales**: cada uno es una clase `@Module({})` vacía, registrada en `CoreModule`
   únicamente para reservar su punto de extensión en el árbol de la aplicación. Ninguno contiene
   todavía lógica de negocio, entidades, repositorios ni endpoints.

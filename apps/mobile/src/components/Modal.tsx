@@ -21,10 +21,7 @@ export function Modal({ visible, onClose, children }: ModalProps) {
     <RNModal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="none">
         <Pressable
-          style={[
-            styles.card,
-            { backgroundColor: colors.background, borderColor: colors.border },
-          ]}
+          style={[styles.card, { backgroundColor: colors.background, borderColor: colors.border }]}
           onPress={(event) => event.stopPropagation()}
         >
           {children}

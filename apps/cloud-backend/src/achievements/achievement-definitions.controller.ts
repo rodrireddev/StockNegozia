@@ -1,5 +1,8 @@
 import { Body, Controller, Get, Inject, Param, Patch, Post, Req, UseGuards } from "@nestjs/common";
-import type { AchievementDefinitionDto, AchievementDefinitionRevisionDto } from "@stocknegozia/api-contracts";
+import type {
+  AchievementDefinitionDto,
+  AchievementDefinitionRevisionDto,
+} from "@stocknegozia/api-contracts";
 import {
   createAchievementSchema,
   updateAchievementSchema,

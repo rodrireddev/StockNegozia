@@ -9,6 +9,7 @@ import {
   Sparkles,
   TrendingUp,
   Truck,
+  Users,
   Wallet,
   type LucideProps,
 } from "lucide-react-native";
@@ -44,6 +45,13 @@ const ITEMS: MoreItem[] = [
     label: "Ajustes de caja",
     description: "Retiros e ingresos de caja",
     icon: Wallet,
+  },
+  {
+    // `as Href`: ruta nueva, ver el comentario de "Beneficios" más abajo.
+    href: "/customers" as Href,
+    label: "Clientes",
+    description: "Clientes y cuenta corriente (fiado)",
+    icon: Users,
   },
   {
     href: "/suppliers",

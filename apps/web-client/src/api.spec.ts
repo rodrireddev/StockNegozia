@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthRequiredError, checkHealth, confirmPairing, getMe, loadProducts } from "./api";
-import { clearStoredCredential, getStoredCredential, setStoredCredential } from "./credential-store";
+import {
+  clearStoredCredential,
+  getStoredCredential,
+  setStoredCredential,
+} from "./credential-store";
 
 const originalFetch = global.fetch;
 
@@ -24,16 +28,14 @@ describe("api", () => {
   });
 
   it("checkHealth pega a <API_URL>/health y devuelve el body", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(
-        jsonResponse({
-          status: "ok",
-          uptimeSeconds: 1,
-          database: { connected: true },
-          timestamp: "now",
-        }),
-      );
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        status: "ok",
+        uptimeSeconds: 1,
+        database: { connected: true },
+        timestamp: "now",
+      }),
+    );
     global.fetch = fetchMock as unknown as typeof fetch;
 
     const result = await checkHealth();
@@ -108,19 +110,17 @@ describe("api", () => {
 
     it("getMe pega a /auth/devices/me con la credential guardada", async () => {
       setStoredCredential("sn_mi-credential");
-      const fetchMock = vi
-        .fn()
-        .mockResolvedValue(
-          jsonResponse({
-            id: "device-1",
-            name: "Notebook",
-            type: "web",
-            active: true,
-            isAdmin: false,
-            createdAt: "2026-09-15T00:00:00.000Z",
-            lastSeenAt: null,
-          }),
-        );
+      const fetchMock = vi.fn().mockResolvedValue(
+        jsonResponse({
+          id: "device-1",
+          name: "Notebook",
+          type: "web",
+          active: true,
+          isAdmin: false,
+          createdAt: "2026-09-15T00:00:00.000Z",
+          lastSeenAt: null,
+        }),
+      );
       global.fetch = fetchMock as unknown as typeof fetch;
 
       const me = await getMe();
@@ -135,11 +135,12 @@ describe("api", () => {
 
   describe("confirmPairing", () => {
     it("en éxito, devuelve el device y la credential", async () => {
-      const fetchMock = vi
-        .fn()
-        .mockResolvedValue(
-          jsonResponse({ device: { id: "device-1", name: "Web", type: "web" }, credential: "sn_nueva" }),
-        );
+      const fetchMock = vi.fn().mockResolvedValue(
+        jsonResponse({
+          device: { id: "device-1", name: "Web", type: "web" },
+          credential: "sn_nueva",
+        }),
+      );
       global.fetch = fetchMock as unknown as typeof fetch;
 
       const result = await confirmPairing({

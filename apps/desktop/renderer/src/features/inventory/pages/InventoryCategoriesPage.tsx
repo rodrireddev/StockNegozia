@@ -37,8 +37,8 @@ export function InventoryCategoriesPage() {
       />
 
       <p className="text-sm text-muted-foreground">
-        Las categorías se crean automáticamente al asignarlas a un producto — no hay una acción
-        para crear o borrar categorías por separado todavía.
+        Las categorías se crean automáticamente al asignarlas a un producto — no hay una acción para
+        crear o borrar categorías por separado todavía.
       </p>
 
       {isLoading && (

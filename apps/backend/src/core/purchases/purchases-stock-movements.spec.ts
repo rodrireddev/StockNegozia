@@ -175,7 +175,12 @@ describe("Purchases — integración con Stock Movements", () => {
       // reciente). Los índices 0/1 no cambian — el nuevo movimiento queda al final (índice 2).
       const movements = stockMovementsService.findByProduct(product.id);
       expect(movements).toHaveLength(3);
-      expect(movements[0]).toMatchObject({ type: "PURCHASE", stockBefore: 8, stockAfter: 20, purchaseId: purchase.id });
+      expect(movements[0]).toMatchObject({
+        type: "PURCHASE",
+        stockBefore: 8,
+        stockAfter: 20,
+        purchaseId: purchase.id,
+      });
       expect(movements[1]).toMatchObject({ type: "ADJUSTMENT", stockBefore: 10, stockAfter: 8 });
       expect(productsService.findById(product.id).stock).toBe(20);
     });

@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      # Los tests no abren Electron — evita bajar ~100MB de binario en cada run.
+      ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # better-sqlite3 está fuera de onlyBuiltDependencies por Render (ver pnpm-workspace.yaml),
+      # pero los tests de apps/backend lo necesitan compilado.
+      - run: pnpm --filter @stocknegozia/backend rebuild better-sqlite3
+      - run: pnpm format:check
+      - run: pnpm turbo run typecheck lint test --continue

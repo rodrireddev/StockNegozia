@@ -34,12 +34,7 @@ export interface CreatePairingOptions {
  * docs/security/PAIRING.md §Seguridad). El cliente siempre recibe el mismo 401 genérico.
  */
 type ConfirmFailureReason =
-  | "not_found"
-  | "already_confirmed"
-  | "expired"
-  | "cancelled"
-  | "invalid_token"
-  | "invalid_code";
+  "not_found" | "already_confirmed" | "expired" | "cancelled" | "invalid_token" | "invalid_code";
 
 /**
  * Pairing de nuevos dispositivos vía QR + código de verificación — ver docs/security/PAIRING.md.
@@ -82,7 +77,11 @@ export class PairingService {
       operation: "createPairing",
       event: "pairing.created",
       message: "Pairing session created",
-      metadata: { pairingId: id, expiresAt: expiresAt.toISOString(), initiatedByDeviceId: options.initiatedByDeviceId },
+      metadata: {
+        pairingId: id,
+        expiresAt: expiresAt.toISOString(),
+        initiatedByDeviceId: options.initiatedByDeviceId,
+      },
     });
 
     const qr: PairingQrPayload = {
@@ -148,7 +147,11 @@ export class PairingService {
     });
 
     return {
-      device: { id: deviceId, name: input.deviceName ?? DEFAULT_PAIRED_DEVICE_NAME, type: deviceType },
+      device: {
+        id: deviceId,
+        name: input.deviceName ?? DEFAULT_PAIRED_DEVICE_NAME,
+        type: deviceType,
+      },
       credential,
     };
   }
@@ -208,7 +211,8 @@ export class PairingService {
     if (!session) return "not_found";
     if (session.status === "confirmed") return "already_confirmed";
     if (session.status === "cancelled") return "cancelled";
-    if (session.status === "expired" || session.expiresAt.getTime() < now.getTime()) return "expired";
+    if (session.status === "expired" || session.expiresAt.getTime() < now.getTime())
+      return "expired";
     if (this.credentialService.hash(input.token) !== session.tokenHash) return "invalid_token";
     if (this.credentialService.hash(input.verificationCode) !== session.verificationCodeHash) {
       return "invalid_code";

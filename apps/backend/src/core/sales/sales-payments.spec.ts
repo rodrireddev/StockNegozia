@@ -1,3 +1,5 @@
+import { CustomersRepository } from "../customers/customers.repository";
+import { CustomersService } from "../customers/customers.service";
 import { BadRequestException } from "@nestjs/common";
 import { createSaleSchema } from "@stocknegozia/validation";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -55,6 +57,7 @@ describe("SalesService — medios de pago", () => {
       productsService,
       new SettingsService(new SettingsRepository(db)),
       logger,
+      new CustomersService(new CustomersRepository(db), db),
     );
     profitsService = new ProfitsService(new ProfitsRepository(db));
     financeService = new FinanceService(

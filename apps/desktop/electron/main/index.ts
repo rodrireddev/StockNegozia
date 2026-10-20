@@ -1,5 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, session } from "electron";
 import { join } from "node:path";
+import { startAutoUpdates } from "./auto-updater";
 import { BackendExitedError, BackendManager } from "./backend-manager";
 import { BackupManager } from "./backup-manager";
 import { ensureDeviceCredential } from "./bootstrap-device";
@@ -47,11 +48,16 @@ async function pushCloudSession(accessToken: string | null): Promise<void> {
       body: JSON.stringify({ accessToken }),
     });
   } catch (error) {
-    console.error(`[cloud-account] No se pudo sincronizar la sesión con el backend local: ${error}`);
+    console.error(
+      `[cloud-account] No se pudo sincronizar la sesión con el backend local: ${error}`,
+    );
   }
 }
 
-ipcMain.handle("cloudAccount:getToken", () => cloudAccountCredentialStore.load()?.accessToken ?? null);
+ipcMain.handle(
+  "cloudAccount:getToken",
+  () => cloudAccountCredentialStore.load()?.accessToken ?? null,
+);
 ipcMain.handle("cloudAccount:setToken", async (_event, accessToken: string, expiresAt: string) => {
   cloudAccountCredentialStore.save({ accessToken, expiresAt });
   await pushCloudSession(accessToken);
@@ -166,6 +172,7 @@ async function bootstrap(): Promise<void> {
     void ensureMinimumVisible(splashShownAt, MIN_SPLASH_VISIBLE_MS).then(() => {
       splash.close();
       mainWindow?.show();
+      startAutoUpdates();
     });
   });
   mainWindow.on("closed", () => {

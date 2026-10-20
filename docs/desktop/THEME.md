@@ -12,7 +12,7 @@ sin cifrar (no es información sensible, a diferencia de la credential del dispo
 ausente o corrupto cae al default (`system`) sin romper el arranque.
 
 No se usa `localStorage` del Renderer ni una tabla en SQLite: Electron Main necesita conocer la
-preferencia *antes* de que exista cualquier ventana (para pintar el splash con el fondo correcto,
+preferencia _antes_ de que exista cualquier ventana (para pintar el splash con el fondo correcto,
 ver [SPLASH.md](./SPLASH.md)), así que el dueño de la preferencia tiene que ser Main, no el
 Renderer.
 

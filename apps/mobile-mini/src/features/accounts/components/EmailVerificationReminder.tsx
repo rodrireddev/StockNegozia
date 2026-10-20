@@ -56,11 +56,23 @@ export function EmailVerificationReminder() {
         Es opcional, pero nos ayuda a que no pierdas el acceso a tu cuenta. Revisá también la
         carpeta de spam o promociones — a veces el mail llega ahí.
       </Text>
-      {info ? <Text style={[typography.caption, { color: colors.mutedForeground }]}>{info}</Text> : null}
-      <TextField label="Código recibido por mail" value={token} onChangeText={setToken} autoCapitalize="none" />
+      {info ? (
+        <Text style={[typography.caption, { color: colors.mutedForeground }]}>{info}</Text>
+      ) : null}
+      <TextField
+        label="Código recibido por mail"
+        value={token}
+        onChangeText={setToken}
+        autoCapitalize="none"
+      />
       {error ? <Text style={[typography.caption, { color: colors.danger }]}>{error}</Text> : null}
       <View style={styles.actions}>
-        <Button label="Reenviar código" variant="ghost" onPress={handleResend} disabled={submitting} />
+        <Button
+          label="Reenviar código"
+          variant="ghost"
+          onPress={handleResend}
+          disabled={submitting}
+        />
         <Button label="Confirmar" onPress={handleConfirm} loading={submitting} />
       </View>
     </Card>
@@ -69,5 +81,10 @@ export function EmailVerificationReminder() {
 
 const styles = StyleSheet.create({
   card: { gap: spacing.xs, marginBottom: spacing.md },
-  actions: { flexDirection: "row", gap: spacing.sm, justifyContent: "flex-end", marginTop: spacing.sm },
+  actions: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    justifyContent: "flex-end",
+    marginTop: spacing.sm,
+  },
 });

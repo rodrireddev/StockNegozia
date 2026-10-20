@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { ShoppingCart } from "lucide-react-native";
 import type { ProductDto } from "@stocknegozia/api-contracts";
@@ -29,6 +29,7 @@ import { useTheme } from "@/theme/useTheme";
 import { spacing, typography } from "@/theme/tokens";
 import { MissingBusinessNameModal } from "../components/MissingBusinessNameModal";
 import { usePaymentTerms } from "@/features/finance/hooks/usePaymentTerms";
+import { useCustomers } from "@/features/customers/hooks/useCustomers";
 import { CheckoutSheet } from "../components/CheckoutSheet";
 import { SaleCartRow } from "../components/SaleCartRow";
 import { useCart } from "../hooks/useCart";
@@ -38,6 +39,7 @@ import { useDownloadReceipt } from "../hooks/useDownloadReceipt";
 export function SalesScreen() {
   const { colors } = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
+  const scrollRef = useRef<ScrollView>(null);
   const [scanError, setScanError] = useState<string | null>(null);
   const [isResolvingScan, setIsResolvingScan] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -63,6 +65,8 @@ export function SalesScreen() {
   );
   // Paso "Cobrar" en pantalla completa — ver `CheckoutSheet`.
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [customerId, setCustomerId] = useState<number | null>(null);
+  const customers = useCustomers();
   const createSale = useCreateSale();
   const downloadReceipt = useDownloadReceipt();
   const settings = useSettings();
@@ -150,9 +154,11 @@ export function SalesScreen() {
       sale = await createSale.mutateAsync({
         items: cart.items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
         payments: paymentSummary.payments,
+        ...(customerId !== null && { customerId }),
       });
       // El carrito solo se limpia después de que el backend confirmó la venta — nunca antes.
       cart.clear();
+      setCustomerId(null);
       setCheckoutOpen(false);
       // La próxima venta arranca con el mismo medio, sin montos ni referencias de esta.
       setPaymentDraft((draft) => createPaymentDraft(draft.lines[0]?.method));
@@ -187,6 +193,9 @@ export function SalesScreen() {
           placeholder="Nombre, SKU o código de barras…"
           value={searchTerm}
           onChangeText={(v) => {
+            // Los resultados se muestran arriba del carrito: si el carrito estaba scrolleado hacia
+            // abajo, quedaban fuera de la vista.
+            scrollRef.current?.scrollTo({ y: 0, animated: false });
             setSearchTerm(v);
             setScanError(null);
           }}
@@ -209,32 +218,35 @@ export function SalesScreen() {
         />
 
         <ScrollView
+          ref={scrollRef}
           style={styles.scroll}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.results}>
-            {productsQuery.isLoading || isResolvingScan ? (
-              <LoadingState message="Buscando productos…" />
-            ) : productsQuery.isError ? (
-              <ErrorState
-                message="No pudimos cargar los productos."
-                onRetry={() => void productsQuery.refetch()}
-              />
-            ) : (productsQuery.data ?? []).length === 0 ? (
-              <Text style={[typography.caption, { color: colors.mutedForeground }]}>
-                {trimmedSearch
-                  ? `No encontramos productos que coincidan con "${trimmedSearch}".`
-                  : "No tenés productos cargados todavía."}
-              </Text>
-            ) : (
-              (productsQuery.data ?? []).map((product) => (
-                <Pressable key={product.id} onPress={() => handleAdd(product)}>
-                  <ProductListItem product={product} />
-                </Pressable>
-              ))
-            )}
-          </View>
+          {/* Resultados sólo mientras se busca: con el catálogo entero arriba, el carrito (y sus +/-)
+              quedaba empujado fuera de la pantalla después de cada producto agregado. */}
+          {searchTerm.trim() !== "" && trimmedSearch !== "" && (
+            <View style={styles.results}>
+              {productsQuery.isLoading || isResolvingScan ? (
+                <LoadingState message="Buscando productos…" />
+              ) : productsQuery.isError ? (
+                <ErrorState
+                  message="No pudimos cargar los productos."
+                  onRetry={() => void productsQuery.refetch()}
+                />
+              ) : (productsQuery.data ?? []).length === 0 ? (
+                <Text style={[typography.caption, { color: colors.mutedForeground }]}>
+                  {`No encontramos productos que coincidan con "${trimmedSearch}".`}
+                </Text>
+              ) : (
+                (productsQuery.data ?? []).map((product) => (
+                  <Pressable key={product.id} onPress={() => handleAdd(product)}>
+                    <ProductListItem product={product} />
+                  </Pressable>
+                ))
+              )}
+            </View>
+          )}
 
           <Text style={[typography.subtitle, { color: colors.foreground }]}>Venta actual</Text>
 
@@ -308,6 +320,9 @@ export function SalesScreen() {
         onConfirm={handleConfirm}
         isSubmitting={createSale.isPending}
         error={confirmError}
+        customers={customers.data}
+        customerId={customerId}
+        onCustomerChange={setCustomerId}
       />
     </View>
   );

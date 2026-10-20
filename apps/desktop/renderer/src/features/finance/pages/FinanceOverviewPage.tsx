@@ -94,6 +94,11 @@ export function FinanceOverviewPage() {
                     }`
                   : "Nada pendiente de acreditar"}
               </p>
+              {summary.data.receivables.outstanding > 0 && (
+                <p className="text-xs text-warning">
+                  Fiado a cobrar {formatMoney(summary.data.receivables.outstanding)}
+                </p>
+              )}
             </KpiLinkCard>
           </div>
 

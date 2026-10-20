@@ -55,7 +55,10 @@ export const stockMovementsService = {
     return stockMovementsRepository.findMany(filters).map(toDto);
   },
 
-  findByProduct(productId: number, filters: Omit<StockMovementFilters, "productId"> = {}): StockMovementDto[] {
+  findByProduct(
+    productId: number,
+    filters: Omit<StockMovementFilters, "productId"> = {},
+  ): StockMovementDto[] {
     return stockMovementsService.findMany({ ...filters, productId });
   },
 };

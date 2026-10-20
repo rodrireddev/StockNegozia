@@ -16,7 +16,6 @@ vi.mock("@/features/devices/api/devices.api", () => ({
   fetchDevices: fetchDevicesMock,
   fetchMe: fetchMeMock,
   revokeDevice: revokeDeviceMock,
-  renameDevice: vi.fn(),
 }));
 
 vi.mock("@/features/devices/api/pairing.api", () => ({
@@ -31,6 +30,7 @@ const activeDevice: DeviceDto = {
   type: "desktop",
   active: true,
   isAdmin: true,
+  role: "manager",
   createdAt: "2026-09-01T00:00:00.000Z",
   lastSeenAt: "2026-09-15T00:00:00.000Z",
   sellerName: null,
@@ -42,6 +42,7 @@ const revokedDevice: DeviceDto = {
   type: "mobile",
   active: false,
   isAdmin: false,
+  role: "manager",
   createdAt: "2026-08-01T00:00:00.000Z",
   lastSeenAt: null,
   sellerName: null,

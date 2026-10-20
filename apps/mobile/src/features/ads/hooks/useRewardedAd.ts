@@ -3,7 +3,11 @@ import { Platform } from "react-native";
 import type { RewardedAd } from "react-native-google-mobile-ads";
 import type { RewardedAdClaimResult, RewardedAdStatusDto } from "@stocknegozia/api-contracts";
 import { useCloudAccountStatus } from "@/devices/useCloudAccountStatus";
-import { claimRewardedAd, getAdPlacement, getRewardedAdStatus } from "@/features/benefits/api/cloudAccount.api";
+import {
+  claimRewardedAd,
+  getAdPlacement,
+  getRewardedAdStatus,
+} from "@/features/benefits/api/cloudAccount.api";
 import { useCloudAccountMe } from "@/features/benefits/hooks/useCloudAccountMe";
 import { getNativeAdsModule } from "../nativeAdsModule";
 
@@ -122,24 +126,30 @@ export function useRewardedAd(): UseRewardedAdResult {
       setStatus("showing");
       ad.show();
     });
-    const unsubscribeEarned = ad.addAdEventListener(nativeAds.RewardedAdEventType.EARNED_REWARD, () => {
-      if (!linked) return;
-      claimRewardedAd()
-        .then((result) => {
-          setLastClaim(result);
-          if (result.granted) void meQuery.refetch();
-          refetchEligibility();
-        })
-        .catch((err) => setError(err instanceof Error ? err.message : "No se pudo acreditar"));
-    });
+    const unsubscribeEarned = ad.addAdEventListener(
+      nativeAds.RewardedAdEventType.EARNED_REWARD,
+      () => {
+        if (!linked) return;
+        claimRewardedAd()
+          .then((result) => {
+            setLastClaim(result);
+            if (result.granted) void meQuery.refetch();
+            refetchEligibility();
+          })
+          .catch((err) => setError(err instanceof Error ? err.message : "No se pudo acreditar"));
+      },
+    );
     const unsubscribeClosed = ad.addAdEventListener(nativeAds.AdEventType.CLOSED, () => {
       setStatus("idle");
     });
-    const unsubscribeError = ad.addAdEventListener(nativeAds.AdEventType.ERROR, (adError: Error) => {
-      pendingShowRef.current = false;
-      setStatus("error");
-      setError(adError.message);
-    });
+    const unsubscribeError = ad.addAdEventListener(
+      nativeAds.AdEventType.ERROR,
+      (adError: Error) => {
+        pendingShowRef.current = false;
+        setStatus("error");
+        setError(adError.message);
+      },
+    );
 
     return () => {
       unsubscribeLoaded();

@@ -1,3 +1,5 @@
+import { CustomersRepository } from "../customers/customers.repository";
+import { CustomersService } from "../customers/customers.service";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -39,7 +41,10 @@ describe("Sales — secuencia de eventos de logging", () => {
     const categoriesRepository = new CategoriesRepository(db);
     const categoriesService = new CategoriesService(categoriesRepository);
     const productsRepository = new ProductsRepository(db);
-    const stockMovementsService = new StockMovementsService(new StockMovementsRepository(db), logger);
+    const stockMovementsService = new StockMovementsService(
+      new StockMovementsRepository(db),
+      logger,
+    );
     const suppliersService = new SuppliersService(new SuppliersRepository(db));
     productsService = new ProductsService(
       db,
@@ -52,7 +57,14 @@ describe("Sales — secuencia de eventos de logging", () => {
     );
     const salesRepository = new SalesRepository(db);
     const settingsService = new SettingsService(new SettingsRepository(db));
-    salesService = new SalesService(db, salesRepository, productsService, settingsService, logger);
+    salesService = new SalesService(
+      db,
+      salesRepository,
+      productsService,
+      settingsService,
+      logger,
+      new CustomersService(new CustomersRepository(db), db),
+    );
     // El proveedor es obligatorio para crear un producto con stock inicial > 0 (ver
     // ProductsService.create()).
     defaultSupplierId = suppliersService.create({ name: "Proveedor de prueba" }).id;

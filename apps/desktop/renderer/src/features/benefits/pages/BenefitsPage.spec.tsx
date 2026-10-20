@@ -7,7 +7,9 @@ import { BenefitsPage } from "./BenefitsPage";
 const { useAccountMock } = vi.hoisted(() => ({ useAccountMock: vi.fn() }));
 
 vi.mock("../AccountContext", () => ({ useAccount: useAccountMock }));
-vi.mock("../hooks/useActiveGoals", () => ({ useActiveGoals: () => ({ goals: [], isLoading: false }) }));
+vi.mock("../hooks/useActiveGoals", () => ({
+  useActiveGoals: () => ({ goals: [], isLoading: false }),
+}));
 vi.mock("../hooks/useAchievements", () => ({
   useAchievements: () => ({ achievements: [], isLoading: false }),
 }));
@@ -53,9 +55,7 @@ describe("BenefitsPage", () => {
 
     expect(screen.getByText("42 créditos")).toBeInTheDocument();
     expect(screen.getByText("Código de referido: ABC123")).toBeInTheDocument();
-    expect(
-      screen.getByText(/no se pueden ver anuncios para sumar créditos/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/no se pueden ver anuncios para sumar créditos/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /ver anuncio/i })).not.toBeInTheDocument();
   });
 });

@@ -51,7 +51,9 @@ export function BenefitsScreen() {
 
         <Card style={styles.card}>
           <Text style={[typography.caption, { color: colors.mutedForeground }]}>Tu saldo</Text>
-          <Text style={[typography.title, { color: colors.foreground }]}>{me.creditBalance} créditos</Text>
+          <Text style={[typography.title, { color: colors.foreground }]}>
+            {me.creditBalance} créditos
+          </Text>
         </Card>
 
         {goals.length > 0 && (
@@ -59,14 +61,18 @@ export function BenefitsScreen() {
             <Text style={[typography.bodyStrong, { color: colors.foreground }]}>Objetivos</Text>
             {goals.map((goal) => (
               <View key={goal.key} style={{ gap: 2 }}>
-                <Text style={[typography.body, { color: colors.mutedForeground }]}>{goal.label}</Text>
+                <Text style={[typography.body, { color: colors.mutedForeground }]}>
+                  {goal.label}
+                </Text>
                 <Text
                   style={[
                     typography.caption,
                     { color: goal.alreadyClaimed ? colors.success : colors.foreground },
                   ]}
                 >
-                  {goal.alreadyClaimed ? "¡Completado!" : `Progreso: ${goal.progress}/${goal.target}`}
+                  {goal.alreadyClaimed
+                    ? "¡Completado!"
+                    : `Progreso: ${goal.progress}/${goal.target}`}
                 </Text>
               </View>
             ))}
@@ -74,7 +80,9 @@ export function BenefitsScreen() {
         )}
 
         <Card style={styles.card}>
-          <Text style={[typography.bodyStrong, { color: colors.foreground }]}>Ganá créditos gratis</Text>
+          <Text style={[typography.bodyStrong, { color: colors.foreground }]}>
+            Ganá créditos gratis
+          </Text>
           {status === "unavailable" ? (
             <Text style={[typography.caption, { color: colors.mutedForeground }]}>
               Por ahora no podemos mostrarte anuncios acá — el resto de la app funciona igual.

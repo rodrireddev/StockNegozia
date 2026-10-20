@@ -15,7 +15,9 @@ function hashToken(rawToken: string): string {
  */
 @Injectable()
 export class AccountTokensService {
-  constructor(@Inject(AccountTokensRepository) private readonly repository: AccountTokensRepository) {}
+  constructor(
+    @Inject(AccountTokensRepository) private readonly repository: AccountTokensRepository,
+  ) {}
 
   async issue(userId: string, purpose: TokenPurpose, ttlMs: number): Promise<string> {
     await this.repository.invalidateAllUnconsumedForUser(userId, purpose);

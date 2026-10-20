@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { AppLogger } from "../../common/logger/app-logger.service";
 import { CredentialService } from "../credential/credential.service";
 import { DevicesRepository } from "./devices.repository";
-import type { AuthenticatedDevice, DeviceType } from "./devices.types";
+import type { AuthenticatedDevice, DeviceRole, DeviceType } from "./devices.types";
 
 /**
  * `lastSeenAt` no se actualiza en cada request autenticado (sería una escritura a SQLite por
@@ -21,6 +21,7 @@ function toDto(row: NonNullable<DeviceRow>): DeviceDto {
     type: row.type,
     active: row.status === "active",
     isAdmin: row.isAdmin,
+    role: row.role,
     createdAt: row.createdAt.toISOString(),
     lastSeenAt: row.lastSeenAt ? row.lastSeenAt.toISOString() : null,
     sellerName: row.sellerName,
@@ -85,6 +86,7 @@ export class DevicesService {
       status: row.status,
       lastSeenAt: row.lastSeenAt,
       isAdmin: row.isAdmin,
+      role: row.role,
       sellerName: row.sellerName,
     };
   }
@@ -138,6 +140,22 @@ export class DevicesService {
     return toDto(this.repository.findById(id)!);
   }
 
+  /** `PATCH /auth/devices/:id/role` — solo el dispositivo administrador (`AdminDeviceGuard`). */
+  updateRole(id: string, role: DeviceRole, requestedByDeviceId?: string): DeviceDto {
+    const row = this.repository.findById(id);
+    if (!row) throw new NotFoundException("Dispositivo no encontrado");
+
+    this.repository.updateRole(id, role);
+    this.logger.info({
+      context: "DevicesService",
+      operation: "updateRole",
+      event: "device.role.updated",
+      message: "Device role updated",
+      metadata: { deviceId: id, role, requestedBy: requestedByDeviceId },
+    });
+    return toDto(this.repository.findById(id)!);
+  }
+
   /**
    * `PATCH /auth/devices/me/seller-name` — a diferencia de `updateName`, es siempre
    * auto-servicio: un dispositivo solo puede fijar SU PROPIO vendedor actual (ver
@@ -177,7 +195,11 @@ export class DevicesService {
       return toDto(row);
     }
 
-    if (requestedByDeviceId === deviceId && row.isAdmin && this.repository.countActiveAdmins() <= 1) {
+    if (
+      requestedByDeviceId === deviceId &&
+      row.isAdmin &&
+      this.repository.countActiveAdmins() <= 1
+    ) {
       throw new ConflictException(
         "No se puede revocar el único dispositivo administrador activo de la instalación",
       );

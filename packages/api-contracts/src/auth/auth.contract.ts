@@ -1,4 +1,13 @@
 export type DeviceType = "desktop" | "mobile" | "tablet" | "web" | "other";
+
+/**
+ * `manager` (Encargado): acceso completo a los datos del negocio. `cashier` (Cajero): vende,
+ * consulta productos/stock y carga clientes, pero no ve finanzas/ganancias, no registra compras ni
+ * ajustes de caja, no edita productos/precios/proveedores/configuración ni cancela ventas.
+ * Independiente de `isAdmin` (que solo habilita administrar otros dispositivos).
+ */
+export type DeviceRole = "manager" | "cashier";
+export const DEVICE_ROLES = ["manager", "cashier"] as const;
 export type DeviceStatus = "active" | "revoked";
 
 /**
@@ -22,6 +31,7 @@ export interface DeviceDto {
   type: DeviceType;
   active: boolean;
   isAdmin: boolean;
+  role: DeviceRole;
   createdAt: string;
   lastSeenAt: string | null;
   /**

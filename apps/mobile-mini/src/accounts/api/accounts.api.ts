@@ -1,4 +1,8 @@
-import type { AccountAuthResult, AccountMeDto, DevOnlyTokenResult } from "@stocknegozia/api-contracts";
+import type {
+  AccountAuthResult,
+  AccountMeDto,
+  DevOnlyTokenResult,
+} from "@stocknegozia/api-contracts";
 import type {
   AccountLoginInput,
   AccountRegisterInput,
@@ -29,7 +33,9 @@ export function confirmEmail(input: EmailVerificationConfirmInput): Promise<Acco
   return apiPost<AccountMeDto>("/accounts/verify-email/confirm", input);
 }
 
-export function requestPasswordReset(input: PasswordResetRequestInput): Promise<DevOnlyTokenResult> {
+export function requestPasswordReset(
+  input: PasswordResetRequestInput,
+): Promise<DevOnlyTokenResult> {
   return apiPost<DevOnlyTokenResult>("/accounts/password-reset/request", input);
 }
 

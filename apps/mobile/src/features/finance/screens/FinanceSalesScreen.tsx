@@ -4,6 +4,7 @@ import { Stack } from "expo-router";
 import { TrendingUp } from "lucide-react-native";
 import { describePaymentMethods, formatMoney } from "@stocknegozia/shared";
 import { Card } from "@/components/Card";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
@@ -112,6 +113,21 @@ export function FinanceSalesScreen() {
           ) : null}
 
           <SectionCard title="Detalle de ventas">
+            <ExportCsvButton
+              fileName="ventas"
+              rows={lines.data}
+              columns={[
+                { header: "Fecha", value: (l) => dateFormatter.format(new Date(l.createdAt)) },
+                { header: "Venta N°", value: (l) => l.saleId },
+                { header: "Producto", value: (l) => l.productName },
+                { header: "Cantidad", value: (l) => l.quantity },
+                { header: "Precio unitario", value: (l) => l.unitPrice },
+                { header: "Vendido", value: (l) => l.revenue },
+                { header: "Costo", value: (l) => l.cost },
+                { header: "Ganancia", value: (l) => l.profit },
+                { header: "Cobro", value: (l) => describePaymentMethods(l.paymentMethods ?? []) },
+              ]}
+            />
             {lines.isPending ? (
               <LoadingState />
             ) : (

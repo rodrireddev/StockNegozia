@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Inject, Patch, Put } from "@nestjs/common";
+import { Body, Controller, Get, Inject, Patch, Put, UseGuards } from "@nestjs/common";
+import { ManagerDeviceGuard } from "../../auth/guards/manager-device.guard";
 import type { PaymentTermsDto, SettingsDto } from "@stocknegozia/api-contracts";
 import {
   paymentTermsSchema,
@@ -18,6 +19,7 @@ export class SettingsController {
     return this.settingsService.get();
   }
 
+  @UseGuards(ManagerDeviceGuard)
   @Patch()
   update(
     @Body(new ZodValidationPipe(updateSettingsSchema)) body: UpdateSettingsInput,
@@ -31,6 +33,7 @@ export class SettingsController {
     return this.settingsService.getPaymentTerms();
   }
 
+  @UseGuards(ManagerDeviceGuard)
   @Put("payment-terms")
   updatePaymentTerms(
     @Body(new ZodValidationPipe(paymentTermsSchema)) body: PaymentTermsInput,

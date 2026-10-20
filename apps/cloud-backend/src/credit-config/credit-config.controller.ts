@@ -1,6 +1,9 @@
 import { Body, Controller, Get, Inject, Param, Patch, Req, UseGuards } from "@nestjs/common";
 import type { CreditConfigItemDto, CreditConfigItemRevisionDto } from "@stocknegozia/api-contracts";
-import { updateCreditConfigItemSchema, type UpdateCreditConfigItemInput } from "@stocknegozia/validation";
+import {
+  updateCreditConfigItemSchema,
+  type UpdateCreditConfigItemInput,
+} from "@stocknegozia/validation";
 import { AdminJwtGuard, type RequestWithAdmin } from "../admin-auth/admin-jwt.guard";
 import { ZodValidationPipe } from "../common/pipes/zod-validation.pipe";
 import { CreditConfigService } from "./credit-config.service";

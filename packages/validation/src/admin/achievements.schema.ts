@@ -1,8 +1,19 @@
 import { TRACKABLE_METRIC_KEYS, type TrackableMetricType } from "@stocknegozia/api-contracts";
 import { z } from "zod";
 
-export const achievementCategorySchema = z.enum(["setup_quest", "streak_milestone", "scheduled_goal"]);
-export const achievementScheduleTypeSchema = z.enum(["once", "streak", "daily", "weekly", "monthly", "specific_date"]);
+export const achievementCategorySchema = z.enum([
+  "setup_quest",
+  "streak_milestone",
+  "scheduled_goal",
+]);
+export const achievementScheduleTypeSchema = z.enum([
+  "once",
+  "streak",
+  "daily",
+  "weekly",
+  "monthly",
+  "specific_date",
+]);
 export const trackableMetricTypeSchema = z.enum(
   TRACKABLE_METRIC_KEYS as [TrackableMetricType, ...TrackableMetricType[]],
 );

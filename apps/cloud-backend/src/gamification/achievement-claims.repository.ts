@@ -13,7 +13,10 @@ export class AchievementClaimsRepository {
     return this.db
       .select({ claim: achievementClaims, definition: achievementDefinitions })
       .from(achievementClaims)
-      .innerJoin(achievementDefinitions, eq(achievementClaims.achievementDefinitionId, achievementDefinitions.id))
+      .innerJoin(
+        achievementDefinitions,
+        eq(achievementClaims.achievementDefinitionId, achievementDefinitions.id),
+      )
       .where(eq(achievementClaims.userId, userId));
   }
 
@@ -37,7 +40,13 @@ export class AchievementClaimsRepository {
   }
 
   async insert(
-    data: { id: string; userId: string; achievementDefinitionId: string; periodKey: string; creditsAwarded: number },
+    data: {
+      id: string;
+      userId: string;
+      achievementDefinitionId: string;
+      periodKey: string;
+      creditsAwarded: number;
+    },
     executor: DrizzleExecutor = this.db,
   ) {
     const [row] = await executor

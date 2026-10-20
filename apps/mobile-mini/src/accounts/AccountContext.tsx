@@ -10,7 +10,11 @@ import {
 import { AppState } from "react-native";
 import NetInfo from "@react-native-community/netinfo";
 import type { AccountAuthResult, AccountMeDto } from "@stocknegozia/api-contracts";
-import type { AccountLoginInput, AccountRegisterInput, PasswordResetConfirmInput } from "@stocknegozia/validation";
+import type {
+  AccountLoginInput,
+  AccountRegisterInput,
+  PasswordResetConfirmInput,
+} from "@stocknegozia/validation";
 import { backfillSetupQuestsFromLocalData } from "@/features/benefits/gamificationTriggers";
 import { drainGamificationOutbox } from "@/features/benefits/outboxSyncRunner";
 import {
@@ -114,7 +118,8 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   );
 
   const completePasswordReset = useCallback(
-    async (input: PasswordResetConfirmInput) => applySession(await confirmPasswordResetRequest(input)),
+    async (input: PasswordResetConfirmInput) =>
+      applySession(await confirmPasswordResetRequest(input)),
     [applySession],
   );
 
@@ -165,7 +170,16 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   }, [status]);
 
   const value = useMemo<AccountContextValue>(
-    () => ({ status, me, register, login, completePasswordReset, signOut, deleteAccount, refetchMe }),
+    () => ({
+      status,
+      me,
+      register,
+      login,
+      completePasswordReset,
+      signOut,
+      deleteAccount,
+      refetchMe,
+    }),
     [status, me, register, login, completePasswordReset, signOut, deleteAccount, refetchMe],
   );
 

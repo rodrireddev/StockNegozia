@@ -25,7 +25,8 @@ const CSS_PALETTES = ["pastel", "solarized", "nord"] as const;
 function applyResolvedTheme(preference: ThemePreference, resolvedDark: boolean): void {
   document.documentElement.classList.toggle("dark", resolvedDark);
 
-  const resolvedPreference = preference === "system" ? (resolvedDark ? "dark" : "light") : preference;
+  const resolvedPreference =
+    preference === "system" ? (resolvedDark ? "dark" : "light") : preference;
   if ((CSS_PALETTES as readonly string[]).includes(resolvedPreference)) {
     document.documentElement.setAttribute("data-theme", resolvedPreference);
   } else {

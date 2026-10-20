@@ -47,7 +47,12 @@ export class GamificationController {
 
     const [streakResult, goalsCompleted] = await Promise.all([
       this.streakService.recordActivity(userId),
-      this.scheduledGoalsService.recordEventAndEvaluate(userId, body.metricType, occurredOn, body.clientEventId),
+      this.scheduledGoalsService.recordEventAndEvaluate(
+        userId,
+        body.metricType,
+        occurredOn,
+        body.clientEventId,
+      ),
     ]);
 
     return { ...streakResult, goalsCompleted };
@@ -88,9 +93,8 @@ export class GamificationController {
   @Post("rewarded-ad/claim")
   async claimRewardedAd(@Req() request: RequestWithAccount): Promise<RewardedAdClaimResult> {
     // `ledgerEntryId` es interno (lo usa el callback de SSV para auditoría) — nunca al cliente.
-    const { granted, creditsAwarded, sequenceInDay, reason, goalsCompleted } = await this.rewardedAdsService.claim(
-      request.account!.id,
-    );
+    const { granted, creditsAwarded, sequenceInDay, reason, goalsCompleted } =
+      await this.rewardedAdsService.claim(request.account!.id);
     return { granted, creditsAwarded, sequenceInDay, reason, goalsCompleted };
   }
 }

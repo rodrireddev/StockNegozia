@@ -75,7 +75,12 @@ export function StockAdjustModal({ product, onClose }: StockAdjustModalProps) {
         {error && <Text style={{ color: colors.danger }}>{error}</Text>}
         <View style={styles.actions}>
           <View style={styles.action}>
-            <Button label="Cancelar" variant="ghost" onPress={onClose} disabled={adjustStock.isPending} />
+            <Button
+              label="Cancelar"
+              variant="ghost"
+              onPress={onClose}
+              disabled={adjustStock.isPending}
+            />
           </View>
           <View style={styles.action}>
             <Button label="Guardar" onPress={handleConfirm} loading={adjustStock.isPending} />

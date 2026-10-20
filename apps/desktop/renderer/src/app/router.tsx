@@ -15,6 +15,7 @@ import { InventoryStockPage } from "@/features/inventory/pages/InventoryStockPag
 import { ProductFormPage } from "@/features/products/pages/ProductFormPage";
 import { ProductsPage } from "@/features/products/pages/ProductsPage";
 import { NewPurchasePage } from "@/features/purchases/pages/NewPurchasePage";
+import { CustomersPage } from "@/features/customers/pages/CustomersPage";
 import { SalesPage } from "@/features/sales/pages/SalesPage";
 import { SuppliersPage } from "@/features/suppliers/pages/SuppliersPage";
 import { MainLayout } from "@/layouts/MainLayout";
@@ -39,6 +40,7 @@ export const router = createHashRouter([
       { path: "profits/cash", element: <FinanceCashPage /> },
       { path: "profits/collections", element: <FinanceCollectionsPage /> },
       { path: "cash-adjustments", element: <CashAdjustmentsPage /> },
+      { path: "customers", element: <CustomersPage /> },
       { path: "suppliers", element: <SuppliersPage /> },
       { path: "devices", element: <DevicesPage /> },
       { path: "benefits", element: <BenefitsPage /> },

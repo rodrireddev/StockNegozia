@@ -10,6 +10,7 @@ import {
   ShoppingCart,
   TrendingUp,
   Truck,
+  Users,
   Wallet,
   type LucideProps,
 } from "lucide-react-native";
@@ -41,6 +42,7 @@ const TABLET_NAV_ITEMS: NavItem[] = [
   { href: "/inventory", label: "Inventario", icon: Layers },
   { href: "/profits", label: "Ganancias", icon: TrendingUp },
   { href: "/cash-adjustments", label: "Ajustes de caja", icon: Wallet },
+  { href: "/customers" as Href, label: "Clientes", icon: Users },
   { href: "/suppliers", label: "Proveedores", icon: Truck },
   { href: "/settings", label: "Ajustes", icon: Settings },
 ];

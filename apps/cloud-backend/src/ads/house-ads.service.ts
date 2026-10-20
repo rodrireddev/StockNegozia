@@ -32,7 +32,11 @@ export class HouseAdsService {
   }
 
   async create(input: CreateHouseAdInput, adminId: string): Promise<HouseAdDto> {
-    const inserted = await this.repository.insert({ id: randomUUID(), ...input, updatedByAdminId: adminId });
+    const inserted = await this.repository.insert({
+      id: randomUUID(),
+      ...input,
+      updatedByAdminId: adminId,
+    });
     const row = await this.repository.findByIdWithDetails(inserted.id);
     return toDto(row!);
   }

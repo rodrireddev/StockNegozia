@@ -1,5 +1,19 @@
-import { Body, Controller, Delete, Get, HttpCode, Inject, Post, Req, UseGuards } from "@nestjs/common";
-import type { AccountAuthResult, AccountMeDto, DevOnlyTokenResult } from "@stocknegozia/api-contracts";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Inject,
+  Post,
+  Req,
+  UseGuards,
+} from "@nestjs/common";
+import type {
+  AccountAuthResult,
+  AccountMeDto,
+  DevOnlyTokenResult,
+} from "@stocknegozia/api-contracts";
 import {
   accountLoginSchema,
   accountRegisterSchema,
@@ -72,7 +86,8 @@ export class AccountsController {
   // no hace falta que el dispositivo tenga la sesión activa que lo pidió.
   @Post("verify-email/confirm")
   confirmEmail(
-    @Body(new ZodValidationPipe(emailVerificationConfirmSchema)) body: EmailVerificationConfirmInput,
+    @Body(new ZodValidationPipe(emailVerificationConfirmSchema))
+    body: EmailVerificationConfirmInput,
   ): Promise<AccountMeDto> {
     return this.accountsService.confirmEmail(body.token);
   }

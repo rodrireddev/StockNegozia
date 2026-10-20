@@ -8,7 +8,9 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from "@nestjs/common";
+import { ManagerDeviceGuard } from "../../auth/guards/manager-device.guard";
 import type { ProductDto } from "@stocknegozia/api-contracts";
 import {
   activeUpdateSchema,
@@ -56,11 +58,13 @@ export class ProductsController {
     return this.productsService.findById(id);
   }
 
+  @UseGuards(ManagerDeviceGuard)
   @Post()
   create(@Body(new ZodValidationPipe(createProductSchema)) body: CreateProductInput): ProductDto {
     return this.productsService.create(body);
   }
 
+  @UseGuards(ManagerDeviceGuard)
   @Patch(":id")
   update(
     @Param("id", ParseIntPipe) id: number,
@@ -74,6 +78,7 @@ export class ProductsController {
    * docs/inventory/STOCK_MOVEMENTS.md). Reemplaza a la antigua `PATCH /:id/stock`, que escribía
    * `products.stock` directamente sin generar historial — esa ruta ya no existe.
    */
+  @UseGuards(ManagerDeviceGuard)
   @Post(":id/stock-adjustments")
   adjustStock(
     @Param("id", ParseIntPipe) id: number,
@@ -82,6 +87,7 @@ export class ProductsController {
     return this.productsService.applyStockAdjustment(id, body.stock, body.reason);
   }
 
+  @UseGuards(ManagerDeviceGuard)
   @Patch(":id/active")
   updateActive(
     @Param("id", ParseIntPipe) id: number,

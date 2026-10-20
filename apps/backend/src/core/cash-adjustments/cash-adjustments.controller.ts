@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Inject, Post, Query } from "@nestjs/common";
+import { Body, Controller, Get, Inject, Post, Query, UseGuards } from "@nestjs/common";
+import { ManagerDeviceGuard } from "../../auth/guards/manager-device.guard";
 import type { CashAdjustmentDto } from "@stocknegozia/api-contracts";
 import {
   cashAdjustmentQuerySchema,
@@ -9,9 +10,12 @@ import {
 import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
 import { CashAdjustmentsService } from "./cash-adjustments.service";
 
+@UseGuards(ManagerDeviceGuard)
 @Controller("cash-adjustments")
 export class CashAdjustmentsController {
-  constructor(@Inject(CashAdjustmentsService) private readonly cashAdjustmentsService: CashAdjustmentsService) {}
+  constructor(
+    @Inject(CashAdjustmentsService) private readonly cashAdjustmentsService: CashAdjustmentsService,
+  ) {}
 
   @Get()
   findMany(

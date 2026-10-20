@@ -40,6 +40,7 @@ const device: DeviceDto = {
   type: "mobile",
   active: true,
   isAdmin: false,
+  role: "manager",
   createdAt: "2026-01-01T00:00:00.000Z",
   lastSeenAt: null,
   sellerName: null,

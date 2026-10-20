@@ -12,7 +12,12 @@ export const gamificationOutboxRepository = {
   enqueueActivity(metricType: string, executor: DrizzleExecutor = db) {
     return executor
       .insert(gamificationOutbox)
-      .values({ kind: "activity", metricType, occurredOn: todayLocalDateString(), createdAt: new Date() })
+      .values({
+        kind: "activity",
+        metricType,
+        occurredOn: todayLocalDateString(),
+        createdAt: new Date(),
+      })
       .returning()
       .get();
   },
@@ -36,6 +41,10 @@ export const gamificationOutboxRepository = {
   },
 
   markSynced(id: number, executor: DrizzleExecutor = db) {
-    return executor.update(gamificationOutbox).set({ syncedAt: new Date() }).where(eq(gamificationOutbox.id, id)).run();
+    return executor
+      .update(gamificationOutbox)
+      .set({ syncedAt: new Date() })
+      .where(eq(gamificationOutbox.id, id))
+      .run();
   },
 };

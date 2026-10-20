@@ -11,7 +11,9 @@ export const accountRegisterSchema = z.object({
   referralCode: z.string().trim().min(1).optional(),
   // Verificado siempre del lado del servidor contra la API de Cloudflare Turnstile — obligatorio
   // en cada intento de registro (a diferencia del login, que solo lo exige tras varios fallos).
-  turnstileToken: z.string({ required_error: "Falta verificar el captcha" }).min(1, "Falta verificar el captcha"),
+  turnstileToken: z
+    .string({ required_error: "Falta verificar el captcha" })
+    .min(1, "Falta verificar el captcha"),
 });
 
 export type AccountRegisterInput = z.infer<typeof accountRegisterSchema>;
@@ -42,7 +44,9 @@ export type EmailVerificationConfirmInput = z.infer<typeof emailVerificationConf
  */
 export const passwordResetRequestSchema = z.object({
   email: z.string({ required_error: "El email es obligatorio" }).trim().email("Email inválido"),
-  turnstileToken: z.string({ required_error: "Falta verificar el captcha" }).min(1, "Falta verificar el captcha"),
+  turnstileToken: z
+    .string({ required_error: "Falta verificar el captcha" })
+    .min(1, "Falta verificar el captcha"),
 });
 
 export type PasswordResetRequestInput = z.infer<typeof passwordResetRequestSchema>;

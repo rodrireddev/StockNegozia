@@ -29,9 +29,14 @@ function buildPreUpdateFileName(now: Date): string {
  * drizzle) devuelve 0: no hay datos que respaldar. Mismo criterio que el migrator de drizzle
  * (compara `created_at` de la última migración aplicada contra el `when` del journal).
  */
-export function countPendingMigrations(sqlite: Database.Database, migrationsFolder: string): number {
+export function countPendingMigrations(
+  sqlite: Database.Database,
+  migrationsFolder: string,
+): number {
   const table = sqlite
-    .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = '__drizzle_migrations'")
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = '__drizzle_migrations'",
+    )
     .get();
   if (!table) return 0;
 

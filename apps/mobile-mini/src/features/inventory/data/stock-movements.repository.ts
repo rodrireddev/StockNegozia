@@ -39,7 +39,8 @@ export const stockMovementsRepository = {
   findMany(filters: StockMovementFilters, executor: DrizzleExecutor = db) {
     const conditions: (SQL | undefined)[] = [];
 
-    if (filters.productId !== undefined) conditions.push(eq(stockMovements.productId, filters.productId));
+    if (filters.productId !== undefined)
+      conditions.push(eq(stockMovements.productId, filters.productId));
     if (filters.type) conditions.push(eq(stockMovements.type, filters.type));
     if (filters.direction) conditions.push(eq(stockMovements.direction, filters.direction));
     if (filters.from) conditions.push(gte(stockMovements.createdAt, filters.from));
@@ -47,38 +48,43 @@ export const stockMovementsRepository = {
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    return executor
-      .select({
-        id: stockMovements.id,
-        productId: stockMovements.productId,
-        type: stockMovements.type,
-        direction: stockMovements.direction,
-        quantity: stockMovements.quantity,
-        stockBefore: stockMovements.stockBefore,
-        stockAfter: stockMovements.stockAfter,
-        saleId: stockMovements.saleId,
-        purchaseId: stockMovements.purchaseId,
-        reason: stockMovements.reason,
-        createdAt: stockMovements.createdAt,
-        saleUnitPrice: saleItems.unitPrice,
-        purchaseUnitCost: purchaseItems.unitCost,
-      })
-      .from(stockMovements)
-      .leftJoin(
-        saleItems,
-        and(eq(stockMovements.saleId, saleItems.saleId), eq(stockMovements.productId, saleItems.productId)),
-      )
-      .leftJoin(
-        purchaseItems,
-        and(
-          eq(stockMovements.purchaseId, purchaseItems.purchaseId),
-          eq(stockMovements.productId, purchaseItems.productId),
-        ),
-      )
-      .where(whereClause)
-      // `id` como desempate: dos movimientos de una misma venta multi-item pueden compartir el
-      // mismo `createdAt` (resolución de milisegundo).
-      .orderBy(desc(stockMovements.createdAt), desc(stockMovements.id))
-      .all();
+    return (
+      executor
+        .select({
+          id: stockMovements.id,
+          productId: stockMovements.productId,
+          type: stockMovements.type,
+          direction: stockMovements.direction,
+          quantity: stockMovements.quantity,
+          stockBefore: stockMovements.stockBefore,
+          stockAfter: stockMovements.stockAfter,
+          saleId: stockMovements.saleId,
+          purchaseId: stockMovements.purchaseId,
+          reason: stockMovements.reason,
+          createdAt: stockMovements.createdAt,
+          saleUnitPrice: saleItems.unitPrice,
+          purchaseUnitCost: purchaseItems.unitCost,
+        })
+        .from(stockMovements)
+        .leftJoin(
+          saleItems,
+          and(
+            eq(stockMovements.saleId, saleItems.saleId),
+            eq(stockMovements.productId, saleItems.productId),
+          ),
+        )
+        .leftJoin(
+          purchaseItems,
+          and(
+            eq(stockMovements.purchaseId, purchaseItems.purchaseId),
+            eq(stockMovements.productId, purchaseItems.productId),
+          ),
+        )
+        .where(whereClause)
+        // `id` como desempate: dos movimientos de una misma venta multi-item pueden compartir el
+        // mismo `createdAt` (resolución de milisegundo).
+        .orderBy(desc(stockMovements.createdAt), desc(stockMovements.id))
+        .all()
+    );
   },
 };

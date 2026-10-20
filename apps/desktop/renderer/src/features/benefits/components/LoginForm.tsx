@@ -8,11 +8,7 @@ import { ApiError } from "@/lib/cloud-api-client";
 import { useAccount } from "../AccountContext";
 import { TurnstileWidget } from "./TurnstileWidget";
 
-export function LoginForm({
-  onSwitchToRegister,
-}: {
-  onSwitchToRegister: () => void;
-}) {
+export function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
   const { login } = useAccount();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

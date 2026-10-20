@@ -1,5 +1,13 @@
 import RawDatabase from "better-sqlite3";
-import { mkdtempSync, rmSync, writeFileSync, readFileSync, openSync, writeSync, closeSync } from "node:fs";
+import {
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+  readFileSync,
+  openSync,
+  writeSync,
+  closeSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -34,7 +42,10 @@ describe("BackupService", () => {
     db = createTestDb();
     const logger = createSilentTestLogger();
     const categoriesService = new CategoriesService(new CategoriesRepository(db));
-    const stockMovementsService = new StockMovementsService(new StockMovementsRepository(db), logger);
+    const stockMovementsService = new StockMovementsService(
+      new StockMovementsRepository(db),
+      logger,
+    );
     const suppliersService = new SuppliersService(new SuppliersRepository(db));
     productsService = new ProductsService(
       db,
@@ -95,9 +106,9 @@ describe("BackupService", () => {
 
       const reopened = new RawDatabase(destination, { readonly: true, fileMustExist: true });
       try {
-        const row = reopened.prepare("SELECT name, sku, stock FROM products WHERE id = ?").get(product.id) as
-          | { name: string; sku: string; stock: number }
-          | undefined;
+        const row = reopened
+          .prepare("SELECT name, sku, stock FROM products WHERE id = ?")
+          .get(product.id) as { name: string; sku: string; stock: number } | undefined;
         expect(row).toEqual({ name: "Coca-Cola 500ml", sku: "COCA-500", stock: 10 });
       } finally {
         reopened.close();
@@ -204,7 +215,9 @@ describe("BackupService", () => {
       const raw = new RawDatabase(destination);
       raw.pragma("journal_mode = DELETE"); // ver comentario equivalente en el test "versión anterior"
       const future = Date.now() + 1_000_000_000;
-      raw.prepare(`INSERT INTO __drizzle_migrations (hash, created_at) VALUES (?, ?)`).run("fake-future-hash", future);
+      raw
+        .prepare(`INSERT INTO __drizzle_migrations (hash, created_at) VALUES (?, ?)`)
+        .run("fake-future-hash", future);
       raw.close();
 
       const result = service.validate(destination);

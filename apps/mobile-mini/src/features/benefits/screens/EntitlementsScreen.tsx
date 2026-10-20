@@ -11,7 +11,11 @@ import { useEntitlementsCatalog } from "../hooks/useEntitlementsCatalog";
 import { usePurchaseEntitlement } from "../hooks/usePurchaseEntitlement";
 
 function formatExpiry(expiresAt: string): string {
-  return new Date(expiresAt).toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
+  return new Date(expiresAt).toLocaleDateString("es-AR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 /**
@@ -57,12 +61,16 @@ export function EntitlementsScreen() {
       <Text style={[typography.title, { color: colors.foreground, marginBottom: spacing.xs }]}>
         Canjear beneficios
       </Text>
-      <Text style={[typography.caption, { color: colors.mutedForeground, marginBottom: spacing.md }]}>
+      <Text
+        style={[typography.caption, { color: colors.mutedForeground, marginBottom: spacing.md }]}
+      >
         Tu saldo: {balance} créditos
       </Text>
 
       {catalogQuery.isError && (
-        <Text style={[typography.caption, { color: colors.danger }]}>No se pudo cargar el catálogo.</Text>
+        <Text style={[typography.caption, { color: colors.danger }]}>
+          No se pudo cargar el catálogo.
+        </Text>
       )}
 
       {catalogQuery.data?.map((item) => {
@@ -73,20 +81,26 @@ export function EntitlementsScreen() {
         return (
           <Card key={item.type} style={styles.card}>
             <Text style={[typography.bodyStrong, { color: colors.foreground }]}>{item.label}</Text>
-            <Text style={[typography.caption, { color: colors.mutedForeground }]}>{item.description}</Text>
+            <Text style={[typography.caption, { color: colors.mutedForeground }]}>
+              {item.description}
+            </Text>
             {isActive ? (
               <Text style={[typography.caption, { color: colors.success }]}>
                 Activo hasta el {formatExpiry(item.expiresAt!)}
               </Text>
             ) : (
-              <Text style={[typography.caption, { color: colors.foreground }]}>{item.cost} créditos — 30 días</Text>
+              <Text style={[typography.caption, { color: colors.foreground }]}>
+                {item.cost} créditos — 30 días
+              </Text>
             )}
             {!isActive && missingCredits > 0 && (
               <Text style={[typography.caption, { color: colors.mutedForeground }]}>
                 Te faltan {missingCredits} créditos.
               </Text>
             )}
-            {error ? <Text style={[typography.caption, { color: colors.danger }]}>{error}</Text> : null}
+            {error ? (
+              <Text style={[typography.caption, { color: colors.danger }]}>{error}</Text>
+            ) : null}
             <Button
               label={isActive ? "Extender 30 días más" : "Comprar"}
               onPress={() => handlePurchase(item.type)}

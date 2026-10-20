@@ -42,10 +42,10 @@ controllers por defecto — ningún controller de negocio necesita lógica de au
 Variable de entorno validada con Zod (`packages/validation/src/env/backend-env.schema.ts`), junto
 al resto de la configuración del backend — no es un sistema paralelo.
 
-| Valor         | Comportamiento                                                                 |
-| ------------- | ------------------------------------------------------------------------------- |
+| Valor         | Comportamiento                                                                                                    |
+| ------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `development` | (default) Todo endpoint responde sin credential. Para poder seguir developeando desde el navegador, Postman, etc. |
-| `production`  | Todo endpoint no marcado `@Public()` exige `Authorization: Bearer <credential>` de un dispositivo activo. |
+| `production`  | Todo endpoint no marcado `@Public()` exige `Authorization: Bearer <credential>` de un dispositivo activo.         |
 
 No existe un bypass implícito basado en `NODE_ENV` — el modo de acceso es una decisión explícita e
 independiente.
@@ -54,16 +54,16 @@ independiente.
 
 Tabla `devices` (Drizzle/SQLite, migración `0003_colossal_marvel_apes.sql`):
 
-| Campo             | Descripción                                                        |
-| ----------------- | ------------------------------------------------------------------- |
-| `id`               | UUID, identidad estable del dispositivo.                            |
-| `name`             | Nombre descriptivo (ej. "Electron Desktop").                        |
-| `type`             | `desktop` \| `mobile` \| `tablet` \| `web` \| `other`.              |
-| `status`           | `active` \| `revoked`.                                              |
-| `credential_hash`  | SHA-256 de la credential — **nunca se guarda la credential en texto plano**. |
-| `is_admin`         | Si puede administrar otros dispositivos — ver [`DEVICE_MANAGEMENT.md`](./DEVICE_MANAGEMENT.md). |
-| `created_at`       | Fecha de alta.                                                       |
-| `last_seen_at`     | Última vez que la credential autenticó una request (throttled, ver más abajo). |
+| Campo             | Descripción                                                                                     |
+| ----------------- | ----------------------------------------------------------------------------------------------- |
+| `id`              | UUID, identidad estable del dispositivo.                                                        |
+| `name`            | Nombre descriptivo (ej. "Electron Desktop").                                                    |
+| `type`            | `desktop` \| `mobile` \| `tablet` \| `web` \| `other`.                                          |
+| `status`          | `active` \| `revoked`.                                                                          |
+| `credential_hash` | SHA-256 de la credential — **nunca se guarda la credential en texto plano**.                    |
+| `is_admin`        | Si puede administrar otros dispositivos — ver [`DEVICE_MANAGEMENT.md`](./DEVICE_MANAGEMENT.md). |
+| `created_at`      | Fecha de alta.                                                                                  |
+| `last_seen_at`    | Última vez que la credential autenticó una request (throttled, ver más abajo).                  |
 
 `deviceId` y la credential son conceptos separados: el primero identifica al dispositivo (puede
 aparecer en logs), la segunda es el secreto que lo autentica (nunca aparece en logs ni se
@@ -187,21 +187,21 @@ telemetría ni generar escrituras innecesarias a SQLite.
 Reutiliza `AppLogger`/`RequestContext`/`GlobalExceptionFilter` existentes (Milestone 4) — no se
 creó un segundo sistema de logging ni de request IDs. Eventos nuevos:
 
-| Evento                     | Nivel | Cuándo                                                      |
-| --------------------------- | ----- | ------------------------------------------------------------ |
-| `auth.request.allowed`      | DEBUG | Request permitida en `API_ACCESS_MODE=development`.           |
-| `auth.request.denied`       | WARN  | Falta el header `Authorization` en `production`.               |
-| `auth.device.authenticated` | INFO  | Credential válida, dispositivo activo.                         |
-| `auth.device.rejected`      | WARN  | Credential inválida o dispositivo revocado.                    |
-| `auth.bootstrap.started`    | INFO  | Se recibió un intento de `POST /auth/bootstrap`.                |
-| `auth.bootstrap.completed`  | INFO  | Bootstrap exitoso — se registró un nuevo `Device`.              |
-| `auth.bootstrap.failed`     | WARN/ERROR | Token de bootstrap inválido/expirado, o error al persistirlo. |
-| `device.created`            | INFO  | Se creó un `Device` — vía bootstrap o vía pairing (ver `PAIRING.md`). |
-| `device.listed`             | INFO  | `GET /auth/devices` — ver `DEVICE_MANAGEMENT.md`.                |
-| `device.viewed`             | INFO  | `GET /auth/devices/:id` o `/me`.                                 |
-| `device.updated`            | INFO  | `PATCH /auth/devices/:id` (renombrado).                          |
-| `device.revoked`            | INFO  | `POST /auth/devices/:id/revoke` — revocación permanente.         |
-| `device.access.denied`      | WARN  | Un dispositivo no administrador intentó un endpoint admin-only.  |
+| Evento                      | Nivel      | Cuándo                                                                |
+| --------------------------- | ---------- | --------------------------------------------------------------------- |
+| `auth.request.allowed`      | DEBUG      | Request permitida en `API_ACCESS_MODE=development`.                   |
+| `auth.request.denied`       | WARN       | Falta el header `Authorization` en `production`.                      |
+| `auth.device.authenticated` | INFO       | Credential válida, dispositivo activo.                                |
+| `auth.device.rejected`      | WARN       | Credential inválida o dispositivo revocado.                           |
+| `auth.bootstrap.started`    | INFO       | Se recibió un intento de `POST /auth/bootstrap`.                      |
+| `auth.bootstrap.completed`  | INFO       | Bootstrap exitoso — se registró un nuevo `Device`.                    |
+| `auth.bootstrap.failed`     | WARN/ERROR | Token de bootstrap inválido/expirado, o error al persistirlo.         |
+| `device.created`            | INFO       | Se creó un `Device` — vía bootstrap o vía pairing (ver `PAIRING.md`). |
+| `device.listed`             | INFO       | `GET /auth/devices` — ver `DEVICE_MANAGEMENT.md`.                     |
+| `device.viewed`             | INFO       | `GET /auth/devices/:id` o `/me`.                                      |
+| `device.updated`            | INFO       | `PATCH /auth/devices/:id` (renombrado).                               |
+| `device.revoked`            | INFO       | `POST /auth/devices/:id/revoke` — revocación permanente.              |
+| `device.access.denied`      | WARN       | Un dispositivo no administrador intentó un endpoint admin-only.       |
 
 **Nunca se registra**: el header `Authorization`, la credential (en texto plano o hasheada), el
 token de bootstrap, ni el body completo de la request. Solo `deviceId` y un `reason` técnico (ej.

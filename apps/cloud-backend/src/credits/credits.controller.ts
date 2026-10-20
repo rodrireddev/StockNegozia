@@ -39,7 +39,9 @@ export class CreditsController {
 
   /** Catálogo para la pantalla de compra — costo actual + estado de cada entitlement. */
   @Get("entitlements/catalog")
-  listEntitlementsCatalog(@Req() request: RequestWithAccount): Promise<EntitlementCatalogItemDto[]> {
+  listEntitlementsCatalog(
+    @Req() request: RequestWithAccount,
+  ): Promise<EntitlementCatalogItemDto[]> {
     return this.entitlementsService.listCatalogForUser(request.account!.id);
   }
 

@@ -36,11 +36,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-async function extractError(response: Response, path: string): Promise<{ message: string; code?: string }> {
+async function extractError(
+  response: Response,
+  path: string,
+): Promise<{ message: string; code?: string }> {
   try {
     const body = (await response.json()) as { message?: unknown; code?: unknown };
     return {
-      message: typeof body.message === "string" ? body.message : `Request to ${path} failed with status ${response.status}`,
+      message:
+        typeof body.message === "string"
+          ? body.message
+          : `Request to ${path} failed with status ${response.status}`,
       code: typeof body.code === "string" ? body.code : undefined,
     };
   } catch {
@@ -54,9 +60,15 @@ export function apiGet<T>(path: string): Promise<T> {
 }
 
 export function apiPost<T>(path: string, body?: unknown): Promise<T> {
-  return request<T>(path, { method: "POST", body: body !== undefined ? JSON.stringify(body) : undefined });
+  return request<T>(path, {
+    method: "POST",
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
 }
 
 export function apiDelete<T>(path: string, body?: unknown): Promise<T> {
-  return request<T>(path, { method: "DELETE", body: body !== undefined ? JSON.stringify(body) : undefined });
+  return request<T>(path, {
+    method: "DELETE",
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
 }

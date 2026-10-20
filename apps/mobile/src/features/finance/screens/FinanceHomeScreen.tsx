@@ -71,7 +71,7 @@ export function FinanceHomeScreen() {
             title="Cobrado"
             icon={CreditCard}
             value={summary.data.collections.total}
-            subtitle={
+            subtitle={`${
               summary.data.pendingSettlement.count > 0
                 ? `Por acreditar ${formatMoney(summary.data.pendingSettlement.amount)}${
                     summary.data.pendingSettlement.nextDate
@@ -79,7 +79,11 @@ export function FinanceHomeScreen() {
                       : ""
                   }`
                 : "Nada pendiente de acreditar"
-            }
+            }${
+              summary.data.receivables.outstanding > 0
+                ? ` · fiado a cobrar ${formatMoney(summary.data.receivables.outstanding)}`
+                : ""
+            }`}
             onPress={() => go("/profits/collections")}
           />
           <Text style={[typography.caption, { color: colors.mutedForeground }]}>

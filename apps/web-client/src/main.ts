@@ -1,6 +1,10 @@
 import { AuthRequiredError, checkHealth, confirmPairing, getMe, loadProducts } from "./api";
 import { resolveApiUrl } from "./config";
-import { clearStoredCredential, getStoredCredential, setStoredCredential } from "./credential-store";
+import {
+  clearStoredCredential,
+  getStoredCredential,
+  setStoredCredential,
+} from "./credential-store";
 import { parsePairingPayload } from "./pairing";
 import {
   formatAuthorized,

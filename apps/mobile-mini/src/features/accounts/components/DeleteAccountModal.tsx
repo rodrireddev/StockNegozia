@@ -15,7 +15,13 @@ import { useTheme } from "@/theme/useTheme";
  * igual sin cuenta (doc §3, "cuenta opcional"). Pide la contraseña de nuevo: estar logueado no
  * alcanza para una acción destructiva sobre datos reales.
  */
-export function DeleteAccountModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+export function DeleteAccountModal({
+  visible,
+  onClose,
+}: {
+  visible: boolean;
+  onClose: () => void;
+}) {
   const { colors } = useTheme();
   const { deleteAccount } = useAccount();
   const [password, setPassword] = useState("");
@@ -52,8 +58,8 @@ export function DeleteAccountModal({ visible, onClose }: { visible: boolean; onC
         <Text style={[typography.subtitle, { color: colors.foreground }]}>Eliminar tu cuenta</Text>
         <Text style={[typography.body, { color: colors.mutedForeground }]}>
           Se borran para siempre tu saldo de créditos, racha, referidos e historial — no se puede
-          deshacer. Tus productos, ventas y stock no se tocan, siguen en este dispositivo igual
-          que siempre.
+          deshacer. Tus productos, ventas y stock no se tocan, siguen en este dispositivo igual que
+          siempre.
         </Text>
         <TextField
           label="Confirmá tu contraseña"
@@ -68,7 +74,12 @@ export function DeleteAccountModal({ visible, onClose }: { visible: boolean; onC
             <Button label="Cancelar" variant="ghost" onPress={handleClose} disabled={submitting} />
           </View>
           <View style={styles.action}>
-            <Button label="Eliminar cuenta" variant="danger" onPress={handleConfirm} loading={submitting} />
+            <Button
+              label="Eliminar cuenta"
+              variant="danger"
+              onPress={handleConfirm}
+              loading={submitting}
+            />
           </View>
         </View>
       </View>

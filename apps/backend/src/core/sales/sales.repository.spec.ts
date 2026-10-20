@@ -50,8 +50,22 @@ describe("SalesRepository", () => {
   it("crea una venta y sus items, y los recupera por id", () => {
     const sale = repository.insertSale({ status: "completed", total: 300, createdAt: new Date() });
     repository.insertSaleItems([
-      { saleId: sale.id, productId: productAId, quantity: 2, unitPrice: 100, unitCost: 50, subtotal: 200 },
-      { saleId: sale.id, productId: productBId, quantity: 1, unitPrice: 100, unitCost: 50, subtotal: 100 },
+      {
+        saleId: sale.id,
+        productId: productAId,
+        quantity: 2,
+        unitPrice: 100,
+        unitCost: 50,
+        subtotal: 200,
+      },
+      {
+        saleId: sale.id,
+        productId: productBId,
+        quantity: 1,
+        unitPrice: 100,
+        unitCost: 50,
+        subtotal: 100,
+      },
     ]);
 
     const found = repository.findById(sale.id);
@@ -96,7 +110,14 @@ describe("SalesRepository", () => {
 
     expect(() =>
       repository.insertSaleItems([
-        { saleId: sale.id, productId: 999_999, quantity: 1, unitPrice: 100, unitCost: 50, subtotal: 100 },
+        {
+          saleId: sale.id,
+          productId: 999_999,
+          quantity: 1,
+          unitPrice: 100,
+          unitCost: 50,
+          subtotal: 100,
+        },
       ]),
     ).toThrow();
   });

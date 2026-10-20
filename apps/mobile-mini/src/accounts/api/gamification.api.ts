@@ -13,7 +13,11 @@ export function recordActivity(
   clientEventId: string,
   occurredOn: string,
 ): Promise<RecordActivityResult> {
-  return apiPost<RecordActivityResult>("/gamification/activity", { metricType, clientEventId, occurredOn });
+  return apiPost<RecordActivityResult>("/gamification/activity", {
+    metricType,
+    clientEventId,
+    occurredOn,
+  });
 }
 
 export function claimSetupQuest(questKey: string): Promise<SetupQuestClaimResult> {

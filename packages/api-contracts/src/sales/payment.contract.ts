@@ -8,7 +8,9 @@
  *   admite cuotas (`installments`).
  * - `transfer`: transferencia bancaria (CBU/CVU/alias) — n° de operación opcional.
  * - `qr`: QR / billetera virtual (Mercado Pago, MODO, etc.) — n° de operación opcional.
- * - `other`: cualquier otro medio (cheque, cuenta corriente...) — referencia libre.
+ * - `other`: cualquier otro medio (cheque...) — referencia libre.
+ * - `account`: cuenta corriente (fiado) — exige un cliente en la venta; no es plata cobrada: suma
+ *   al saldo del cliente hasta que registre un pago (`POST /customers/:id/payments`).
  */
 export const PAYMENT_METHODS = [
   "cash",
@@ -17,6 +19,7 @@ export const PAYMENT_METHODS = [
   "transfer",
   "qr",
   "other",
+  "account",
 ] as const;
 
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];

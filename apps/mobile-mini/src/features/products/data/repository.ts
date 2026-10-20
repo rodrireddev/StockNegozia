@@ -78,7 +78,10 @@ export const productsRepository = {
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
     const orderFn = filters.sortDir === "desc" ? desc : asc;
 
-    return selectWithCategory().where(whereClause).orderBy(orderFn(SORT_COLUMNS[filters.sortBy])).all();
+    return selectWithCategory()
+      .where(whereClause)
+      .orderBy(orderFn(SORT_COLUMNS[filters.sortBy]))
+      .all();
   },
 
   findById(id: number, executor: DrizzleExecutor = db) {
@@ -131,9 +134,6 @@ export const productsRepository = {
   },
 
   updateActive(id: number, active: boolean) {
-    db.update(products)
-      .set({ active, updatedAt: new Date() })
-      .where(eq(products.id, id))
-      .run();
+    db.update(products).set({ active, updatedAt: new Date() }).where(eq(products.id, id)).run();
   },
 };

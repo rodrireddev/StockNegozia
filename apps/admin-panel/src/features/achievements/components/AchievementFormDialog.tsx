@@ -1,9 +1,19 @@
 import { useState, type FormEvent } from "react";
 import { TRACKABLE_METRICS } from "@stocknegozia/api-contracts";
-import type { AchievementDefinitionDto, AchievementScheduleType } from "@stocknegozia/api-contracts";
+import type {
+  AchievementDefinitionDto,
+  AchievementScheduleType,
+} from "@stocknegozia/api-contracts";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -12,15 +22,17 @@ import { useCreateAchievement } from "../hooks/useCreateAchievement";
 import { useUpdateAchievement } from "../hooks/useUpdateAchievement";
 
 export type AchievementFormState =
-  | { mode: "create" }
-  | { mode: "edit"; achievement: AchievementDefinitionDto };
+  { mode: "create" } | { mode: "edit"; achievement: AchievementDefinitionDto };
 
 const CREATABLE_CATEGORIES: { value: "scheduled_goal" | "streak_milestone"; label: string }[] = [
   { value: "scheduled_goal", label: "Objetivo programado" },
   { value: "streak_milestone", label: "Hito de racha" },
 ];
 
-const SCHEDULE_TYPES_BY_CATEGORY: Record<"scheduled_goal" | "streak_milestone", { value: AchievementScheduleType; label: string }[]> = {
+const SCHEDULE_TYPES_BY_CATEGORY: Record<
+  "scheduled_goal" | "streak_milestone",
+  { value: AchievementScheduleType; label: string }[]
+> = {
   scheduled_goal: [
     { value: "daily", label: "Diario" },
     { value: "weekly", label: "Semanal" },
@@ -169,7 +181,13 @@ function AchievementFormDialogContent({
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="ach-label">Label (lo que ve el usuario)</Label>
-            <Input id="ach-label" value={label} onChange={(event) => setLabel(event.target.value)} required maxLength={120} />
+            <Input
+              id="ach-label"
+              value={label}
+              onChange={(event) => setLabel(event.target.value)}
+              required
+              maxLength={120}
+            />
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -198,7 +216,9 @@ function AchievementFormDialogContent({
                 ))}
               </Select>
               {!isCreate && (
-                <p className="text-xs text-muted-foreground">La métrica no se puede cambiar después de creado.</p>
+                <p className="text-xs text-muted-foreground">
+                  La métrica no se puede cambiar después de creado.
+                </p>
               )}
             </div>
           )}

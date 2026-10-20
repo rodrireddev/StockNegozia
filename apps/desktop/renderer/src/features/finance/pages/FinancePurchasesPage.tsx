@@ -1,6 +1,7 @@
 import { formatMoney } from "@stocknegozia/shared";
 import { PackagePlus } from "lucide-react";
 import { useMemo } from "react";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -115,8 +116,18 @@ export function FinancePurchasesPage() {
             </Card>
 
             <Card>
-              <CardHeader>
+              <CardHeader className="flex-row items-center justify-between space-y-0">
                 <CardTitle className="text-sm text-muted-foreground">Detalle de compras</CardTitle>
+                <ExportCsvButton
+                  fileName="compras"
+                  rows={purchases.data}
+                  columns={[
+                    { header: "Fecha", value: (p) => dateFormatter.format(new Date(p.createdAt)) },
+                    { header: "Compra N°", value: (p) => p.id },
+                    { header: "Proveedor", value: (p) => p.supplierName },
+                    { header: "Total", value: (p) => p.total },
+                  ]}
+                />
               </CardHeader>
               <CardContent>
                 <Table>

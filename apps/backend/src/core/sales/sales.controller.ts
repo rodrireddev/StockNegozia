@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, StreamableFile } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+  StreamableFile,
+  UseGuards,
+} from "@nestjs/common";
+import { ManagerDeviceGuard } from "../../auth/guards/manager-device.guard";
 import type { SaleDto, SaleSummaryDto } from "@stocknegozia/api-contracts";
 import { createSaleSchema, type CreateSaleInput } from "@stocknegozia/validation";
 import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
@@ -9,8 +20,10 @@ export class SalesController {
   constructor(private readonly salesService: SalesService) {}
 
   @Get()
-  findMany(): SaleSummaryDto[] {
-    return this.salesService.findMany();
+  findMany(
+    @Query("customerId", new ParseIntPipe({ optional: true })) customerId?: number,
+  ): SaleSummaryDto[] {
+    return this.salesService.findMany(customerId);
   }
 
   @Get(":id")
@@ -34,6 +47,7 @@ export class SalesController {
     return this.salesService.create(body);
   }
 
+  @UseGuards(ManagerDeviceGuard)
   @Post(":id/cancel")
   cancel(@Param("id", ParseIntPipe) id: number): SaleDto {
     return this.salesService.cancel(id);

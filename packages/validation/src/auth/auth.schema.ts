@@ -39,6 +39,13 @@ export const pairingCancelSchema = z.object({
 
 export type PairingCancelInput = z.infer<typeof pairingCancelSchema>;
 
+/** Body de `PATCH /auth/devices/:id/role` — ver `DeviceRole` en `@stocknegozia/api-contracts`. */
+export const updateDeviceRoleSchema = z.object({
+  role: z.enum(["manager", "cashier"], { message: "Rol inválido" }),
+});
+
+export type UpdateDeviceRoleInput = z.infer<typeof updateDeviceRoleSchema>;
+
 /**
  * Body de `PATCH /auth/devices/:id`. Solo permite renombrar — el resto de los campos
  * administrativos (`type`, `active`, `isAdmin`) no se exponen para edición directa en este
@@ -51,7 +58,8 @@ export const updateDeviceSchema = z.object({
     .min(1, "El nombre es obligatorio")
     .max(100, "El nombre no puede superar los 100 caracteres")
     .refine(
-      (value) => ![...value].some((char) => char.charCodeAt(0) < 0x20 || char.charCodeAt(0) === 0x7f),
+      (value) =>
+        ![...value].some((char) => char.charCodeAt(0) < 0x20 || char.charCodeAt(0) === 0x7f),
       "El nombre contiene caracteres no permitidos",
     ),
 });
@@ -70,7 +78,8 @@ export const updateSellerNameSchema = z.object({
     .min(1, "El nombre del vendedor es obligatorio")
     .max(100, "El nombre no puede superar los 100 caracteres")
     .refine(
-      (value) => ![...value].some((char) => char.charCodeAt(0) < 0x20 || char.charCodeAt(0) === 0x7f),
+      (value) =>
+        ![...value].some((char) => char.charCodeAt(0) < 0x20 || char.charCodeAt(0) === 0x7f),
       "El nombre contiene caracteres no permitidos",
     ),
 });

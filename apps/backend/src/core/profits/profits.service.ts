@@ -1,14 +1,9 @@
 import { Inject, Injectable } from "@nestjs/common";
 import type { PaymentMethod, ProfitEntryDto } from "@stocknegozia/api-contracts";
 import { ProfitsRepository, type ProfitFilters } from "./profits.repository";
+import { roundMoney } from "@stocknegozia/shared";
 
 type ProfitRow = ReturnType<ProfitsRepository["findMany"]>[number];
-
-/** Mismo `roundMoney` que `SalesService`/`ProductsService` (duplicado a propósito, ver esos
- *  archivos). */
-function roundMoney(value: number): number {
-  return Math.round(value * 100) / 100;
-}
 
 function toDto(row: ProfitRow, paymentMethods: PaymentMethod[]): ProfitEntryDto {
   const cost = roundMoney(row.unitCost * row.quantity);

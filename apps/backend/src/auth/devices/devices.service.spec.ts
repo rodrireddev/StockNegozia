@@ -103,7 +103,9 @@ describe("DevicesService", () => {
     });
 
     it("getById de un device inexistente lanza NotFoundException", () => {
-      expect(() => service.getById("00000000-0000-0000-0000-000000000000")).toThrow(NotFoundException);
+      expect(() => service.getById("00000000-0000-0000-0000-000000000000")).toThrow(
+        NotFoundException,
+      );
     });
 
     it("updateName cambia el nombre y lo persiste", () => {
@@ -170,7 +172,9 @@ describe("DevicesService", () => {
     });
 
     it("revocar un device inexistente lanza NotFoundException", () => {
-      expect(() => service.revoke("00000000-0000-0000-0000-000000000000")).toThrow(NotFoundException);
+      expect(() => service.revoke("00000000-0000-0000-0000-000000000000")).toThrow(
+        NotFoundException,
+      );
     });
 
     it("un segundo revoke sobre el mismo device es idempotente (no falla, no lo reactiva)", () => {

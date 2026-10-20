@@ -3,7 +3,14 @@ import type { AdPlacementDto } from "@stocknegozia/api-contracts";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { AdPlacementRevisionsDialog } from "../components/AdPlacementRevisionsDialog";
 import { EditAdPlacementDialog } from "../components/EditAdPlacementDialog";
 import { useAdPlacements } from "../hooks/useAdPlacements";
@@ -23,7 +30,9 @@ export function AdPlacementsPage() {
       </div>
 
       {placementsQuery.isLoading && <p className="text-sm text-muted-foreground">Cargando…</p>}
-      {placementsQuery.isError && <Alert variant="destructive">{placementsQuery.error.message}</Alert>}
+      {placementsQuery.isError && (
+        <Alert variant="destructive">{placementsQuery.error.message}</Alert>
+      )}
 
       {placementsQuery.data && (
         <Card>
@@ -63,7 +72,11 @@ export function AdPlacementsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => setRevisionsFor(placement)}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setRevisionsFor(placement)}
+                        >
                           Historial
                         </Button>
                         <Button variant="outline" size="sm" onClick={() => setEditing(placement)}>
@@ -79,7 +92,10 @@ export function AdPlacementsPage() {
         </Card>
       )}
 
-      <EditAdPlacementDialog placement={editing} onOpenChange={(open) => !open && setEditing(null)} />
+      <EditAdPlacementDialog
+        placement={editing}
+        onOpenChange={(open) => !open && setEditing(null)}
+      />
       <AdPlacementRevisionsDialog
         placementKey={revisionsFor?.key ?? null}
         platform={revisionsFor?.platform ?? null}

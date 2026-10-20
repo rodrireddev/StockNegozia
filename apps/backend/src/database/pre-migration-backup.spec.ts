@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
-import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -41,13 +41,17 @@ describe("backupBeforeMigrations", () => {
 
   it("no respalda una base nueva (sin migraciones aplicadas)", () => {
     expect(countPendingMigrations(sqlite, migrationsFolder)).toBe(0);
-    expect(backupBeforeMigrations(sqlite, { migrationsFolder, backupsDir: backupsDir() })).toBeNull();
+    expect(
+      backupBeforeMigrations(sqlite, { migrationsFolder, backupsDir: backupsDir() }),
+    ).toBeNull();
     expect(existsSync(backupsDir())).toBe(false);
   });
 
   it("no respalda una base que ya está al día", () => {
     migrate(drizzle(sqlite), { migrationsFolder });
-    expect(backupBeforeMigrations(sqlite, { migrationsFolder, backupsDir: backupsDir() })).toBeNull();
+    expect(
+      backupBeforeMigrations(sqlite, { migrationsFolder, backupsDir: backupsDir() }),
+    ).toBeNull();
   });
 
   it("respalda los datos antes de migrar una base de una versión anterior", () => {
@@ -100,9 +104,11 @@ describe("migración 0019: ventas anteriores a los medios de pago", () => {
       .prepare("INSERT INTO sale_payments (sale_id, method, amount) VALUES (?, 'cash', 1000)")
       .run(withPayment);
 
-    // Base "vieja": la 0019 todavía no corrió — al actualizar se aplica sobre esos datos.
-    forgetLastMigrations(sqlite, 1);
-    migrate(db, { migrationsFolder });
+    // Base "vieja": la 0019 todavía no corrió — se ejecuta su SQL directo sobre esos datos (no
+    // "des-aplicando" la última migración: ya no es la última y re-correría las posteriores).
+    sqlite.exec(
+      readFileSync(path.join(migrationsFolder, "0019_backfill_legacy_sale_payments.sql"), "utf8"),
+    );
 
     const payments = sqlite
       .prepare("SELECT sale_id, method, amount FROM sale_payments ORDER BY sale_id")

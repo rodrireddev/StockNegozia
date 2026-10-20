@@ -8,6 +8,7 @@ export * from "./money/money.contract";
 export * from "./auth/auth.contract";
 export * from "./inventory/stock-movement.contract";
 export * from "./suppliers/supplier.contract";
+export * from "./customers/customer.contract";
 export * from "./purchases/purchase.contract";
 export * from "./backup/backup.contract";
 export * from "./settings/settings.contract";

@@ -1,4 +1,10 @@
-import { BadRequestException, Inject, Injectable, Logger, UnauthorizedException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import { RewardedAdsService } from "../gamification/rewarded-ads.service";
 import { AdRewardCallbacksRepository } from "./ad-reward-callbacks.repository";

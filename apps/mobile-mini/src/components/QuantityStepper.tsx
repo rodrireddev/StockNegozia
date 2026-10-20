@@ -13,7 +13,12 @@ export interface QuantityStepperProps {
 /** +/- táctil para líneas de carrito (Ventas) — sin campo editable: la cantidad en Ventas siempre
  *  cambia de a 1 unidad, igual que Desktop. Compras usa un campo numérico aparte (cantidad Y costo
  *  unitario editables), ver `PurchaseCartLine`. */
-export function QuantityStepper({ quantity, onIncrement, onDecrement, testID }: QuantityStepperProps) {
+export function QuantityStepper({
+  quantity,
+  onIncrement,
+  onDecrement,
+  testID,
+}: QuantityStepperProps) {
   const { colors } = useTheme();
 
   return (

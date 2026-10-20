@@ -17,17 +17,20 @@ export function InventoryTabs({ active }: { active: "categories" | "movements" }
   return (
     <View style={styles.row}>
       {TABS.map((tab, index) => {
-        const isActive = (index === 0 && active === "categories") || (index === 1 && active === "movements");
+        const isActive =
+          (index === 0 && active === "categories") || (index === 1 && active === "movements");
         return (
           <Pressable
             key={tab.href}
             onPress={() => router.replace(tab.href)}
-            style={[
-              styles.tab,
-              { backgroundColor: isActive ? colors.primary : colors.secondary },
-            ]}
+            style={[styles.tab, { backgroundColor: isActive ? colors.primary : colors.secondary }]}
           >
-            <Text style={[typography.label, { color: isActive ? colors.primaryForeground : colors.secondaryForeground }]}>
+            <Text
+              style={[
+                typography.label,
+                { color: isActive ? colors.primaryForeground : colors.secondaryForeground },
+              ]}
+            >
               {tab.label}
             </Text>
           </Pressable>

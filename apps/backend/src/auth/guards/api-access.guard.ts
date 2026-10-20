@@ -1,4 +1,10 @@
-import { CanActivate, ExecutionContext, Inject, Injectable, UnauthorizedException } from "@nestjs/common";
+import {
+  CanActivate,
+  ExecutionContext,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { ConfigService, ConfigType } from "@nestjs/config";
 import { Reflector } from "@nestjs/core";
 import { appConfig } from "../../config/configuration";
@@ -6,11 +12,11 @@ import { AppLogger } from "../../common/logger/app-logger.service";
 import { RequestContext } from "../../common/logger/request-context";
 import { IS_PUBLIC_KEY } from "../decorators/public.decorator";
 import { DevicesService } from "../devices/devices.service";
-import type { DeviceType } from "../devices/devices.types";
+import type { DeviceRole, DeviceType } from "../devices/devices.types";
 
 /** Poblado por el guard sobre la request cuando autentica un dispositivo — ver más abajo. */
 export interface RequestWithDevice {
-  device?: { id: string; name: string; type: DeviceType; isAdmin: boolean };
+  device?: { id: string; name: string; type: DeviceType; isAdmin: boolean; role: DeviceRole };
 }
 
 interface MinimalRequest extends RequestWithDevice {
@@ -72,7 +78,13 @@ export class ApiAccessGuard implements CanActivate {
         const device = this.devicesService.findByCredential(token);
         if (device && device.status === "active") {
           this.devicesService.touchLastSeen(device.id, device.lastSeenAt);
-          request.device = { id: device.id, name: device.name, type: device.type, isAdmin: device.isAdmin };
+          request.device = {
+            id: device.id,
+            name: device.name,
+            type: device.type,
+            isAdmin: device.isAdmin,
+            role: device.role,
+          };
           RequestContext.setDevice({
             id: device.id,
             name: device.name,
@@ -125,7 +137,13 @@ export class ApiAccessGuard implements CanActivate {
     }
 
     this.devicesService.touchLastSeen(device.id, device.lastSeenAt);
-    request.device = { id: device.id, name: device.name, type: device.type, isAdmin: device.isAdmin };
+    request.device = {
+      id: device.id,
+      name: device.name,
+      type: device.type,
+      isAdmin: device.isAdmin,
+      role: device.role,
+    };
     // Habilita la trazabilidad de actor/dispositivo en `stock_movements` (ver
     // docs/inventory/STOCK_MOVEMENTS.md §Trazabilidad) sin que Controllers/Services necesiten
     // recibir el dispositivo explícitamente — mismo mecanismo ambiente que ya usa `requestId`.

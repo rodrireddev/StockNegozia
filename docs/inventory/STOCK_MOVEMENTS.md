@@ -9,11 +9,11 @@ modificación de stock, pensado para auditoría, no para reemplazar nada que ya 
 
 Tres responsabilidades claramente separadas, que no se pisan entre sí:
 
-| | Responsabilidad | Vive en |
-| --- | --- | --- |
-| `products.stock` | Estado **actual** del inventario — la única fuente de verdad para "¿cuánto stock hay ahora?". | SQLite, tabla `products`. |
+|                   | Responsabilidad                                                                                  | Vive en                          |
+| ----------------- | ------------------------------------------------------------------------------------------------ | -------------------------------- |
+| `products.stock`  | Estado **actual** del inventario — la única fuente de verdad para "¿cuánto stock hay ahora?".    | SQLite, tabla `products`.        |
 | `stock_movements` | Historial **auditable** de cómo se llegó a ese estado — cada modificación, con su antes/después. | SQLite, tabla `stock_movements`. |
-| `app.log` | Diagnóstico **técnico** de la ejecución (errores, duración, trazas de transacción). | JSONL, `<dataDir>/logs/app.log`. |
+| `app.log`         | Diagnóstico **técnico** de la ejecución (errores, duración, trazas de transacción).              | JSONL, `<dataDir>/logs/app.log`. |
 
 Ninguno reemplaza a los otros. `stock_movements` no se puede usar para "reconstruir" el stock
 actual sumando/restando todo el historial en cada consulta — sería frágil e innecesario, cuando
@@ -49,11 +49,11 @@ antes de llamarlo.
 
 Esta milestone implementa tres:
 
-| `type` | `direction` | Cuándo |
-| ------ | ----------- | ------ |
-| `SALE` | `OUT` | Una venta descuenta stock. |
-| `SALE_CANCELLATION` | `IN` | Se cancela una venta y se restaura el stock. |
-| `ADJUSTMENT` | `IN` o `OUT` | Cualquier otro ajuste sin un contexto de negocio más específico — es también el valor por defecto cuando `adjustStock()` se llama sin especificar un `type`. Único tipo que exige `reason` (ver §`reason`). |
+| `type`              | `direction`  | Cuándo                                                                                                                                                                                                      |
+| ------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SALE`              | `OUT`        | Una venta descuenta stock.                                                                                                                                                                                  |
+| `SALE_CANCELLATION` | `IN`         | Se cancela una venta y se restaura el stock.                                                                                                                                                                |
+| `ADJUSTMENT`        | `IN` o `OUT` | Cualquier otro ajuste sin un contexto de negocio más específico — es también el valor por defecto cuando `adjustStock()` se llama sin especificar un `type`. Único tipo que exige `reason` (ver §`reason`). |
 
 El campo es un `enum` de texto (`stockMovements.type`, ver schema) — agregar un tipo nuevo en el
 futuro (`PURCHASE`, `RETURN`, `TRANSFER`, `DAMAGE`, `LOSS`, `INITIAL_STOCK`, explícitamente **no
@@ -140,8 +140,8 @@ No se considera secreto: aparece en la respuesta (`StockMovementDto.reason`) y e
 
 ## Relación con Sales: `saleId`
 
-El movimiento necesita poder responder dos preguntas: *¿qué venta produjo este movimiento?* y
-*¿qué movimiento restauró el stock cuando se canceló esa venta?* — ambas se resuelven con un único
+El movimiento necesita poder responder dos preguntas: _¿qué venta produjo este movimiento?_ y
+_¿qué movimiento restauró el stock cuando se canceló esa venta?_ — ambas se resuelven con un único
 campo: `stock_movements.sale_id`, una Foreign Key real hacia `sales.id` (nullable — `ADJUSTMENT` no
 tiene venta asociada).
 
@@ -171,7 +171,7 @@ SALE_CANCELLATION      stockBefore=17  quantity=3  direction=IN   stockAfter=20
 ## Precio histórico (`StockMovementDto.unitValue`)
 
 Un movimiento representa un hecho histórico — el precio que muestra debe ser el de **esa
-operación puntual**, nunca el precio *actual* de `products.purchasePrice`/`salePrice` (que puede
+operación puntual**, nunca el precio _actual_ de `products.purchasePrice`/`salePrice` (que puede
 cambiar libremente después, sin que eso deba alterar el pasado). Ejemplo: dos compras del mismo
 producto a $700 y $850 deben seguir mostrando esos dos valores aunque hoy el costo de compra del
 producto sea $950.
@@ -247,7 +247,7 @@ if (delta !== 0) {
       saleId: options.saleId,
       reason: options.reason,
     },
-    executor,   // el mismo executor recibido — ver §Atomicidad
+    executor, // el mismo executor recibido — ver §Atomicidad
   );
 }
 ```
@@ -320,8 +320,8 @@ adentro de la transacción.
 
 Reutiliza `AppLogger`/`RequestContext` — sin sistema paralelo. Un solo evento nuevo:
 
-| Evento | Nivel | Cuándo |
-| ------ | ----- | ------ |
+| Evento                   | Nivel | Cuándo                                                                                                                                                                                                   |
+| ------------------------ | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `stock.movement.created` | DEBUG | Un movimiento se registró exitosamente. Mismo nivel que `stock.adjust.started/completed` (Milestone "Sales") — es ruido de alto volumen en operación normal, silenciado por defecto en `LOG_LEVEL=info`. |
 
 Metadata incluida: `movementId`, `productId`, `type`, `direction`, `quantity`, `stockBefore`,
@@ -350,19 +350,19 @@ sale.create.completed
 Tabla `stock_movements` (Drizzle/SQLite, migración `0006_amused_meggan.sql`; `reason` agregado en
 `0007_useful_marvel_zombies.sql`):
 
-| Campo | Tipo | Descripción |
-| ----- | ---- | ----------- |
-| `id` | integer, PK autoincrement | Igual convención que `products`/`sales` (no UUID — ese estilo es específico del módulo Auth). |
-| `product_id` | integer, FK → `products.id` | Obligatorio. |
-| `type` | text enum | `SALE` \| `SALE_CANCELLATION` \| `ADJUSTMENT`. |
-| `direction` | text enum | `IN` \| `OUT`. |
-| `quantity` | integer | Siempre positiva. |
-| `stock_before` | integer | Snapshot antes del cambio. |
-| `stock_after` | integer | Snapshot después del cambio. |
-| `sale_id` | integer, FK → `sales.id`, nullable | Ver §Relación con Sales. |
-| `request_id` | text, nullable | Ver §requestId. |
-| `reason` | text, nullable a nivel de columna | Obligatorio a nivel de aplicación para `ADJUSTMENT` — ver §`reason`. |
-| `created_at` | integer (timestamp) | Fecha de alta — la tabla nunca se actualiza (`updated_at` no existe a propósito). |
+| Campo          | Tipo                               | Descripción                                                                                   |
+| -------------- | ---------------------------------- | --------------------------------------------------------------------------------------------- |
+| `id`           | integer, PK autoincrement          | Igual convención que `products`/`sales` (no UUID — ese estilo es específico del módulo Auth). |
+| `product_id`   | integer, FK → `products.id`        | Obligatorio.                                                                                  |
+| `type`         | text enum                          | `SALE` \| `SALE_CANCELLATION` \| `ADJUSTMENT`.                                                |
+| `direction`    | text enum                          | `IN` \| `OUT`.                                                                                |
+| `quantity`     | integer                            | Siempre positiva.                                                                             |
+| `stock_before` | integer                            | Snapshot antes del cambio.                                                                    |
+| `stock_after`  | integer                            | Snapshot después del cambio.                                                                  |
+| `sale_id`      | integer, FK → `sales.id`, nullable | Ver §Relación con Sales.                                                                      |
+| `request_id`   | text, nullable                     | Ver §requestId.                                                                               |
+| `reason`       | text, nullable a nivel de columna  | Obligatorio a nivel de aplicación para `ADJUSTMENT` — ver §`reason`.                          |
+| `created_at`   | integer (timestamp)                | Fecha de alta — la tabla nunca se actualiza (`updated_at` no existe a propósito).             |
 
 Índices (`stock_movements_product_id_idx`, `stock_movements_created_at_idx`,
 `stock_movements_sale_id_idx`) — cubren los patrones de consulta reales (por producto, orden
@@ -453,8 +453,8 @@ Contrato dedicado (`packages/validation/src/inventory/stock-adjustment.schema.ts
 
 ```ts
 {
-  stock: number;   // entero >= 0, finito — el stock ABSOLUTO deseado
-  reason: string;  // obligatorio, 1–200 caracteres, no solo espacios
+  stock: number; // entero >= 0, finito — el stock ABSOLUTO deseado
+  reason: string; // obligatorio, 1–200 caracteres, no solo espacios
 }
 ```
 

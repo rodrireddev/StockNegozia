@@ -82,7 +82,12 @@ describe("ProductsService.create — stock inicial", () => {
   }
 
   function createProductInput(
-    overrides: Partial<{ stock: number; sku: string; supplierId: number; supplierName: string }> = {},
+    overrides: Partial<{
+      stock: number;
+      sku: string;
+      supplierId: number;
+      supplierName: string;
+    }> = {},
   ) {
     return {
       name: "Producto de prueba",
@@ -194,7 +199,9 @@ describe("ProductsService.create — stock inicial", () => {
 
     it("requestId es null cuando la creación ocurre fuera de un contexto HTTP", () => {
       const supplier = createSupplier();
-      const product = productsService.create(createProductInput({ stock: 10, supplierId: supplier.id }));
+      const product = productsService.create(
+        createProductInput({ stock: 10, supplierId: supplier.id }),
+      );
       const [movement] = stockMovementsService.findByProduct(product.id);
       expect(movement!.requestId).toBeNull();
     });
@@ -273,7 +280,9 @@ describe("ProductsService.create — stock inicial", () => {
   describe("trazabilidad de actor/dispositivo", () => {
     it("asocia el dispositivo autenticado del contexto ambiente al movimiento generado", () => {
       const supplier = createSupplier();
-      const { deviceId } = devicesService.register("Electron Desktop", "desktop", { isAdmin: true });
+      const { deviceId } = devicesService.register("Electron Desktop", "desktop", {
+        isAdmin: true,
+      });
 
       const product = RequestContext.run(
         {
@@ -323,14 +332,18 @@ describe("ProductsService.create — stock inicial", () => {
 
     it("fuera de un contexto HTTP, deviceId/deviceName/deviceType también quedan null", () => {
       const supplier = createSupplier();
-      const product = productsService.create(createProductInput({ stock: 5, supplierId: supplier.id }));
+      const product = productsService.create(
+        createProductInput({ stock: 5, supplierId: supplier.id }),
+      );
       const [movement] = stockMovementsService.findByProduct(product.id);
       expect(movement).toMatchObject({ deviceId: null, deviceName: null, deviceType: null });
     });
 
     it("no persiste credentials/tokens/secrets en el movimiento — solo id/nombre/tipo del dispositivo", () => {
       const supplier = createSupplier();
-      const { deviceId } = devicesService.register("Electron Desktop", "desktop", { isAdmin: true });
+      const { deviceId } = devicesService.register("Electron Desktop", "desktop", {
+        isAdmin: true,
+      });
 
       const product = RequestContext.run(
         {

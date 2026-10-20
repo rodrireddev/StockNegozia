@@ -9,7 +9,11 @@ import { getNativeAdsModule } from "@/features/ads/nativeAdsModule";
 import { db } from "@/database/client";
 import migrations from "@/database/migrations/migrations";
 import { AdaptiveShell } from "@/navigation/AdaptiveShell";
-import { getOnboardingSeen, loadOnboardingSeen, markOnboardingSeen } from "@/features/onboarding/onboardingStore";
+import {
+  getOnboardingSeen,
+  loadOnboardingSeen,
+  markOnboardingSeen,
+} from "@/features/onboarding/onboardingStore";
 import { OnboardingScreen } from "@/features/onboarding/screens/OnboardingScreen";
 import { ThemeProvider, useThemeMode } from "@/theme/ThemeContext";
 

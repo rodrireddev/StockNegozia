@@ -10,6 +10,7 @@ import { useProducts } from "@/features/products/hooks/useProducts";
 import { useCategories } from "@/features/products/hooks/useCategories";
 import { ProductListItem } from "@/features/products/components/ProductListItem";
 import { Button } from "@/components/Button";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { LoadingState } from "@/components/LoadingState";
 import { ErrorState } from "@/components/ErrorState";
@@ -98,6 +99,21 @@ export function ProductsScreen() {
         <Text style={[styles.title, { color: colors.foreground }]}>Productos</Text>
         <Button label="+ Nuevo" onPress={() => router.push("/products/new")} testID="new-product" />
       </View>
+      <ExportCsvButton
+        fileName="productos"
+        rows={query.data}
+        columns={[
+          { header: "Nombre", value: (p) => p.name },
+          { header: "SKU", value: (p) => p.sku },
+          { header: "Código de barras", value: (p) => p.barcode },
+          { header: "Categoría", value: (p) => p.categoryName },
+          { header: "Precio de costo", value: (p) => p.purchasePrice },
+          { header: "Precio de venta", value: (p) => p.salePrice },
+          { header: "Stock", value: (p) => p.stock },
+          { header: "Stock mínimo", value: (p) => p.minimumStock },
+          { header: "Activo", value: (p) => p.active },
+        ]}
+      />
 
       <TextField
         label="Buscar"

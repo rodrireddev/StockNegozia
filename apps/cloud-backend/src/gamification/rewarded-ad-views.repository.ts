@@ -17,7 +17,9 @@ export class RewardedAdViewsRepository {
     const rows = await this.db
       .select({ count: sql<number>`count(*)` })
       .from(rewardedAdViews)
-      .where(and(eq(rewardedAdViews.userId, userId), gte(rewardedAdViews.viewedAt, startOfTodayUtc())));
+      .where(
+        and(eq(rewardedAdViews.userId, userId), gte(rewardedAdViews.viewedAt, startOfTodayUtc())),
+      );
     return Number(rows[0]?.count ?? 0);
   }
 
@@ -31,7 +33,12 @@ export class RewardedAdViewsRepository {
     return row;
   }
 
-  async insert(data: { id: string; userId: string; sequenceInDay: number; creditsAwarded: number }) {
+  async insert(data: {
+    id: string;
+    userId: string;
+    sequenceInDay: number;
+    creditsAwarded: number;
+  }) {
     await this.db.insert(rewardedAdViews).values({ ...data, viewedAt: new Date() });
   }
 }

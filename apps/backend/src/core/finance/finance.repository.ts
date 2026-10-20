@@ -4,10 +4,19 @@ import type {
   FinancePurchaseRow,
   FinanceSaleLineRow,
 } from "@stocknegozia/shared";
-import { and, eq, gt, gte, isNotNull, lte, type SQL } from "drizzle-orm";
+import { and, eq, gt, gte, isNotNull, lte, sql, type SQL } from "drizzle-orm";
 import { DRIZZLE_CLIENT } from "../../database/database.constants";
 import type { Database, DrizzleExecutor } from "../../database/database.types";
-import { products, purchases, saleItems, salePayments, sales } from "../../database/schema";
+import {
+  customerPayments,
+  customers,
+  products,
+  purchases,
+  saleItems,
+  salePayments,
+  sales,
+} from "../../database/schema";
+import { customerBalanceSql } from "../customers/customers.repository";
 
 export interface FinanceRange {
   from: Date;
@@ -95,6 +104,32 @@ export class FinanceRepository {
       ],
       executor,
     );
+  }
+
+  /** Pagos de cuenta corriente recibidos en el período. */
+  findCustomerPayments(range: FinanceRange, executor: DrizzleExecutor = this.db) {
+    return executor
+      .select({ amount: customerPayments.amount })
+      .from(customerPayments)
+      .where(
+        and(gte(customerPayments.createdAt, range.from), lte(customerPayments.createdAt, range.to)),
+      )
+      .all();
+  }
+
+  /** Total adeudado hoy: suma de saldos positivos (un saldo a favor no descuenta deuda de otro). */
+  findOutstandingReceivables(executor: DrizzleExecutor = this.db): number {
+    const balance = customerBalanceSql(customers.id);
+    const row = executor
+      .select({
+        total:
+          sql<number>`coalesce(sum(case when ${balance} > 0 then ${balance} else 0 end), 0)`.mapWith(
+            Number,
+          ),
+      })
+      .from(customers)
+      .get();
+    return row?.total ?? 0;
   }
 
   findPurchases(range: FinanceRange, executor: DrizzleExecutor = this.db): FinancePurchaseRow[] {

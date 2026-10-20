@@ -58,9 +58,7 @@ export function MovementsTable({ movements, productsById }: MovementsTableProps)
               <TableCell
                 className={cn(
                   "text-right tabular-nums font-medium",
-                  movement.direction === "IN"
-                    ? "text-success"
-                    : "text-foreground",
+                  movement.direction === "IN" ? "text-success" : "text-foreground",
                 )}
               >
                 {formatSignedQuantity(movement)}

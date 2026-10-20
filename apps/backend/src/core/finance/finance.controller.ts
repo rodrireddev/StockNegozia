@@ -1,4 +1,5 @@
-import { Controller, Get, Inject, Query } from "@nestjs/common";
+import { Controller, Get, Inject, Query, UseGuards } from "@nestjs/common";
+import { ManagerDeviceGuard } from "../../auth/guards/manager-device.guard";
 import type { FinanceSummaryDto, SettlementDto, TopProductDto } from "@stocknegozia/api-contracts";
 import {
   financeRangeQuerySchema,
@@ -13,6 +14,7 @@ import { FinanceService } from "./finance.service";
 
 /** Vistas de Finanzas ("Ganancias") — sólo lectura. Ventas por línea: `GET /profits`; compras:
  *  `GET /purchases?from&to`; caja: `GET /cash-adjustments?from&to`. */
+@UseGuards(ManagerDeviceGuard)
 @Controller("finance")
 export class FinanceController {
   constructor(@Inject(FinanceService) private readonly financeService: FinanceService) {}

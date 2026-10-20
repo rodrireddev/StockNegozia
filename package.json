@@ -2,6 +2,7 @@
   "name": "stocknegozia",
   "private": true,
   "version": "0.1.0",
+  "license": "MIT",
   "description": "StockNegozia — plataforma modular de gestión empresarial (monorepo)",
   "engines": {
     "node": ">=20"

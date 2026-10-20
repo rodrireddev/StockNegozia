@@ -199,10 +199,14 @@ describe("Pairing: QR + código de verificación", () => {
         verificationCode: created.body.verificationCode,
       };
 
-      const first = await request(app.getHttpServer()).post("/auth/pairing/confirm").send(confirmBody);
+      const first = await request(app.getHttpServer())
+        .post("/auth/pairing/confirm")
+        .send(confirmBody);
       expect(first.status).toBe(201);
 
-      const second = await request(app.getHttpServer()).post("/auth/pairing/confirm").send(confirmBody);
+      const second = await request(app.getHttpServer())
+        .post("/auth/pairing/confirm")
+        .send(confirmBody);
       expect(second.status).toBe(401);
     });
 
@@ -332,7 +336,9 @@ describe("Pairing: QR + código de verificación", () => {
       // valor devuelto por `create` (que sí tiene milisegundos, calculado en memoria).
       expect(Object.keys(res.body).sort()).toEqual(["expiresAt", "pairingId", "status"]);
       expect(
-        Math.abs(new Date(res.body.expiresAt).getTime() - new Date(created.body.expiresAt).getTime()),
+        Math.abs(
+          new Date(res.body.expiresAt).getTime() - new Date(created.body.expiresAt).getTime(),
+        ),
       ).toBeLessThan(1000);
     });
 

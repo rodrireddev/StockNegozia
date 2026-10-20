@@ -1,6 +1,7 @@
 import { describeMovementActor, describePaymentMethods, formatMoney } from "@stocknegozia/shared";
 import { TrendingUp } from "lucide-react";
 import { useState } from "react";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -141,8 +142,24 @@ export function FinanceSalesPage() {
           </Card>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="flex-row items-center justify-between space-y-0">
               <CardTitle className="text-sm text-muted-foreground">Detalle de ventas</CardTitle>
+              <ExportCsvButton
+                fileName="ventas"
+                rows={lines.data}
+                columns={[
+                  { header: "Fecha", value: (l) => dateFormatter.format(new Date(l.createdAt)) },
+                  { header: "Venta N°", value: (l) => l.saleId },
+                  { header: "Producto", value: (l) => l.productName },
+                  { header: "Cantidad", value: (l) => l.quantity },
+                  { header: "Precio unitario", value: (l) => l.unitPrice },
+                  { header: "Vendido", value: (l) => l.revenue },
+                  { header: "Costo", value: (l) => l.cost },
+                  { header: "Ganancia", value: (l) => l.profit },
+                  { header: "Cobro", value: (l) => describePaymentMethods(l.paymentMethods ?? []) },
+                  { header: "Vendedor", value: (l) => describeMovementActor(l) },
+                ]}
+              />
             </CardHeader>
             <CardContent>
               {lines.isLoading ? (

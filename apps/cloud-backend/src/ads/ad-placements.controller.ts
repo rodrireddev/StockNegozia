@@ -1,5 +1,19 @@
-import { BadRequestException, Body, Controller, Get, Inject, Param, Patch, Req, UseGuards } from "@nestjs/common";
-import type { AdPlacementDto, AdPlacementRevisionDto, AdPlatform } from "@stocknegozia/api-contracts";
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Param,
+  Patch,
+  Req,
+  UseGuards,
+} from "@nestjs/common";
+import type {
+  AdPlacementDto,
+  AdPlacementRevisionDto,
+  AdPlatform,
+} from "@stocknegozia/api-contracts";
 import { updateAdPlacementSchema, type UpdateAdPlacementInput } from "@stocknegozia/validation";
 import { AdminJwtGuard, type RequestWithAdmin } from "../admin-auth/admin-jwt.guard";
 import { ZodValidationPipe } from "../common/pipes/zod-validation.pipe";

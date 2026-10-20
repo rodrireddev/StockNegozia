@@ -40,6 +40,17 @@ abierta. Electron Main solo coordina: diálogos nativos y la llamada HTTP con la
 usuario eligió. El Renderer dispara la acción y recibe un resultado ya resuelto; nunca ve ni envía
 una ruta de archivo.
 
+## Backup automático diario
+
+`AutoBackupService` (`apps/backend/src/backup/auto-backup.service.ts`) crea
+`<dataDir>/backups/auto/auto-YYYY-MM-DD.db` la primera vez que el backend está levantado cada día
+(chequea cada hora: la app puede estar cerrada a cualquier hora fija) y conserva los últimos 7.
+Reusa `BackupService.create()`, así que pasa por la misma verificación que un backup manual, y
+se restaura igual (elegir el archivo desde _Configuración → Restaurar_). Un fallo se loguea
+(`backup.auto_failed`) y no afecta a la app. Está en el mismo disco que la base: protege contra
+errores y corrupción, no contra la pérdida del disco — para eso sigue el backup manual a otro lado.
+No corre con `NODE_ENV=test`.
+
 ## Estrategia SQLite
 
 Se usa `Database.prototype.backup()` de `better-sqlite3` (SQLite Online Backup API,
@@ -76,7 +87,7 @@ Chequeos, en este orden (falla rápido en el primero que no pasa):
    acceso real (`PRAGMA`/query), no en el constructor — por eso este chequeo está fusionado con el
    siguiente paso en el código.
 3. **No está corrupto** — `PRAGMA integrity_check` debe devolver exactamente `[{ integrity_check:
-   "ok" }]`. Cualquier otro resultado, o una excepción en este paso (ej. "database disk image is
+"ok" }]`. Cualquier otro resultado, o una excepción en este paso (ej. "database disk image is
    malformed"), es `corrupt`. Un error de "file is not a database" en este mismo paso es
    `not_sqlite` (no es un archivo SQLite en absoluto — se distingue por el mensaje exacto que
    emite SQLite).
@@ -99,11 +110,11 @@ automáticamente al migrar (ver `drizzle-orm/sqlite-core/dialect.ts`). Se reutil
   entrada de `apps/backend/src/database/migrations/meta/_journal.json` (el mismo archivo que
   `drizzle-kit` genera y que el backend ya usa para saber qué migrar).
 
-| Comparación | Resultado |
-| --- | --- |
-| Backup = instalación actual | `valid` — se puede restaurar. |
-| Backup con menos migraciones (versión anterior) | `incompatible_older` — **rechazado**, no se intenta migrar automáticamente. |
-| Backup con más migraciones (versión futura) | `incompatible_newer` — **rechazado siempre**, nunca se abre "silenciosamente". |
+| Comparación                                     | Resultado                                                                      |
+| ----------------------------------------------- | ------------------------------------------------------------------------------ |
+| Backup = instalación actual                     | `valid` — se puede restaurar.                                                  |
+| Backup con menos migraciones (versión anterior) | `incompatible_older` — **rechazado**, no se intenta migrar automáticamente.    |
+| Backup con más migraciones (versión futura)     | `incompatible_newer` — **rechazado siempre**, nunca se abre "silenciosamente". |
 
 **Por qué se rechaza en vez de migrar un backup antiguo automáticamente**: migrar un backup como
 parte de un restore es una operación de escritura sobre datos que todavía no se terminó de

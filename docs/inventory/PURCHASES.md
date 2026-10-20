@@ -11,10 +11,10 @@ módulo que registra esa compra y, en el mismo paso, hace ingresar la mercaderí
 **No confundir `Purchase` con `Stock Adjustment`** — representan intenciones de negocio distintas,
 aunque ambas terminan escribiendo stock a través del mismo mecanismo (`adjustStock()`):
 
-| | Significa | `stock_movement.type` |
-| --- | --- | --- |
-| `Stock Adjustment` | "El stock registrado no coincide con la realidad, lo corrijo." | `ADJUSTMENT` |
-| `Purchase` | "Compré mercadería a un proveedor." | `PURCHASE` |
+|                    | Significa                                                      | `stock_movement.type` |
+| ------------------ | -------------------------------------------------------------- | --------------------- |
+| `Stock Adjustment` | "El stock registrado no coincide con la realidad, lo corrijo." | `ADJUSTMENT`          |
+| `Purchase`         | "Compré mercadería a un proveedor."                            | `PURCHASE`            |
 
 ## Alcance de esta primera versión
 
@@ -137,13 +137,13 @@ en `purchase_items` y en su propio `stock_movement`, no en el log.
 
 ## API
 
-| Método | Ruta | Descripción |
-| --- | --- | --- |
-| `GET` | `/suppliers` | Lista proveedores (orden alfabético). |
-| `GET` | `/suppliers/:id` | Un proveedor por id — 404 si no existe. |
-| `POST` | `/suppliers` | Crea un proveedor (`{ name }`). |
-| `GET` | `/purchases` | Lista compras (más reciente primero), con `supplierName` ya resuelto. |
-| `GET` | `/purchases/:id` | Una compra con sus items — 404 si no existe. |
-| `POST` | `/purchases` | Crea una compra (`{ supplierId, items: [{ productId, quantity, unitCost }] }`). |
+| Método | Ruta             | Descripción                                                                     |
+| ------ | ---------------- | ------------------------------------------------------------------------------- |
+| `GET`  | `/suppliers`     | Lista proveedores (orden alfabético).                                           |
+| `GET`  | `/suppliers/:id` | Un proveedor por id — 404 si no existe.                                         |
+| `POST` | `/suppliers`     | Crea un proveedor (`{ name }`).                                                 |
+| `GET`  | `/purchases`     | Lista compras (más reciente primero), con `supplierName` ya resuelto.           |
+| `GET`  | `/purchases/:id` | Una compra con sus items — 404 si no existe.                                    |
+| `POST` | `/purchases`     | Crea una compra (`{ supplierId, items: [{ productId, quantity, unitCost }] }`). |
 
 No hay `PATCH`/`DELETE` sobre `/purchases/:id` en este milestone (ver §Alcance).

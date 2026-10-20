@@ -7,7 +7,9 @@ import { AchievementsService } from "./achievements.service";
 @Controller("accounts/me/achievements")
 @UseGuards(AccountJwtGuard)
 export class AchievementsController {
-  constructor(@Inject(AchievementsService) private readonly achievementsService: AchievementsService) {}
+  constructor(
+    @Inject(AchievementsService) private readonly achievementsService: AchievementsService,
+  ) {}
 
   @Get()
   list(@Req() request: RequestWithAccount): Promise<AchievementDto[]> {

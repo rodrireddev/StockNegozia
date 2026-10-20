@@ -24,12 +24,15 @@ export class SetupQuestsService {
   constructor(
     @Inject(AchievementDefinitionsRepository)
     private readonly achievementDefinitionsRepository: AchievementDefinitionsRepository,
-    @Inject(AchievementClaimsRepository) private readonly achievementClaimsRepository: AchievementClaimsRepository,
+    @Inject(AchievementClaimsRepository)
+    private readonly achievementClaimsRepository: AchievementClaimsRepository,
     @Inject(CreditsService) private readonly creditsService: CreditsService,
   ) {}
 
   async claim(userId: string, questKey: string): Promise<SetupQuestClaimResult> {
-    const definition = await this.achievementDefinitionsRepository.findRawByKey(`setup_quest.${questKey}`);
+    const definition = await this.achievementDefinitionsRepository.findRawByKey(
+      `setup_quest.${questKey}`,
+    );
     if (!definition || definition.category !== "setup_quest" || !definition.active) {
       throw new BadRequestException(`Quest de setup desconocida: "${questKey}"`);
     }

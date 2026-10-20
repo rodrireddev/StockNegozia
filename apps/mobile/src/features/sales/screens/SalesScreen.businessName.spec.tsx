@@ -7,6 +7,9 @@ import { SalesScreen } from "./SalesScreen";
 // Separado de `SalesScreen.spec.tsx`/`SalesScreen.receipt.spec.tsx` por el mismo motivo que ya
 // separa esos dos entre sí (ver el comentario en `SalesScreen.receipt.spec.tsx`): timers reales de
 // react-query que pueden filtrarse entre tests/archivos del mismo worker de Jest.
+jest.mock("@/api/endpoints/customers", () => ({
+  fetchCustomers: jest.fn(async () => []),
+}));
 jest.mock("@/api/endpoints/products", () => ({
   fetchProducts: jest.fn(),
 }));
@@ -104,6 +107,7 @@ describe("SalesScreen — nombre del negocio", () => {
     mockedFetchSettings.mockResolvedValue({ businessName: null });
 
     await renderWithClient(<SalesScreen />);
+    fireEvent.changeText(screen.getByPlaceholderText("Nombre, SKU o código de barras…"), "Coca");
     fireEvent.press(await screen.findByText("Coca-Cola 2L"));
     await waitFor(() => expect(screen.getByTestId("open-checkout")).not.toBeDisabled());
     fireEvent.press(screen.getByTestId("open-checkout"));

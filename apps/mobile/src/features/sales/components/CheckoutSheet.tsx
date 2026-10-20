@@ -12,9 +12,15 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { X } from "lucide-react-native";
 import type { PaymentTermsDto } from "@stocknegozia/api-contracts";
-import { formatMoney, type PaymentDraft, type PaymentDraftSummary } from "@stocknegozia/shared";
+import {
+  createPaymentDraft,
+  formatMoney,
+  type PaymentDraft,
+  type PaymentDraftSummary,
+} from "@stocknegozia/shared";
 import { Button } from "@/components/Button";
 import { Checkbox } from "@/components/Checkbox";
+import { Select } from "@/components/Select";
 import { useTheme } from "@/theme/useTheme";
 import { spacing, typography } from "@/theme/tokens";
 import { PaymentSection } from "./PaymentSection";
@@ -33,7 +39,14 @@ interface CheckoutSheetProps {
   onConfirm: () => void;
   isSubmitting: boolean;
   error: string | null;
+  /** Clientes para elegir (opcional): sin cliente es venta de mostrador; con cliente se habilita
+   *  "Cuenta corriente". Sin `customers`, no se muestra el selector. */
+  customers?: { id: number; name: string }[];
+  customerId?: number | null;
+  onCustomerChange?: (customerId: number | null) => void;
 }
+
+const NO_CUSTOMER = "none";
 
 /**
  * Paso "Cobrar" de la venta, en pantalla completa — como en los POS de referencia: primero se
@@ -57,7 +70,19 @@ export function CheckoutSheet({
   onConfirm,
   isSubmitting,
   error,
+  customers,
+  customerId = null,
+  onCustomerChange,
 }: CheckoutSheetProps) {
+  function handleCustomerChange(value: string) {
+    const next = value === NO_CUSTOMER ? null : Number(value);
+    onCustomerChange?.(next);
+    // Sin cliente no hay cuenta corriente: si estaba elegida, se vuelve al medio por defecto.
+    if (next === null && draft.lines.some((line) => line.method === "account")) {
+      onDraftChange(createPaymentDraft());
+    }
+  }
+
   const { colors } = useTheme();
   const paymentError = summary.error;
 
@@ -117,12 +142,29 @@ export function CheckoutSheet({
               ) : null}
             </View>
 
+            {customers ? (
+              <Select
+                label="Cliente"
+                value={customerId === null ? NO_CUSTOMER : String(customerId)}
+                options={[
+                  { value: NO_CUSTOMER, label: "Sin cliente (mostrador)" },
+                  ...customers.map((customer) => ({
+                    value: String(customer.id),
+                    label: customer.name,
+                  })),
+                ]}
+                onChange={handleCustomerChange}
+                testID="checkout-customer"
+              />
+            ) : null}
+
             <PaymentSection
               total={total}
               draft={draft}
               onChange={onDraftChange}
               summary={summary}
               terms={terms}
+              allowAccount={customerId !== null}
             />
 
             <Checkbox

@@ -28,7 +28,10 @@ export function ForgotPasswordForm({ onDone }: { onDone: () => void }) {
   const [info, setInfo] = useState<string | null>(null);
 
   async function handleRequest() {
-    const parsed = passwordResetRequestSchema.safeParse({ email, turnstileToken: turnstileToken ?? undefined });
+    const parsed = passwordResetRequestSchema.safeParse({
+      email,
+      turnstileToken: turnstileToken ?? undefined,
+    });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? "Email inválido");
       return;
@@ -89,9 +92,21 @@ export function ForgotPasswordForm({ onDone }: { onDone: () => void }) {
 
   return (
     <View style={styles.form}>
-      {info ? <Text style={[typography.caption, { color: colors.mutedForeground }]}>{info}</Text> : null}
-      <TextField label="Código recibido por mail" value={token} onChangeText={setToken} autoCapitalize="none" />
-      <TextField label="Contraseña nueva" value={newPassword} onChangeText={setNewPassword} secureTextEntry />
+      {info ? (
+        <Text style={[typography.caption, { color: colors.mutedForeground }]}>{info}</Text>
+      ) : null}
+      <TextField
+        label="Código recibido por mail"
+        value={token}
+        onChangeText={setToken}
+        autoCapitalize="none"
+      />
+      <TextField
+        label="Contraseña nueva"
+        value={newPassword}
+        onChangeText={setNewPassword}
+        secureTextEntry
+      />
       {error ? <Text style={[typography.caption, { color: colors.danger }]}>{error}</Text> : null}
       <Button label="Cambiar contraseña" onPress={handleConfirm} loading={submitting} />
     </View>

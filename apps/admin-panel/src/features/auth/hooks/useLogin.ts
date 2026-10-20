@@ -9,7 +9,11 @@ export function useLogin() {
   return useMutation({
     mutationFn: (input: AdminLoginInput) => login(input),
     onSuccess: (result, input) => {
-      setSession({ accessToken: result.accessToken, email: input.email, expiresAt: result.expiresAt });
+      setSession({
+        accessToken: result.accessToken,
+        email: input.email,
+        expiresAt: result.expiresAt,
+      });
     },
   });
 }

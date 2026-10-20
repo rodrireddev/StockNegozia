@@ -1,5 +1,6 @@
 import type { PaymentMethod } from "@stocknegozia/api-contracts";
 import { profitsRepository, type ProfitFilters } from "./repository";
+import { roundMoney } from "@stocknegozia/shared";
 
 export interface ProfitEntryDto {
   id: number;
@@ -15,12 +16,6 @@ export interface ProfitEntryDto {
   /** Medios con que se cobró la venta de esta línea. Vacío = "Sin especificar". */
   paymentMethods: PaymentMethod[];
   createdAt: string;
-}
-
-/** Mismo `roundMoney` que `salesService`/`productsService` (duplicado a propósito, ver esos
- *  archivos). */
-function roundMoney(value: number): number {
-  return Math.round(value * 100) / 100;
 }
 
 type ProfitRow = ReturnType<typeof profitsRepository.findMany>[number];
@@ -43,8 +38,7 @@ function toDto(row: ProfitRow, paymentMethods: PaymentMethod[]): ProfitEntryDto 
   };
 }
 
-/** Ventas únicamente — ver `features/profits/data/ledger.ts` para la versión combinada con
- *  ajustes de caja que efectivamente usa la pantalla de Ganancias. */
+/** Líneas de venta con su ganancia — los retiros de caja van aparte (ver `data/finance.ts`). */
 export const profitsService = {
   findMany(filters: ProfitFilters = {}): ProfitEntryDto[] {
     const rows = profitsRepository.findMany(filters);

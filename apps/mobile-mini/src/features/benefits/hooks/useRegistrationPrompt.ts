@@ -3,7 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useAccount } from "@/accounts/AccountContext";
 import { fetchProducts } from "@/data/products";
 import { salesRepository } from "@/features/sales/data/repository";
-import { dismissRegistrationPrompt, isRegistrationPromptDismissed } from "../registrationPromptStore";
+import {
+  dismissRegistrationPrompt,
+  isRegistrationPromptDismissed,
+} from "../registrationPromptStore";
 
 type Tier = "low" | "high";
 
@@ -41,9 +44,12 @@ export function useRegistrationPrompt() {
   });
 
   const eligibleTier =
-    status === "unauthenticated" && productsQuery.data !== undefined && salesQuery.data !== undefined
-      ? (TIERS.find((rule) => productsQuery.data! >= rule.products || salesQuery.data! >= rule.sales)
-          ?.tier ?? null)
+    status === "unauthenticated" &&
+    productsQuery.data !== undefined &&
+    salesQuery.data !== undefined
+      ? (TIERS.find(
+          (rule) => productsQuery.data! >= rule.products || salesQuery.data! >= rule.sales,
+        )?.tier ?? null)
       : null;
 
   useEffect(() => {

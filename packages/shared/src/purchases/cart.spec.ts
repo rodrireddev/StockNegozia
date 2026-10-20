@@ -31,7 +31,11 @@ describe("purchaseCartReducer", () => {
 
   it("modifica la cantidad de una línea existente", () => {
     let state = purchaseCartReducer(initialPurchaseCartState, { type: "add", product: cocaCola });
-    state = purchaseCartReducer(state, { type: "setQuantity", productId: cocaCola.id, quantity: 10 });
+    state = purchaseCartReducer(state, {
+      type: "setQuantity",
+      productId: cocaCola.id,
+      quantity: 10,
+    });
 
     expect(state.items[0]!.quantity).toBe(10);
   });
@@ -61,14 +65,22 @@ describe("purchaseCartReducer", () => {
 
   it("modifica el costo unitario de una línea existente", () => {
     let state = purchaseCartReducer(initialPurchaseCartState, { type: "add", product: cocaCola });
-    state = purchaseCartReducer(state, { type: "setUnitCost", productId: cocaCola.id, unitCost: 950 });
+    state = purchaseCartReducer(state, {
+      type: "setUnitCost",
+      productId: cocaCola.id,
+      unitCost: 950,
+    });
 
     expect(state.items[0]!.unitCost).toBe(950);
   });
 
   it("ignora un costo unitario inválido (negativo o no finito)", () => {
     let state = purchaseCartReducer(initialPurchaseCartState, { type: "add", product: cocaCola });
-    state = purchaseCartReducer(state, { type: "setUnitCost", productId: cocaCola.id, unitCost: -5 });
+    state = purchaseCartReducer(state, {
+      type: "setUnitCost",
+      productId: cocaCola.id,
+      unitCost: -5,
+    });
 
     expect(state.items[0]!.unitCost).toBe(cocaCola.purchasePrice);
   });
@@ -94,8 +106,16 @@ describe("purchaseCartReducer", () => {
       type: "add",
       product: cocaCola,
     });
-    state = purchaseCartReducer(state, { type: "setQuantity", productId: cocaCola.id, quantity: 10 });
-    state = purchaseCartReducer(state, { type: "setUnitCost", productId: cocaCola.id, unitCost: 500 });
+    state = purchaseCartReducer(state, {
+      type: "setQuantity",
+      productId: cocaCola.id,
+      quantity: 10,
+    });
+    state = purchaseCartReducer(state, {
+      type: "setUnitCost",
+      productId: cocaCola.id,
+      unitCost: 500,
+    });
     state = purchaseCartReducer(state, { type: "add", product: jabon }); // 1200 x1
 
     expect(selectPurchaseCartTotal(state)).toBe(10 * 500 + 1200 * 1);

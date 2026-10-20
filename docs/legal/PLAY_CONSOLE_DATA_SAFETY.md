@@ -80,6 +80,7 @@ Taxonomía verificada contra la documentación oficial de Google
   que StockNegozia recolecte por su cuenta.
 
 ### El resto de las categorías (Location, Contacts, Messages, Health and fitness, Audio files,
+
 Files and docs, Calendar, Web browsing)
 
 - **¿Se recolecta?** No, ninguna. Confirmado contra `app.json`: los únicos permisos declarados son

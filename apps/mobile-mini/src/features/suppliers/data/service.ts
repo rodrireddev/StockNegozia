@@ -37,7 +37,10 @@ export const suppliersService = {
    *  el valor anterior sin tocar) — mismo criterio que el backend. */
   update(id: number, input: UpdateSupplierInput): SupplierDto {
     suppliersService.findById(id); // 404 si no existe
-    const updated = suppliersRepository.update(id, { name: input.name, phone: input.phone ?? null });
+    const updated = suppliersRepository.update(id, {
+      name: input.name,
+      phone: input.phone ?? null,
+    });
     return toDto(updated);
   },
 

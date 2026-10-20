@@ -1,3 +1,5 @@
+import { CustomersRepository } from "../customers/customers.repository";
+import { CustomersService } from "../customers/customers.service";
 import { DEFAULT_PAYMENT_TERMS } from "@stocknegozia/shared";
 import { paymentTermsSchema } from "@stocknegozia/validation";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -51,6 +53,7 @@ describe("Finanzas + condiciones de cobro", () => {
       productsService,
       settingsService,
       logger,
+      new CustomersService(new CustomersRepository(db), db),
     );
     cashAdjustmentsService = new CashAdjustmentsService(new CashAdjustmentsRepository(db), logger);
     financeService = new FinanceService(new FinanceRepository(db), cashAdjustmentsService);

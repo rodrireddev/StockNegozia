@@ -9,7 +9,11 @@ import { alias } from "drizzle-orm/pg-core";
 import { randomUUID } from "node:crypto";
 import { DRIZZLE_CLIENT } from "../database/database.constants";
 import type { Database, DrizzleExecutor } from "../database/database.types";
-import { achievementDefinitionRevisions, achievementDefinitions, adminUsers } from "../database/schema";
+import {
+  achievementDefinitionRevisions,
+  achievementDefinitions,
+  adminUsers,
+} from "../database/schema";
 
 export interface NewAchievementDefinitionRecord {
   id: string;
@@ -59,20 +63,31 @@ export class AchievementDefinitionsRepository {
 
   /** Sin el join a `adminUsers` — para uso interno (services que solo necesitan la fila). */
   async findRawByKey(key: string, executor: DrizzleExecutor = this.db) {
-    const [row] = await executor.select().from(achievementDefinitions).where(eq(achievementDefinitions.key, key));
+    const [row] = await executor
+      .select()
+      .from(achievementDefinitions)
+      .where(eq(achievementDefinitions.key, key));
     return row;
   }
 
   /** `StreakService`/`SetupQuestsService` — todos los activos de una categoría, sin filtrar más. */
-  async findActiveByCategory(category: AchievementDefinitionCategory, executor: DrizzleExecutor = this.db) {
+  async findActiveByCategory(
+    category: AchievementDefinitionCategory,
+    executor: DrizzleExecutor = this.db,
+  ) {
     return executor
       .select()
       .from(achievementDefinitions)
-      .where(and(eq(achievementDefinitions.category, category), eq(achievementDefinitions.active, true)));
+      .where(
+        and(eq(achievementDefinitions.category, category), eq(achievementDefinitions.active, true)),
+      );
   }
 
   /** `ScheduledGoalsService` — objetivos activos que usan esta métrica, para evaluar tras un evento. */
-  async findActiveScheduledGoalsByMetric(metricType: TrackableMetricType, executor: DrizzleExecutor = this.db) {
+  async findActiveScheduledGoalsByMetric(
+    metricType: TrackableMetricType,
+    executor: DrizzleExecutor = this.db,
+  ) {
     return executor
       .select()
       .from(achievementDefinitions)
@@ -90,7 +105,12 @@ export class AchievementDefinitionsRepository {
     return executor
       .select()
       .from(achievementDefinitions)
-      .where(and(eq(achievementDefinitions.category, "scheduled_goal"), eq(achievementDefinitions.active, true)));
+      .where(
+        and(
+          eq(achievementDefinitions.category, "scheduled_goal"),
+          eq(achievementDefinitions.active, true),
+        ),
+      );
   }
 
   async insert(data: NewAchievementDefinitionRecord) {

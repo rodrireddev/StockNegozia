@@ -63,6 +63,10 @@ export class DevicesRepository {
     this.db.update(devices).set({ name }).where(eq(devices.id, id)).run();
   }
 
+  updateRole(id: string, role: "manager" | "cashier") {
+    this.db.update(devices).set({ role }).where(eq(devices.id, id)).run();
+  }
+
   updateSellerName(id: string, sellerName: string) {
     this.db.update(devices).set({ sellerName }).where(eq(devices.id, id)).run();
   }

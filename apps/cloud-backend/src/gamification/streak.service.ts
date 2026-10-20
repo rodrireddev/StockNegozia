@@ -24,7 +24,8 @@ export class StreakService {
     @Inject(ReferralsRepository) private readonly referralsRepository: ReferralsRepository,
     @Inject(AchievementDefinitionsRepository)
     private readonly achievementDefinitionsRepository: AchievementDefinitionsRepository,
-    @Inject(AchievementClaimsRepository) private readonly achievementClaimsRepository: AchievementClaimsRepository,
+    @Inject(AchievementClaimsRepository)
+    private readonly achievementClaimsRepository: AchievementClaimsRepository,
     @Inject(CreditsService) private readonly creditsService: CreditsService,
     @Inject(CreditConfigService) private readonly creditConfigService: CreditConfigService,
   ) {}
@@ -70,7 +71,8 @@ export class StreakService {
 
     // Hitos de racha configurados desde el panel admin (`achievement_definitions`, categoría
     // `streak_milestone`) — cualquier cantidad de días, no una lista fija de 4 hardcodeada.
-    const milestones = await this.achievementDefinitionsRepository.findActiveByCategory("streak_milestone");
+    const milestones =
+      await this.achievementDefinitionsRepository.findActiveByCategory("streak_milestone");
     const reachedMilestone = milestones.find((m) => m.target === newStreak);
     if (reachedMilestone) {
       const claimed = await this.achievementClaimsRepository.findByUserDefinitionAndPeriod(
@@ -79,10 +81,15 @@ export class StreakService {
         "streak",
       );
       if (!claimed) {
-        await this.creditsService.grant(userId, reachedMilestone.creditsAwarded, "streak_milestone", {
-          reasonMetadata: { milestoneDay: newStreak, achievementKey: reachedMilestone.key },
-          idempotencyKey: `streak:${userId}:${newStreak}`,
-        });
+        await this.creditsService.grant(
+          userId,
+          reachedMilestone.creditsAwarded,
+          "streak_milestone",
+          {
+            reasonMetadata: { milestoneDay: newStreak, achievementKey: reachedMilestone.key },
+            idempotencyKey: `streak:${userId}:${newStreak}`,
+          },
+        );
         await this.achievementClaimsRepository.insert({
           id: randomUUID(),
           userId,
@@ -99,7 +106,13 @@ export class StreakService {
       await this.tryValidateReferral(userId, user.createdAt, now);
     }
 
-    return { currentStreak: newStreak, longestStreak: newLongest, milestoneReached, creditsAwarded, goalsCompleted: [] };
+    return {
+      currentStreak: newStreak,
+      longestStreak: newLongest,
+      milestoneReached,
+      creditsAwarded,
+      goalsCompleted: [],
+    };
   }
 
   /**
@@ -107,11 +120,16 @@ export class StreakService {
    * Acá "actividad real" se opera como "llegó a día 3 de racha" — ya requiere que el cliente haya
    * llamado a este mismo endpoint 3 días distintos, así que no es solo abrir la app una vez.
    */
-  private async tryValidateReferral(referredUserId: string, referredUserCreatedAt: Date, now: Date): Promise<void> {
+  private async tryValidateReferral(
+    referredUserId: string,
+    referredUserCreatedAt: Date,
+    now: Date,
+  ): Promise<void> {
     const pending = await this.referralsRepository.findPendingByReferredUserId(referredUserId);
     if (!pending) return;
 
-    const withinWindow = now.getTime() - referredUserCreatedAt.getTime() <= REFERRAL_VALIDATION_WINDOW_MS;
+    const withinWindow =
+      now.getTime() - referredUserCreatedAt.getTime() <= REFERRAL_VALIDATION_WINDOW_MS;
     if (!withinWindow) {
       await this.referralsRepository.markExpired(pending.id);
       return;

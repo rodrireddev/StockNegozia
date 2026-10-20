@@ -77,9 +77,7 @@ export function SupplierRow({ supplier }: { supplier: SupplierDto }) {
               Cancelar
             </Button>
           </div>
-          {formError && (
-            <p className="mt-1 text-sm text-destructive">{formError}</p>
-          )}
+          {formError && <p className="mt-1 text-sm text-destructive">{formError}</p>}
         </TableCell>
       </TableRow>
     );

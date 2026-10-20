@@ -141,6 +141,27 @@
       "when": 1791954428415,
       "tag": "0019_backfill_legacy_sale_payments",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1792533803060,
+      "tag": "0020_customers",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1792535210941,
+      "tag": "0021_device_roles",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1792538325591,
+      "tag": "0022_customer_payments",
+      "breakpoints": true
     }
   ]
 }

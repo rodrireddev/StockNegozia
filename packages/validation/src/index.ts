@@ -13,6 +13,7 @@ export * from "./auth/auth.schema";
 export * from "./inventory/stock-movement.schema";
 export * from "./inventory/stock-adjustment.schema";
 export * from "./suppliers/supplier.schema";
+export * from "./customers/customer.schema";
 export * from "./purchases/purchase.schema";
 export * from "./backup/backup.schema";
 export * from "./settings/settings.schema";

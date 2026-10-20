@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { clearStoredCredential, getStoredCredential, setStoredCredential } from "./credential-store";
+import {
+  clearStoredCredential,
+  getStoredCredential,
+  setStoredCredential,
+} from "./credential-store";
 
 describe("credential-store", () => {
   beforeEach(() => {

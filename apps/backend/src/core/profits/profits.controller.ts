@@ -1,4 +1,5 @@
-import { Controller, Get, Inject, Query } from "@nestjs/common";
+import { Controller, Get, Inject, Query, UseGuards } from "@nestjs/common";
+import { ManagerDeviceGuard } from "../../auth/guards/manager-device.guard";
 import type { ProfitEntryDto } from "@stocknegozia/api-contracts";
 import { profitQuerySchema, type ProfitQueryInput } from "@stocknegozia/validation";
 import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
@@ -9,6 +10,7 @@ import { ProfitsService } from "./profits.service";
  * mezclan acá (tienen su propio endpoint, `GET /cash-adjustments`). Totales, series y cobros del
  * período: `GET /finance/*` (ver `FinanceController`).
  */
+@UseGuards(ManagerDeviceGuard)
 @Controller("profits")
 export class ProfitsController {
   constructor(@Inject(ProfitsService) private readonly profitsService: ProfitsService) {}

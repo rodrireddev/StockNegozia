@@ -393,7 +393,9 @@ describe("Device Management", () => {
 
     const reader = new LogReader(path.join(dir, "app.log"));
 
-    expect((await reader.findByRequestId("trace-list")).map((e) => e.event)).toContain("device.listed");
+    expect((await reader.findByRequestId("trace-list")).map((e) => e.event)).toContain(
+      "device.listed",
+    );
     expect((await reader.findByRequestId("trace-update")).map((e) => e.event)).toContain(
       "device.updated",
     );

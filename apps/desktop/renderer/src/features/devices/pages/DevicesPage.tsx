@@ -38,7 +38,9 @@ export function DevicesPage() {
           <span>Cargando dispositivos…</span>
         </div>
       )}
-      {devices.isError && <Alert variant="destructive">{getUserFriendlyError(devices.error)}</Alert>}
+      {devices.isError && (
+        <Alert variant="destructive">{getUserFriendlyError(devices.error)}</Alert>
+      )}
       {devices.data && devices.data.length === 0 && (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border py-16 text-center">
           <Smartphone className="h-10 w-10 text-muted-foreground" />

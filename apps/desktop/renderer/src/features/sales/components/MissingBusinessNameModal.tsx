@@ -56,8 +56,8 @@ export function MissingBusinessNameModal({ open, onOpenChange }: MissingBusiness
         <DialogHeader>
           <DialogTitle>Falta indicar el nombre del negocio</DialogTitle>
           <DialogDescription>
-            No se puede generar el recibo sin un nombre de negocio configurado — sin esto, el
-            recibo sale con un nombre genérico. Colocalo para continuar.
+            No se puede generar el recibo sin un nombre de negocio configurado — sin esto, el recibo
+            sale con un nombre genérico. Colocalo para continuar.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">

@@ -31,11 +31,17 @@ export class ApiError extends Error {
   }
 }
 
-async function extractError(response: Response, path: string): Promise<{ message: string; code?: string }> {
+async function extractError(
+  response: Response,
+  path: string,
+): Promise<{ message: string; code?: string }> {
   try {
     const body = (await response.json()) as { message?: unknown; code?: unknown };
     return {
-      message: typeof body.message === "string" ? body.message : `Request to ${path} failed with status ${response.status}`,
+      message:
+        typeof body.message === "string"
+          ? body.message
+          : `Request to ${path} failed with status ${response.status}`,
       code: typeof body.code === "string" ? body.code : undefined,
     };
   } catch {

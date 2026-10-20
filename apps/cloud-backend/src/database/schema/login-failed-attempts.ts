@@ -14,6 +14,9 @@ export const loginFailedAttempts = pgTable(
     failedAt: timestamp("failed_at", { mode: "date" }).notNull(),
   },
   (table) => ({
-    ipFailedAtIdx: index("login_failed_attempts_ip_failed_at_idx").on(table.ipAddress, table.failedAt),
+    ipFailedAtIdx: index("login_failed_attempts_ip_failed_at_idx").on(
+      table.ipAddress,
+      table.failedAt,
+    ),
   }),
 );

@@ -45,7 +45,9 @@ export function formatMovementUnitValue(unitValue: number | null): string {
 }
 
 /** Cantidad con signo según la dirección — el texto nunca depende solo del color. */
-export function formatSignedQuantity(movement: Pick<StockMovementDto, "direction" | "quantity">): string {
+export function formatSignedQuantity(
+  movement: Pick<StockMovementDto, "direction" | "quantity">,
+): string {
   const sign = movement.direction === "IN" ? "+" : "-";
   return `${sign}${movement.quantity}`;
 }

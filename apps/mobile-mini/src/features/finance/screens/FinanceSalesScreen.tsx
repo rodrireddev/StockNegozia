@@ -1,12 +1,15 @@
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Stack } from "expo-router";
 import { TrendingUp } from "lucide-react-native";
 import { describePaymentMethods, formatMoney } from "@stocknegozia/shared";
 import { Card } from "@/components/Card";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
+import { useCancelSale } from "@/features/sales/hooks/useCancelSale";
 import { useTheme } from "@/theme/useTheme";
 import { radius, spacing, typography } from "@/theme/tokens";
 import { FinanceChart } from "../components/FinanceChart";
@@ -35,6 +38,17 @@ export function FinanceSalesScreen() {
   const lines = useSaleLines(period);
   const [metric, setMetric] = useState<"profit" | "revenue">("profit");
   const [visible, setVisible] = useState(PAGE_SIZE);
+  const [saleToCancel, setSaleToCancel] = useState<{ id: number; date: string } | null>(null);
+  const cancelSale = useCancelSale();
+
+  function confirmCancel() {
+    if (!saleToCancel) return;
+    cancelSale.mutate(saleToCancel.id, {
+      onSettled: () => setSaleToCancel(null),
+      onError: (error) =>
+        Alert.alert("No se pudo anular la venta", error instanceof Error ? error.message : ""),
+    });
+  }
 
   return (
     <>
@@ -112,18 +126,47 @@ export function FinanceSalesScreen() {
           ) : null}
 
           <SectionCard title="Detalle de ventas">
+            <ExportCsvButton
+              fileName="ventas"
+              rows={lines.data}
+              columns={[
+                { header: "Fecha", value: (l) => dateFormatter.format(new Date(l.createdAt)) },
+                { header: "Venta N°", value: (l) => l.saleId },
+                { header: "Producto", value: (l) => l.productName },
+                { header: "Cantidad", value: (l) => l.quantity },
+                { header: "Precio unitario", value: (l) => l.unitPrice },
+                { header: "Vendido", value: (l) => l.revenue },
+                { header: "Costo", value: (l) => l.cost },
+                { header: "Ganancia", value: (l) => l.profit },
+                { header: "Cobro", value: (l) => describePaymentMethods(l.paymentMethods ?? []) },
+              ]}
+            />
             {lines.isPending ? (
               <LoadingState />
             ) : (
               <>
+                <Text style={[typography.caption, { color: colors.mutedForeground }]}>
+                  Tocá una línea para anular su venta.
+                </Text>
                 {(lines.data ?? []).slice(0, visible).map((line) => (
-                  <ListRow
+                  <Pressable
                     key={line.id}
-                    title={`${line.productName} × ${line.quantity}`}
-                    subtitle={`${dateFormatter.format(new Date(line.createdAt))} · ${describePaymentMethods(line.paymentMethods ?? [])} · vendido ${formatMoney(line.revenue)}`}
-                    amount={line.profit}
-                    tone={line.profit < 0 ? "negative" : "positive"}
-                  />
+                    accessibilityRole="button"
+                    accessibilityHint="Anular la venta"
+                    onPress={() =>
+                      setSaleToCancel({
+                        id: line.saleId,
+                        date: dateFormatter.format(new Date(line.createdAt)),
+                      })
+                    }
+                  >
+                    <ListRow
+                      title={`${line.productName} × ${line.quantity}`}
+                      subtitle={`${dateFormatter.format(new Date(line.createdAt))} · ${describePaymentMethods(line.paymentMethods ?? [])} · vendido ${formatMoney(line.revenue)}`}
+                      amount={line.profit}
+                      tone={line.profit < 0 ? "negative" : "positive"}
+                    />
+                  </Pressable>
                 ))}
                 <ShowMoreButton
                   remaining={(lines.data?.length ?? 0) - visible}
@@ -134,6 +177,16 @@ export function FinanceSalesScreen() {
           </SectionCard>
         </ScrollView>
       )}
+      <ConfirmDialog
+        open={saleToCancel !== null}
+        onOpenChange={(open) => !open && setSaleToCancel(null)}
+        title={`¿Anular la venta #${saleToCancel?.id ?? ""}?`}
+        description={`Venta del ${saleToCancel?.date ?? ""}. Se anula completa (todos sus productos), el stock vuelve al inventario y deja de contar en Ganancias. No se puede deshacer.`}
+        confirmLabel="Anular venta"
+        variant="danger"
+        onConfirm={confirmCancel}
+        isPending={cancelSale.isPending}
+      />
     </>
   );
 }

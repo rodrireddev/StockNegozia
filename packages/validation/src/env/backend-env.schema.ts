@@ -10,6 +10,17 @@ const booleanEnvFlag = (defaultValue: boolean) =>
     .optional()
     .transform((value) => (value === undefined ? defaultValue : value === "true"));
 
+const IPV4_OCTET = "(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)";
+const IPV4 = new RegExp(`^${IPV4_OCTET}(?:\\.${IPV4_OCTET}){3}$`);
+const HOSTNAME =
+  /^(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/i;
+
+/** IPv4 válida, o hostname que no sea "casi una IP" (ej. `999.1.1.1`). */
+function isLanHost(host: string): boolean {
+  if (/^[\d.]+$/.test(host)) return IPV4.test(host);
+  return HOSTNAME.test(host);
+}
+
 export const backendEnvSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   STOCKNEGOZIA_PORT: z.coerce.number().int().positive().default(38123),
@@ -27,7 +38,20 @@ export const backendEnvSchema = z.object({
   // Override manual del host que se embebe en el QR para que otro dispositivo en la misma LAN
   // pueda llegar al backend (localhost no sirve desde otro dispositivo). Sin esta variable, se
   // intenta autodetectar la primera IP de LAN no interna — ver `resolveLanHost`.
-  PAIRING_HOST: z.string().optional(),
+  // Solo IPv4 o hostname, sin protocolo/puerto/espacios: se embebe tal cual en `http://<host>:<puerto>`
+  // del QR, y un valor mal escrito generaría un QR que apunta a ningún lado sin ningún aviso.
+  // `localhost`/loopback no sirven desde otro dispositivo (ver docs/security/PAIRING.md §Host/red).
+  PAIRING_HOST: z
+    .string()
+    .trim()
+    .refine(isLanHost, {
+      message:
+        "PAIRING_HOST debe ser una IPv4 (ej. 192.168.0.10) o un hostname, sin http:// ni puerto",
+    })
+    .refine((host) => host.toLowerCase() !== "localhost" && !host.startsWith("127."), {
+      message: "PAIRING_HOST no puede ser localhost/127.x: otro dispositivo no llegaría al backend",
+    })
+    .optional(),
   // Orígenes adicionales permitidos por CORS, separados por coma (ej. el build empaquetado del
   // Desktop, un futuro cliente Mobile) — se suman a los orígenes conocidos por defecto (renderer de
   // Electron en dev, Web Client en dev/LAN). Ver docs/lan/DEVICE_MANAGEMENT.md §CORS.

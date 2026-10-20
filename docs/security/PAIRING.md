@@ -44,13 +44,13 @@ Desktop StockNegozia (ya autenticado)
 
 Son dos secretos completamente distintos, con ciclos de vida distintos:
 
-| | Pairing token | Device credential |
-| --- | --- | --- |
-| Vida | Temporal (minutos) | Permanente |
-| Uso | Un solo uso | Repetible, en cada request |
-| Dónde viaja | Dentro del QR | Header `Authorization`, nunca en un QR |
+|              | Pairing token            | Device credential                          |
+| ------------ | ------------------------ | ------------------------------------------ |
+| Vida         | Temporal (minutos)       | Permanente                                 |
+| Uso          | Un solo uso              | Repetible, en cada request                 |
+| Dónde viaja  | Dentro del QR            | Header `Authorization`, nunca en un QR     |
 | Qué autoriza | Confirmar **un** pairing | Autenticarse contra la API indefinidamente |
-| Revocable | Se consume o expira solo | `DevicesService.revoke()` |
+| Revocable    | Se consume o expira solo | `DevicesService.revoke()`                  |
 
 **El QR nunca contiene una credential permanente.** El pairing token que sí contiene es
 intencionalmente inútil para cualquier otra cosa que no sea confirmar esa sesión de pairing
@@ -197,16 +197,16 @@ Tabla `pairing_sessions` (Drizzle/SQLite, migración `0004_futuristic_kree.sql`;
 su FK real hacia `devices.id` en la migración `0005_crazy_carnage.sql` del Milestone 7 — ver
 [`DEVICE_MANAGEMENT.md`](./DEVICE_MANAGEMENT.md) §`pairing_sessions.device_id`):
 
-| Campo                     | Descripción                                                        |
-| -------------------------- | ------------------------------------------------------------------- |
-| `id`                       | UUID — es el `pairingId`.                                            |
-| `token_hash`               | SHA-256 del pairing token. **Nunca se guarda en texto plano.**       |
-| `verification_code_hash`   | SHA-256 del verification code. Tampoco en texto plano.               |
-| `status`                   | `pending` \| `confirmed` \| `expired` \| `cancelled`.                |
-| `device_id`                | `Device` creado al confirmar (`null` hasta entonces). FK hacia `devices.id` — para auditoría/logs, y ahora también con integridad referencial real. |
-| `expires_at`               | Cuándo deja de ser válida.                                            |
-| `created_at`                | Cuándo se creó.                                                       |
-| `confirmed_at`              | Cuándo se confirmó (`null` si no se confirmó).                       |
+| Campo                    | Descripción                                                                                                                                         |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                     | UUID — es el `pairingId`.                                                                                                                           |
+| `token_hash`             | SHA-256 del pairing token. **Nunca se guarda en texto plano.**                                                                                      |
+| `verification_code_hash` | SHA-256 del verification code. Tampoco en texto plano.                                                                                              |
+| `status`                 | `pending` \| `confirmed` \| `expired` \| `cancelled`.                                                                                               |
+| `device_id`              | `Device` creado al confirmar (`null` hasta entonces). FK hacia `devices.id` — para auditoría/logs, y ahora también con integridad referencial real. |
+| `expires_at`             | Cuándo deja de ser válida.                                                                                                                          |
+| `created_at`             | Cuándo se creó.                                                                                                                                     |
+| `confirmed_at`           | Cuándo se confirmó (`null` si no se confirmó).                                                                                                      |
 
 El hash reutiliza `CredentialService.hash()` (SHA-256) — mismo mecanismo que
 `devices.credential_hash`, no una segunda implementación de hashing.
@@ -226,14 +226,14 @@ sin necesitar un job en background.
 
 Reutiliza `AppLogger`/`RequestContext` — mismo sistema del Milestone 4, sin duplicar nada. Eventos:
 
-| Evento                          | Nivel | Cuándo                                                  |
-| --------------------------------- | ----- | ---------------------------------------------------------- |
-| `pairing.created`                 | INFO  | `POST /auth/pairing` exitoso.                                |
-| `pairing.confirmation.started`    | INFO  | Se recibió un intento de `POST /auth/pairing/confirm`.       |
-| `pairing.confirmed`               | INFO  | Confirmación exitosa — sesión pasó a `CONFIRMED`.            |
-| `pairing.failed`                  | WARN  | Token/código inválido, sesión no encontrada, expirada, ya confirmada, o cancelada. `metadata.reason` tiene el detalle interno. |
-| `pairing.cancelled`               | INFO  | `POST /auth/pairing/cancel` exitoso.                          |
-| `device.created`                  | INFO  | Se creó un `Device` (bootstrap o pairing — evento compartido, ver `API_ACCESS.md`). |
+| Evento                         | Nivel | Cuándo                                                                                                                         |
+| ------------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `pairing.created`              | INFO  | `POST /auth/pairing` exitoso.                                                                                                  |
+| `pairing.confirmation.started` | INFO  | Se recibió un intento de `POST /auth/pairing/confirm`.                                                                         |
+| `pairing.confirmed`            | INFO  | Confirmación exitosa — sesión pasó a `CONFIRMED`.                                                                              |
+| `pairing.failed`               | WARN  | Token/código inválido, sesión no encontrada, expirada, ya confirmada, o cancelada. `metadata.reason` tiene el detalle interno. |
+| `pairing.cancelled`            | INFO  | `POST /auth/pairing/cancel` exitoso.                                                                                           |
+| `device.created`               | INFO  | Se creó un `Device` (bootstrap o pairing — evento compartido, ver `API_ACCESS.md`).                                            |
 
 **Nunca se registra**: el pairing token, el verification code, la credential resultante, ni el
 header `Authorization`. Los logs pueden contener `pairingId`, `deviceId`, `deviceType` y
@@ -248,6 +248,7 @@ requestId (creación)
     ↓
 pairing.created
 ```
+
 ```
 requestId (confirmación)
     ↓
@@ -330,8 +331,8 @@ igual acá — el pairing no promete más aislamiento que el resto de la API.
 > (secciones 1–3 y 5 más abajo, principalmente). Lo que sigue sin existir y sigue siendo `TODO`
 > genuino: un cliente QR con cámara real (el Web Client pega el JSON en vez de escanear), un
 > cliente Android/iOS real (Mobile es M15), y el almacenamiento seguro de una credential de
-> *pairing* en un segundo Electron/Desktop (`DeviceCredentialStore` hoy solo cubre la credential de
-> *bootstrap* — ver la nota en §2 más abajo, que sigue vigente). Este checklist no se reescribió
+> _pairing_ en un segundo Electron/Desktop (`DeviceCredentialStore` hoy solo cubre la credential de
+> _bootstrap_ — ver la nota en §2 más abajo, que sigue vigente). Este checklist no se reescribió
 > punto por punto; se deja como referencia histórica del estado pre-M14 más esta nota.
 
 **Estas pruebas no son un faltante del backend ni representan bugs conocidos.** Todo lo descrito
@@ -348,30 +349,30 @@ puntos quedan marcados `TODO`.
 
 ### 1. Pruebas del QR real
 
-| # | Prueba | Estado | Notas |
-| - | ------ | ------ | ----- |
-| 1 | El backend genera correctamente el payload del QR | ✅ Ya verificado | Cubierto por `pairing.e2e.spec.ts` y por §QR payload/§Host de red más arriba — no requiere UI. |
-| 2 | La UI transforma el payload en una imagen QR real | `TODO` | No hay librería de QR elegida ni agregada todavía (ver §UI/generación de QR). |
-| 3 | El QR puede escanearse desde otro dispositivo | `TODO` | Requiere un dispositivo físico con cámara y un lector capaz de extraer el JSON — el "otro dispositivo" no existe en este repo (no hay cliente Android/iOS, ver §Fuera de alcance); en la práctica, hasta que exista un cliente real, esta prueba se simula enviando el payload decodificado directamente a `POST /auth/pairing/confirm` (que es exactamente lo que ya hacen los tests de backend). |
-| 4 | El dispositivo cliente obtiene correctamente `host` | `TODO` | El backend ya lo resuelve (`resolveLanHost()`, §Host/red) — falta verificar que la UI que decodifica el QR lo lea del campo correcto (`qr.host`) y lo use para armar la URL base de sus propias requests. |
-| 5 | El dispositivo cliente obtiene correctamente `port` | `TODO` | Campo `qr.port`, mismo razonamiento. |
-| 6 | El dispositivo cliente obtiene la información temporal necesaria (`expiresAt`) | `TODO` | Campo `qr.expiresAt` — usado por la UI del dispositivo nuevo para saber si vale la pena intentar confirmar antes de golpear el backend. |
-| 7 | El dispositivo cliente obtiene la versión/formato del payload (`version`) | `TODO` | Hoy siempre `1` — la UI debería, como mínimo, no asumir campos de una versión futura sin chequear `version` primero. |
-| 8 | El QR no contiene una credential permanente | ✅ Ya garantizado | Estructuralmente cierto — `PairingQrPayload` no tiene ningún campo de credential (ver §Principio de seguridad). Igual, una vez exista la UI, vale decodificar el QR *real* generado (no solo el JSON del backend) y confirmar que la librería de QR no agregó nada extra al payload serializado. |
-| 9 | El QR no contiene `credentialHash` | ✅ Ya garantizado | Mismo razonamiento que el punto anterior. |
-| 10 | El QR no contiene secretos del dispositivo ni información sensible innecesaria | ✅ Ya garantizado | El payload es exactamente `{ version, type, host, port, protocol, pairingId, token, expiresAt }` — nada más. Repetir la verificación sobre el QR renderizado, no solo sobre la respuesta JSON. |
+| #   | Prueba                                                                         | Estado            | Notas                                                                                                                                                                                                                                                                                                                                                                                              |
+| --- | ------------------------------------------------------------------------------ | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | El backend genera correctamente el payload del QR                              | ✅ Ya verificado  | Cubierto por `pairing.e2e.spec.ts` y por §QR payload/§Host de red más arriba — no requiere UI.                                                                                                                                                                                                                                                                                                     |
+| 2   | La UI transforma el payload en una imagen QR real                              | `TODO`            | No hay librería de QR elegida ni agregada todavía (ver §UI/generación de QR).                                                                                                                                                                                                                                                                                                                      |
+| 3   | El QR puede escanearse desde otro dispositivo                                  | `TODO`            | Requiere un dispositivo físico con cámara y un lector capaz de extraer el JSON — el "otro dispositivo" no existe en este repo (no hay cliente Android/iOS, ver §Fuera de alcance); en la práctica, hasta que exista un cliente real, esta prueba se simula enviando el payload decodificado directamente a `POST /auth/pairing/confirm` (que es exactamente lo que ya hacen los tests de backend). |
+| 4   | El dispositivo cliente obtiene correctamente `host`                            | `TODO`            | El backend ya lo resuelve (`resolveLanHost()`, §Host/red) — falta verificar que la UI que decodifica el QR lo lea del campo correcto (`qr.host`) y lo use para armar la URL base de sus propias requests.                                                                                                                                                                                          |
+| 5   | El dispositivo cliente obtiene correctamente `port`                            | `TODO`            | Campo `qr.port`, mismo razonamiento.                                                                                                                                                                                                                                                                                                                                                               |
+| 6   | El dispositivo cliente obtiene la información temporal necesaria (`expiresAt`) | `TODO`            | Campo `qr.expiresAt` — usado por la UI del dispositivo nuevo para saber si vale la pena intentar confirmar antes de golpear el backend.                                                                                                                                                                                                                                                            |
+| 7   | El dispositivo cliente obtiene la versión/formato del payload (`version`)      | `TODO`            | Hoy siempre `1` — la UI debería, como mínimo, no asumir campos de una versión futura sin chequear `version` primero.                                                                                                                                                                                                                                                                               |
+| 8   | El QR no contiene una credential permanente                                    | ✅ Ya garantizado | Estructuralmente cierto — `PairingQrPayload` no tiene ningún campo de credential (ver §Principio de seguridad). Igual, una vez exista la UI, vale decodificar el QR _real_ generado (no solo el JSON del backend) y confirmar que la librería de QR no agregó nada extra al payload serializado.                                                                                                   |
+| 9   | El QR no contiene `credentialHash`                                             | ✅ Ya garantizado | Mismo razonamiento que el punto anterior.                                                                                                                                                                                                                                                                                                                                                          |
+| 10  | El QR no contiene secretos del dispositivo ni información sensible innecesaria | ✅ Ya garantizado | El payload es exactamente `{ version, type, host, port, protocol, pairingId, token, expiresAt }` — nada más. Repetir la verificación sobre el QR renderizado, no solo sobre la respuesta JSON.                                                                                                                                                                                                     |
 
-**Casos con QR en distintos estados** — el comportamiento del *backend* para cada uno ya está
+**Casos con QR en distintos estados** — el comportamiento del _backend_ para cada uno ya está
 probado (`pairing.e2e.spec.ts`); lo pendiente es exclusivamente cómo la UI reacciona a la
 respuesta que el backend ya devuelve hoy:
 
-| Caso | Respuesta del backend (ya implementada) | Pendiente en UI |
-| ---- | ---------------------------------------- | ---------------- |
-| QR válido, dentro de la ventana | `201` + `{ device, credential }` | `TODO`: transición a estado confirmado, guardado de la credential (ver §2). |
-| QR expirado | `401` genérico (mismo body que cualquier otro rechazo — ver §Duración y expiración) | `TODO`: mostrar "el código expiró", ofrecer generar uno nuevo. |
-| QR de un pairing ya `CONFIRMED` | `401` genérico (single-use, ver §Estados) | `TODO`: mostrar "este QR ya fue usado", sin crear un segundo device. |
-| QR de un pairing `CANCELLED` | `401` genérico | `TODO`: mostrar "este pairing fue cancelado desde el desktop". |
-| Reutilización del mismo QR tras confirmarlo una vez | `401` genérico (idéntico al caso "ya `CONFIRMED`") | `TODO`: mismo tratamiento — la UI no necesita (ni puede) distinguir este caso del anterior, porque el backend tampoco lo distingue (anti-enumeración, ver §Duración y expiración). |
+| Caso                                                | Respuesta del backend (ya implementada)                                             | Pendiente en UI                                                                                                                                                                    |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| QR válido, dentro de la ventana                     | `201` + `{ device, credential }`                                                    | `TODO`: transición a estado confirmado, guardado de la credential (ver §2).                                                                                                        |
+| QR expirado                                         | `401` genérico (mismo body que cualquier otro rechazo — ver §Duración y expiración) | `TODO`: mostrar "el código expiró", ofrecer generar uno nuevo.                                                                                                                     |
+| QR de un pairing ya `CONFIRMED`                     | `401` genérico (single-use, ver §Estados)                                           | `TODO`: mostrar "este QR ya fue usado", sin crear un segundo device.                                                                                                               |
+| QR de un pairing `CANCELLED`                        | `401` genérico                                                                      | `TODO`: mostrar "este pairing fue cancelado desde el desktop".                                                                                                                     |
+| Reutilización del mismo QR tras confirmarlo una vez | `401` genérico (idéntico al caso "ya `CONFIRMED`")                                  | `TODO`: mismo tratamiento — la UI no necesita (ni puede) distinguir este caso del anterior, porque el backend tampoco lo distingue (anti-enumeración, ver §Duración y expiración). |
 
 ### 2. Pruebas de seguridad del Renderer
 
@@ -412,7 +413,7 @@ Checklist — verificar, con la UI de pairing ya implementada, que la credential
 - [ ] el HTML generado (inspeccionar el DOM renderizado)
 - [ ] atributos `data-*`
 - [ ] el clipboard
-- [ ] el QR generado por la UI (el QR debe llevar el *pairing token*, nunca una credential — ver
+- [ ] el QR generado por la UI (el QR debe llevar el _pairing token_, nunca una credential — ver
       §Principio de seguridad; esto aplica al QR que la UI genera para emparejar a OTRO
       dispositivo, no a la credential del propio Electron)
 
@@ -472,7 +473,7 @@ Los cuatro estados son los que ya devuelve el backend en el campo `status`
 **Transición a `confirmed`** — verificar:
 
 - [ ] La UI detecta la confirmación (hoy no hay push/WebSocket — ver §Fuera de alcance — así que
-      esto requiere que la UI *pollee* algún endpoint, o que el propio dispositivo nuevo notifique
+      esto requiere que la UI _pollee_ algún endpoint, o que el propio dispositivo nuevo notifique
       de otra forma; **este mecanismo de detección todavía no está diseñado** y es una decisión de
       UI pendiente, no algo que el backend deba resolver).
 - [ ] Se recibe la nueva credential — pero solo en el dispositivo que confirmó
@@ -506,15 +507,15 @@ Los cuatro estados son los que ya devuelve el backend en el campo `status`
 Para cada caso, el comportamiento del backend ya está implementado y probado; lo que sigue
 pendiente es exclusivamente la reacción de la UI.
 
-| Caso | Backend (ya implementado) | Pendiente en UI |
-| ---- | --------------------------- | ---------------- |
-| Código de verificación incorrecto | `401` genérico, la sesión **sigue `pending`** (no se consume en un intento fallido — ver §Confirmar) | `TODO`: mostrar un error comprensible, sin revelar que específicamente el código estaba mal (el backend tampoco lo revela); permitir reintentar **con el mismo QR**, ya que la sesión no se invalidó. |
-| Token/QR inválido | `401` genérico | `TODO`: error claro; no almacenar ninguna credential (no la hay); no dejar la UI en un estado a mitad de camino (ej. mostrando "conectando..." indefinidamente). |
-| Pairing expirado | `401` genérico (ver §3 sobre el chequeo de `expiresAt` en tiempo real) | `TODO`: informar la expiración; ofrecer iniciar un nuevo pairing (`POST /auth/pairing` de nuevo). |
-| Pairing ya utilizado | `401` genérico, idéntico al resto de los rechazos (anti-enumeración) | `TODO`: mostrar un error apropiado; **no** crear otro `Device` (imposible de todos modos: el backend ya lo impide) ni obtener una segunda credential. |
-| Pairing cancelado | `401` genérico | `TODO`: impedir la confirmación (ya impedido server-side); permitir iniciar uno nuevo. |
-| Backend inaccesible | No aplica — es un problema de conectividad del cliente, no del backend. Las sesiones de pairing expiran por su propio TTL sin importar si el cliente sigue conectado (no hay un estado "esperando al cliente" del lado del servidor). | `TODO`: timeout/error controlado en el cliente; mensaje comprensible; como el backend nunca deja la sesión en un limbo, la UI tampoco debería — simplemente permitir reintentar la request o cancelar. |
-| Credential revocada | `401` en cualquier request posterior a `POST /auth/devices/:id/revoke` (ver `DEVICE_MANAGEMENT.md` §Revocación permanente) — **no existe** ningún mecanismo de reactivación en el backend | `TODO`: la UI debe manejar el `401` sin intentar "reactivar" nada (no hay endpoint para eso — ver `DEVICE_MANAGEMENT.md` §Revocación permanente), y guiar al usuario a hacer un nuevo pairing. |
+| Caso                              | Backend (ya implementado)                                                                                                                                                                                                             | Pendiente en UI                                                                                                                                                                                        |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Código de verificación incorrecto | `401` genérico, la sesión **sigue `pending`** (no se consume en un intento fallido — ver §Confirmar)                                                                                                                                  | `TODO`: mostrar un error comprensible, sin revelar que específicamente el código estaba mal (el backend tampoco lo revela); permitir reintentar **con el mismo QR**, ya que la sesión no se invalidó.  |
+| Token/QR inválido                 | `401` genérico                                                                                                                                                                                                                        | `TODO`: error claro; no almacenar ninguna credential (no la hay); no dejar la UI en un estado a mitad de camino (ej. mostrando "conectando..." indefinidamente).                                       |
+| Pairing expirado                  | `401` genérico (ver §3 sobre el chequeo de `expiresAt` en tiempo real)                                                                                                                                                                | `TODO`: informar la expiración; ofrecer iniciar un nuevo pairing (`POST /auth/pairing` de nuevo).                                                                                                      |
+| Pairing ya utilizado              | `401` genérico, idéntico al resto de los rechazos (anti-enumeración)                                                                                                                                                                  | `TODO`: mostrar un error apropiado; **no** crear otro `Device` (imposible de todos modos: el backend ya lo impide) ni obtener una segunda credential.                                                  |
+| Pairing cancelado                 | `401` genérico                                                                                                                                                                                                                        | `TODO`: impedir la confirmación (ya impedido server-side); permitir iniciar uno nuevo.                                                                                                                 |
+| Backend inaccesible               | No aplica — es un problema de conectividad del cliente, no del backend. Las sesiones de pairing expiran por su propio TTL sin importar si el cliente sigue conectado (no hay un estado "esperando al cliente" del lado del servidor). | `TODO`: timeout/error controlado en el cliente; mensaje comprensible; como el backend nunca deja la sesión en un limbo, la UI tampoco debería — simplemente permitir reintentar la request o cancelar. |
+| Credential revocada               | `401` en cualquier request posterior a `POST /auth/devices/:id/revoke` (ver `DEVICE_MANAGEMENT.md` §Revocación permanente) — **no existe** ningún mecanismo de reactivación en el backend                                             | `TODO`: la UI debe manejar el `401` sin intentar "reactivar" nada (no hay endpoint para eso — ver `DEVICE_MANAGEMENT.md` §Revocación permanente), y guiar al usuario a hacer un nuevo pairing.         |
 
 ### 5. Prueba de ciclo completo (end-to-end)
 
@@ -523,28 +524,28 @@ reales (`auth.e2e.spec.ts`, `pairing.e2e.spec.ts`, `devices.e2e.spec.ts`) y por 
 manual contra el backend compilado documentada en los Milestones 5–7; los marcados `TODO` dependen
 de que exista la UI/un segundo cliente real.
 
-| # | Paso | Estado |
-| - | ---- | ------ |
-| 1 | Desktop inicia backend | ✅ (`BackendManager`, ya funciona hoy) |
-| 2 | Desktop genera pairing | ✅ (`POST /auth/pairing`, backend) |
-| 3 | UI muestra QR | `TODO` |
-| 4 | Otro dispositivo escanea QR | `TODO` (requiere dispositivo/cliente real) |
-| 5 | Usuario introduce/confirma código | `TODO` (UI del dispositivo nuevo) |
-| 6 | Backend valida token + código | ✅ (`PairingService.confirmPairing()`) |
-| 7 | Backend crea `Device` | ✅ (`DevicesService.register()`) |
-| 8 | Backend devuelve credencial una sola vez | ✅ (`PairingConfirmResult`) |
-| 9 | Cliente almacena la credencial mediante el mecanismo seguro correspondiente | `TODO` (ver §2 — falta el equivalente de `DeviceCredentialStore` para un dispositivo emparejado, no solo para el de bootstrap) |
-| 10 | Cliente realiza una request autenticada | ✅ a nivel backend (la credential ya funciona con `ApiAccessGuard`) / `TODO` a nivel UI real |
-| 11 | Backend acepta la credencial | ✅ |
-| 12 | Reiniciar cliente | `TODO` (depende del punto 9) |
-| 13 | Verificar que continúa autenticado | `TODO` (depende del punto 9) |
-| 14 | Desde Device Management, revocar el dispositivo | ✅ (`POST /auth/devices/:id/revoke`, backend — sin UI todavía) |
-| 15 | Cliente realiza una nueva request | ✅ a nivel backend / `TODO` a nivel UI real |
-| 16 | Backend devuelve `401` | ✅ |
-| 17 | Cliente no intenta reactivar la credencial | ✅ estructuralmente (no existe el endpoint) / `TODO` verificar que la UI tampoco lo intente por su cuenta |
-| 18 | Usuario realiza un nuevo pairing | ✅ backend / `TODO` UI |
-| 19 | Se crea un nuevo dispositivo/credencial | ✅ (verificado en `devices.e2e.spec.ts`, "flujo crítico de seguridad") |
-| 20 | El nuevo dispositivo vuelve a funcionar | ✅ backend / `TODO` UI real |
+| #   | Paso                                                                        | Estado                                                                                                                         |
+| --- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Desktop inicia backend                                                      | ✅ (`BackendManager`, ya funciona hoy)                                                                                         |
+| 2   | Desktop genera pairing                                                      | ✅ (`POST /auth/pairing`, backend)                                                                                             |
+| 3   | UI muestra QR                                                               | `TODO`                                                                                                                         |
+| 4   | Otro dispositivo escanea QR                                                 | `TODO` (requiere dispositivo/cliente real)                                                                                     |
+| 5   | Usuario introduce/confirma código                                           | `TODO` (UI del dispositivo nuevo)                                                                                              |
+| 6   | Backend valida token + código                                               | ✅ (`PairingService.confirmPairing()`)                                                                                         |
+| 7   | Backend crea `Device`                                                       | ✅ (`DevicesService.register()`)                                                                                               |
+| 8   | Backend devuelve credencial una sola vez                                    | ✅ (`PairingConfirmResult`)                                                                                                    |
+| 9   | Cliente almacena la credencial mediante el mecanismo seguro correspondiente | `TODO` (ver §2 — falta el equivalente de `DeviceCredentialStore` para un dispositivo emparejado, no solo para el de bootstrap) |
+| 10  | Cliente realiza una request autenticada                                     | ✅ a nivel backend (la credential ya funciona con `ApiAccessGuard`) / `TODO` a nivel UI real                                   |
+| 11  | Backend acepta la credencial                                                | ✅                                                                                                                             |
+| 12  | Reiniciar cliente                                                           | `TODO` (depende del punto 9)                                                                                                   |
+| 13  | Verificar que continúa autenticado                                          | `TODO` (depende del punto 9)                                                                                                   |
+| 14  | Desde Device Management, revocar el dispositivo                             | ✅ (`POST /auth/devices/:id/revoke`, backend — sin UI todavía)                                                                 |
+| 15  | Cliente realiza una nueva request                                           | ✅ a nivel backend / `TODO` a nivel UI real                                                                                    |
+| 16  | Backend devuelve `401`                                                      | ✅                                                                                                                             |
+| 17  | Cliente no intenta reactivar la credencial                                  | ✅ estructuralmente (no existe el endpoint) / `TODO` verificar que la UI tampoco lo intente por su cuenta                      |
+| 18  | Usuario realiza un nuevo pairing                                            | ✅ backend / `TODO` UI                                                                                                         |
+| 19  | Se crea un nuevo dispositivo/credencial                                     | ✅ (verificado en `devices.e2e.spec.ts`, "flujo crítico de seguridad")                                                         |
+| 20  | El nuevo dispositivo vuelve a funcionar                                     | ✅ backend / `TODO` UI real                                                                                                    |
 
 ### 6. Verificación de logs durante las pruebas
 

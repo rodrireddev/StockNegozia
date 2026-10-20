@@ -2,7 +2,10 @@ import { Loader2, Package } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { TabNav } from "@/components/ui/tab-nav";
-import { ProductsFilterBar, type ProductFiltersState } from "@/features/products/components/ProductsFilterBar";
+import {
+  ProductsFilterBar,
+  type ProductFiltersState,
+} from "@/features/products/components/ProductsFilterBar";
 import { useCategories } from "@/features/products/hooks/useCategories";
 import { useDebouncedValue } from "@/features/products/hooks/useDebouncedValue";
 import { useProducts } from "@/features/products/hooks/useProducts";

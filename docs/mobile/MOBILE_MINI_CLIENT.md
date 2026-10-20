@@ -14,7 +14,9 @@ un backend en absoluto.
 ## Alcance
 
 Productos (con scanner y foto), Ventas (carrito), Compras (carrito), Inventario (categorías +
-historial de movimientos de stock), Proveedores. Ajustes es únicamente el selector de tema
+historial de movimientos de stock), Proveedores, Clientes (con cuenta corriente: ventas a cuenta,
+saldo y registro de pagos, mismas reglas que `apps/backend/src/core/customers`) y exportación a CSV
+(hoja de compartir del sistema). Ajustes es únicamente el selector de tema
 claro/oscuro/sistema. Deliberadamente **sin** Panel/Dashboard ni Dispositivos — ninguno de los dos
 existía tampoco en `apps/mobile`.
 
