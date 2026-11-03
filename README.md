@@ -217,6 +217,7 @@ pnpm lint        # ESLint
 | Instalador Windows local (`.exe`, NSIS) | `pnpm --filter @stocknegozia/desktop dist:win`                                |
 | Publicar versión con auto-actualización | `GH_TOKEN=<token> pnpm --filter @stocknegozia/desktop release:win`            |
 | APK/AAB Android                         | `pnpm --filter @stocknegozia/mobile build:preview` / `build:production` (EAS) |
+| APK/AAB Android (Mini)                  | `pnpm --filter @stocknegozia/mobile-mini build:preview` / `build:production`  |
 
 **Cómo publicar una actualización del Desktop:** subir `version` en
 `apps/desktop/package.json`, correr `release:win` con un token de GitHub con permiso de
@@ -224,6 +225,11 @@ _contents: write_. Eso crea un Release **borrador** con el instalador, `latest.y
 `.blockmap`. Al publicarlo, las instalaciones existentes lo detectan al abrir, lo bajan en segundo
 plano y ofrecen reiniciar. Los datos del usuario viven fuera de la carpeta de instalación y la base
 se respalda antes de migrar, así que actualizar nunca borra información.
+
+**Actualizar las apps Android:** subir `android.versionCode` en el `app.json` de la app y compilar
+con EAS. El APK nuevo se instala encima del anterior sin perder datos solo si está firmado con la
+misma credencial de EAS que la versión instalada; si no, Android lo rechaza por conflicto de
+paquetes y hay que desinstalar primero.
 
 ## Seguridad
 
@@ -236,6 +242,9 @@ se respalda antes de migrar, así que actualizar nunca borra información.
   no edita productos/precios/proveedores/configuración ni cancela ventas. El backend lo hace
   cumplir (`403`); las apps además ocultan esas secciones.
 - **Revocación** permanente de dispositivos, sin reactivación.
+- **Red local**: Mobile habla con el backend de la PC por HTTP sin cifrar dentro de la LAN
+  (`usesCleartextTraffic`, habilitado con el plugin `apps/mobile/plugins/withCleartextTraffic.js`).
+  Cada pedido igual exige la credential del dispositivo emparejado.
 - **Credenciales**: cifradas con `safeStorage` en Electron y en el Keystore de Android
   (`expo-secure-store`) en mobile; nunca en `localStorage`.
 - **Nube**: contraseñas con scrypt, JWT separados para cuentas y admins, captcha Turnstile en el
@@ -285,6 +294,7 @@ Detalle en [`docs/security/`](docs/security/).
 - **Clientes en Mobile (LAN)**: se eligen al vender, pero se cargan y cobran desde Desktop.
 - **Backup automático fuera de la PC** (nube, sincronización): el automático queda en el mismo disco.
 - **macOS / Linux / iOS**: solo se empaqueta para Windows y Android.
+- **HTTPS en la LAN**: el tráfico Mobile ↔ PC va en HTTP; cifrarlo requiere certificados locales.
 - **Firma de código** del instalador Windows (sin ella, SmartScreen muestra un aviso la primera vez).
 
 ## Licencia y autoría
