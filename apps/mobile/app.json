@@ -47,6 +47,7 @@
         }
       ],
       "expo-sharing",
+      "./plugins/withCleartextTraffic",
       [
         "react-native-google-mobile-ads",
         {

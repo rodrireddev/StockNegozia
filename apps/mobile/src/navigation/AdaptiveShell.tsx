@@ -14,6 +14,7 @@ import {
   type LucideProps,
 } from "lucide-react-native";
 import { CASHIER_HIDDEN_HREFS, useIsCashier } from "@/devices/useIsCashier";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDeviceSize } from "@/hooks/useDeviceSize";
 import { useTheme } from "@/theme/useTheme";
 import { minTouchTarget, spacing, typography } from "@/theme/tokens";
@@ -55,6 +56,7 @@ export function AdaptiveShell() {
   const pathname = usePathname();
   const { colors } = useTheme();
   const isCashier = useIsCashier();
+  const insets = useSafeAreaInsets();
 
   const items = (isTablet ? TABLET_NAV_ITEMS : PHONE_NAV_ITEMS)
     .filter((item) => !isCashier || !CASHIER_HIDDEN_HREFS.includes(item.href as string))
@@ -91,7 +93,12 @@ export function AdaptiveShell() {
       <View
         style={[
           styles.bottomBar,
-          { borderTopColor: colors.border, backgroundColor: colors.background },
+          {
+            borderTopColor: colors.border,
+            backgroundColor: colors.background,
+            // Sin el inset inferior, la barra queda debajo de la navegación del sistema (Android edge-to-edge).
+            paddingBottom: Math.max(insets.bottom, spacing.sm),
+          },
         ]}
       >
         {items.map((item) => (
@@ -160,7 +167,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingTop: spacing.xs,
-    paddingBottom: spacing.sm,
   },
   tabItem: {
     flex: 1,
