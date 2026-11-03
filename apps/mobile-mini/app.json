@@ -10,7 +10,7 @@
     "platforms": ["android"],
     "android": {
       "package": "com.stocknegozia.mobilemini",
-      "versionCode": 4,
+      "versionCode": 5,
       "adaptiveIcon": {
         "backgroundImage": "./assets/images/android-icon-background.png",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
