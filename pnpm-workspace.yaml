@@ -34,3 +34,11 @@ onlyBuiltDependencies:
   - electron-winstaller
   - esbuild
   - sharp
+
+# Una sola copia de React en todo el workspace: auto-install-peers metía react@19.3.0 (vía el peer
+# opcional expo-sqlite de drizzle-orm en apps/backend) y en CI react-native terminaba resolviendo
+# esa copia mientras test-renderer usaba 19.2.3 → "Invalid hook call" en los tests de las apps
+# mobile. 19.2.3 es la que fija Expo (apps/mobile, apps/mobile-mini) y satisface ^19 del resto.
+overrides:
+  react: 19.2.3
+  react-dom: 19.2.3
