@@ -10,10 +10,15 @@ const base = require("@stocknegozia/config/eslint/base.js");
  * (ESLint + typescript-eslint recomendados, agnóstico de framework) y se agrega `react-hooks` a
  * mano — mismas reglas que usa Desktop, sin la parte específica de Vite.
  */
-module.exports = tseslint.config(...base, {
-  plugins: { "react-hooks": reactHooks },
-  rules: {
-    ...reactHooks.configs.recommended.rules,
+module.exports = tseslint.config(
+  // Config plugins de Expo en CommonJS (los carga Expo CLI con Node), igual que los *.config.js.
+  { ignores: ["plugins/**"] },
+  ...base,
+  {
+    plugins: { "react-hooks": reactHooks },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+    },
+    ignores: ["expo-env.d.ts"],
   },
-  ignores: ["expo-env.d.ts"],
-});
+);
